@@ -54,9 +54,9 @@ defmodule Utils do
 
 
   def test(str) do
-  # << j :: utf8 >> = x; 
-  #for <<c <- " hello world ">>, c != ?\s, into: "", do: c  
-  #x = for c <- String.codepoints("Helloé") do <<ch :: utf8>> = c; ch end  
+    # << j :: utf8 >> = x; 
+    #for <<c <- " hello world ">>, c != ?\s, into: "", do: c  
+    #x = for c <- String.codepoints("Helloé") do <<ch :: utf8>> = c; ch end  
     Stream.resource(fn -> String.codepoints(str) end,
       fn str ->
         case str do
@@ -64,6 +64,8 @@ defmodule Utils do
           _ -> {:halt, []}
         end
       end,
-      fn _str -> end)
-  end
+      fn _ -> nil end)
+    end
+
+
 end 
