@@ -49,7 +49,7 @@ def process_text(filePath) do
 	bt = WFLScratch.Token.new()
 
 	#open file - add each token to stack
-	File.stream!(filePath) |> Enum.each(fn (line) ->			
+	File.stream!(filePath) |> Enum.each(fn (line) ->
 		process_line(line, bt)	
 	end)			
 end
