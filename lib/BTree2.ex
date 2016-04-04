@@ -23,7 +23,7 @@ defmodule BTree2 do
       cmp > 0 -> #go right
         do_find(r, element, f)
       true ->
-        e  w# e.g. %{range: 65..90, type: :letter}
+        e # e.g. %{range: 65..90, type: :letter}
         
     end
   end

@@ -42,10 +42,7 @@ def make1(token) do
 
 	offsets = [-3, -2, -1, 1, 2, 3]
 	 
-	 token_offs = HashDict.get(token_events, tokenID)
-
-	 xx = []
-
+	token_offs = HashDict.get(token_events, tokenID)
 
 	Enum.reduce(token_offs, [], fn({sent_id, token_index}, new_sent_tokens) ->
 		temp_tokes = HashDict.get(sent_tokens, sent_id)   #to_4_bytes([97, 21, 67, 87, 22, 33, 44])
