@@ -4,25 +4,25 @@ require Logger
 use Bitwise
 
 def new()  do
-	tokens = HashDict.new()
+	tokens = Map.new()
 	cat = to_4_bytes([87])	#tokens will have a binary id made up of 4 byte integers representing tokens
 	
-	tokens = HashDict.put(tokens, "cat", cat)	#lookup for token ids form token
+	tokens = Map.put(tokens, "cat", cat)	#lookup for token ids form token
 	#we will need anoter dictionary keyed on tokenID
 
-	token_events = HashDict.new()    
+	token_events = Map.new()    
 	#structure is {sentenceID, tokenOffset}
 	
 
-	token_events = HashDict.put(token_events, cat, [{"s1", 3}, {"s2", 2}, {"s3", 1}, {"s4", 0}, {"s5", 6}])	#cat = <<0, 0, 0, 87>>
+	token_events = Map.put(token_events, cat, [{"s1", 3}, {"s2", 2}, {"s3", 1}, {"s4", 0}, {"s5", 6}])	#cat = <<0, 0, 0, 87>>
 
-	sent_tokens = HashDict.new()
+	sent_tokens = Map.new()
 	
-	sent_tokens = HashDict.put(sent_tokens, "s1", to_4_bytes([97, 21, 67, 87, 22, 33, 44]))	
-	sent_tokens = HashDict.put(sent_tokens, "s2", to_4_bytes([197, 121, 87, 871, 122, 331, 144]))
-	sent_tokens = HashDict.put(sent_tokens, "s3", to_4_bytes([917, 87, 617, 817, 212, 313, 414]))	
-	sent_tokens = HashDict.put(sent_tokens, "s4", to_4_bytes([87, 211, 671, 187, 221, 133, 441]))	
-	sent_tokens = HashDict.put(sent_tokens, "s5", to_4_bytes([2971, 2211, 12321, 2187, 2221, 1233, 87]))
+	sent_tokens = Map.put(sent_tokens, "s1", to_4_bytes([97, 21, 67, 87, 22, 33, 44]))	
+	sent_tokens = Map.put(sent_tokens, "s2", to_4_bytes([197, 121, 87, 871, 122, 331, 144]))
+	sent_tokens = Map.put(sent_tokens, "s3", to_4_bytes([917, 87, 617, 817, 212, 313, 414]))	
+	sent_tokens = Map.put(sent_tokens, "s4", to_4_bytes([87, 211, 671, 187, 221, 133, 441]))	
+	sent_tokens = Map.put(sent_tokens, "s5", to_4_bytes([2971, 2211, 12321, 2187, 2221, 1233, 87]))
 	
 	{tokens, token_events, sent_tokens}
 end
@@ -33,19 +33,19 @@ end
 
 
 def make1(token) do
-	#from {"s1", 3} produce [{"s1", }]
+	#from {"s1", 2} produce [{"s1", [{<<0, 0, 4, 209, 0, 0, 0, 87>>, 2},...]}]
 
 	{tokens, token_events, sent_tokens} = new()
 
-	tokenID = HashDict.get(tokens, token)
+	tokenID = Map.get(tokens, token)
 	
 
 	offsets = [-3, -2, -1, 1, 2, 3]
 	 
-	token_offs = HashDict.get(token_events, tokenID)
+	token_offs = Map.get(token_events, tokenID)
 
 	Enum.reduce(token_offs, [], fn({sent_id, token_index}, new_sent_tokens) ->
-		temp_tokes = HashDict.get(sent_tokens, sent_id)   #to_4_bytes([97, 21, 67, 87, 22, 33, 44])
+		temp_tokes = Map.get(sent_tokens, sent_id)   #to_4_bytes([97, 21, 67, 87, 22, 33, 44])
 		Logger.debug(sent_id)
 		token_count = div(byte_size(temp_tokes), 4)
 
