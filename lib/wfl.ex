@@ -1,62 +1,72 @@
 defmodule WFL_Item do
-	defstruct([:token_type, :freq, instances: []])
+	defstruct([:token_type, :token_id, :freq, instances: []])
 end
 
-defmodule TokenInfo do
-	defstruct(:token, :instance)
+defmodule TokenInput do
+	defstruct([:token, :instance])
 end
 
 defmodule TokenInstance do
-	defstruct(:sentence_id, :offset)
+	defstruct([:sentence_id, :offset])
 end
 
 
 defmodule WFL do
-	defstruct([depth: 0, token_types: %{}, token_ids: %{}])	#WFL has a map keyed on token-types eg "cat" - we also need a reverse lookup
+	defstruct([depth: 0, token_types: %{}, token_ids: %{}])	#both token_types and token_ids map into the same wfl_item collections
 
-	@name :wfldata
+	@name :wfl
+	@defaults %WFL{}	#set default text processing module here
 	
 	use GenServer
 	
 
 	#API	
-	def addToken(%TokenInfo{} = token_info) do
+	def addToken(%TokenInput{} = token_info) do
 
 		:gen_server.call(@name, {:add_token, token_info })
 	end
 
-	def start_link(depth) do
-		:gen_server.start_link({:local, :WFL}, __MODULE__, %{:depth => depth, :wfl_list => []}, [])		
+	def start_link(initial_wfl) do		
+		:gen_server.start_link(__MODULE__, initial_wfl, [])		
 	end
 
 	#Server
-	def init(_no_initial_state) do		
-		#the main state of a wfl is a WFL
-		wfl = %WFL{}
+	def init(initial_wfl) do		
+		#the state of a wfl is a WFL
+		wfl = 
+		case initial_wfl do
+			%{} -> Map.merge(@defaults, initial_wfl)
+			_   -> @defaults				
+			end
+		end		
 		{:ok, wfl}
 	end
 
-	def handle_call({:add_token, %TokenInfo{token: token, sentence_id: sentence_id, offset: offset}}, _from, wfl) do
+	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, wfl) do
 		#if token is in wfl, update frequency and add sentence/offset/length info 
 		#included in token_info should be a pid to higher level wfl which can be used to deconstruct compound types
 		#unless raw tokens, such as "cat" are being passed in, in which case pid is nil
 
-			wfl_item = Map.get(wfl.token_types, token)
-				case wfl_item do
-					%{freq: freq, instances: instances} ->	
-						%WFL_Item{token: token, freq: freq + 1, instances: [ %TokenInstance{sentence_id: sentence_id, offset: offset} | instances]}
-					_ ->
-						#token does not exist in wfl - add token_info to instances collection
-						%WFL_Item{token: token, freq: 1, instances: [%TokenInstance{sentence_id: sentence_id, offset: offset}]}
-				end
-%{expenses | groceries: 150, commute: 75}
+		#wfl.token_types is dictionary (map) of occurences of each type - keyed on the plain text of the type, eg "cat"
+		#we also need to be able to key on token-id.
+		#token id should be stored in wfl_item
 
-new_toke_types = Map.update(wfl.token_types, token, wfl_item, wfl_item)
-new_wfl = Map.update(wfl, token_types: new_toke_types)
+		wfl_item = Map.get(wfl.token_types, token)
+			case wfl_item do
+				%{freq: freq, instances: instances} ->	
+					%WFL_Item{token: token, token_id: tokenID, freq: freq + 1, instances: [ %TokenInstance{sentence_id: sentence_id, offset: offset} | instances]}
+				_ ->
+					#token does not exist in wfl - add token_info to instances collection
+					tokenID = TokenCounter.get_token_id()
+					%WFL_Item{token: token, token_id: tokenID, freq: 1, instances: [%TokenInstance{sentence_id: sentence_id, offset: offset}]}
+			end
 
-				
+		#update wfl maps so we can retrievewfl-items on token or token-id
+		new_toke_types_map = Map.update(wfl.token_types, token, wfl_item, wfl_item)
+		new_toke_id_map = Map.update(wfl.token_ids, tokenID, wfl_item, wfl_item)	#check that update does an insert if key does not exist.  i think it does.
+		new_wfl = Map.update(wfl, token_types: new_toke_types)
 			 
-		{:reply, wfl_item, new_wfl}
+		{:reply, :ok, new_wfl}	#don't think we need to return anything.
 	end
 
 	def handle_cast( {:push, new}, stack) do
