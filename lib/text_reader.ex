@@ -1,11 +1,11 @@
 defmodule SentenceData do	
-	defstruct([token: "" , token_count: 0, tokens: [], defs: [], sentence: <<>>, sentences: [], period_count: 0, punct_len: 0, char_type: :none ])
+	defstruct([token: "" , token_count: 0, char_type: :none, tokens: [], defs: [], sentence: <<>>, sentences: [], period_count: 0, punct_len: 0 ])
 end
 
 defmodule TextReader do
 	require Logger
 
-	@name :wfl_server
+	@name :text_reader
 	use GenServer
 
 	defstruct([sentence_data: %SentenceData{}, handler: &TextReader.cx_new_token/3])
@@ -14,22 +14,23 @@ defmodule TextReader do
 	def processText(filePath) do
 		#may want to process text with specific helper.
 		:gen_server.cast(@name, {:wfl_file, filePath })
+		:ok
 	end
 
 	def start_link(state) do		
 		#need to raise error if no wfl_pid - might even check if something on the other end
 		#might be passed in a helper to read text
 		#we either need to register the name of the sever or keep it in state
-		:gen_server.start_link(__MODULE__, state, [])
+		:gen_server.start_link({:local, @name}, __MODULE__, state, [])
 	end
 
 
 	#Server
-	def init(wfl_pid, char_def_tree) do
+	def init(state) do
 		#{:ok, stoppers} = WFLScratch.Stoppers.start_link()	# we will need a superviser here and rather than create the process here we should be either be passed the name of the process
 		#should this be part of a helper?
 		
-		{:ok, {wfl_pid, char_def_tree}}	#use a struct?
+		{:ok, state}	#use a struct?
 	end
 
 	def handle_cast( {:wfl_file, filePath}, {wfl_pid, bt} = state) do
@@ -51,45 +52,45 @@ defmodule TextReader do
 
 
 def process_line(str, _wfl_pid, char_tree) when is_binary(str) do
-	
-	tokes = _each_char(str, char_tree, %TextReader{handler: &TextReader.cx_new_token/3})
-		|> handleToken()
-	
-	sentences = handleEndline(tokes).sentences
 
-	Enum.each(sentences, fn s -> 
-		Logger.debug(s)
+	sentence_data = _each_char(str, char_tree, %TextReader{})
+		|> handleToken()
+		|> handleEndline()	#handleToken and handleEndline are only called once after line has been processed to mop up last word/sentence
+
+
+	Enum.each(sentence_data.sentences, fn s -> 	
+	s	
+		#Logger.debug(String.reverse(s))
 	end)
 	###|> WFL.addTokens(wfl_pid
 
 	#Logger.debug(tokes)
-	IO.inspect(tokes)
-	
+	IO.inspect(sentence_data)
+
 end
 
+def process_line(_str, _wfl_pid, _char_tree) do
+end
 
 def _each_char(<<>>, _char_tree, %TextReader{sentence_data: %SentenceData{} = sentence_data}) do
-	#empty string - flush tokenQ
+	#finished processing line
 	sentence_data
 end
 
-def _each_char(<<char :: utf8, rest :: binary>>, char_tree, %TextReader{sentence_data: %SentenceData{} = sentence_data}, handler: handler) do
+
+def _each_char(<<char :: utf8, rest :: binary>>, char_tree, %TextReader{sentence_data: %SentenceData{} = sentence_data, handler: handler}) do
 	#classify char
 
-	char_def = BTree2.find(char_tree, char)
-	
+	char_def = BTree2.find(char_tree, char)	
 	char_type = char_def[:type]
 
 	if char_type == :unknown do
 		Logger.debug("we have an unknown: #{char}")
 	end
-
 	
 	grapheme = List.to_string([char])	#yuck
-
-	res = handler.(grapheme, char_type, sentence_data)	#need to pass in more parameters
-	
-	_each_char(rest, char_tree, %TextReader{sentence_data: res[:sentence_data],  handler: res[:handler]})
+	res = handler.(grapheme, char_type, sentence_data)
+	_each_char(rest, char_tree, %TextReader{sentence_data: res.sentence_data,  handler: res.handler})
 end
 
 
@@ -128,7 +129,7 @@ def handleToken(%SentenceData{token: token, token_count: token_count, tokens: to
 
 end
 
-def handleSentence(%TextReader{sentence_data: %SentenceData{token: token, defs: defs, sentence: sentence, sentences: sentences, period_count: punct_len}, handler: handler}) do
+def handleSentence(%SentenceData{token: token, defs: [next_char_type | defs], sentence: sentence, sentences: sentences, punct_len: punct_len} = sentence_data) do
 #output looks strange.  we need to clarify what inputs are and what we should be doing with them.
 #need to check if sentence long enough - has any content
 	trim_len = length(defs) - punct_len
@@ -142,21 +143,20 @@ def handleSentence(%TextReader{sentence_data: %SentenceData{token: token, defs: 
 	end
 
 	new_sent = trimSent(sentence, trim_len)
-	logger.debug("new sent: #{new_sent}")
-	sd = %SentenceData{sentence_data | sentence: <<token <> sent_start>>, sentences: [new_sent|sentences], period_count: 0}
-	#note that handleSentence does not need to return anything as nothing is carried over an endline boundary.
-	%TextReader{sentence_data: sd, handler: handler}
-
+	#Logger.debug("new sent: #{new_sent}")
+	#could do a merge with a defaults object - here we repeat period_count and punct_len default values.
+	%SentenceData{sentence_data | defs: [next_char_type], sentence: <<token <> sent_start>>, sentences: [new_sent|sentences], period_count: 0, punct_len: 0}	
+	
 end
 
-def handleEndline(%TextReader{sentence_data: sentence_data, handler: handler}) do
+def handleEndline(%TextReader{sentence_data: %SentenceData{defs: defs} = sentence_data}) do
 	#{token, _token_count, tokens, defs, sentence, sentences, punct_len} = sentence_data
-	sd = %SentenceData{sentence_data | }
-	#note that handleEndline does not need to return anything as nothing is carried over an endline boundary.
-	handleSentence({token, :end, tokens, defs, sentence, sentences, punct_len}, handler)
+	sd = %SentenceData{sentence_data | defs: [:end | defs]}	
+	
+	handleSentence(sd)
 end
 
-def cx_new_token(char, char_type, %SentenceData{token: token, sentence: sentence} = sentence_data ) do
+def cx_new_token(char, char_type, %SentenceData{token: token, sentence: sentence, defs: defs} = sentence_data ) do
 	#looking for an alpha numeric to start a new token - also for sentence boundary
 	
 	case char_type do
@@ -165,26 +165,23 @@ def cx_new_token(char, char_type, %SentenceData{token: token, sentence: sentence
 		# check if we have crossed a sentence boundary in the process
 		rev_defs = Enum.reverse(defs)
 
-
 		{result, punct_len} = isSentence?(rev_defs, token)
 
-		if result == true do			
+		if result == true do	
 			#we have the start of a new token (in a new sentence)
-			#s_id = SentenceCounter.get_sentence_id(:sent_id_gen)					
-			#check that handleSentence returns a text reader
-			sd = handleSentence(%SentenceData{sentence_data |  punct_len: punct_len}, &TextReader.cx_read_token/3) 
-			%TextReader{sentence_data: sd}
+			#s_id = SentenceCounter.get_sentence_id(:sent_id_gen)			
+			sd = handleSentence(%SentenceData{sentence_data |  token: char, defs: [char_type | defs], punct_len: punct_len}) 
+			%TextReader{sentence_data: sd,  handler: &TextReader.cx_read_token/3}
 		else
-			sd = %SentenceData{sentence_data | defs: [char_type], sentence: <<char <> sentence>>} 
+			sd = %SentenceData{sentence_data | token: char, defs: [char_type], sentence: <<char <> sentence>>, period_count: 0} 
 			%TextReader{sentence_data: sd, handler: &TextReader.cx_read_token/3}			
 		end
-
-		#add char to token to and char info to chardefs
 
 	_ ->
 		#add token info to idefs, and continue to look for token start		
 		sd = %SentenceData{sentence_data | defs: [char_type|defs], sentence: <<char <> sentence>>} 
-		%TextReader{sentence_data: sd, handler: &TextReader.cx_new_token/3}			
+		%TextReader{sentence_data: sd, handler: &TextReader.cx_new_token/3}
+
 	end	
 end
 
@@ -196,13 +193,13 @@ def cx_read_token(char, char_type, %SentenceData{} = sentence_data ) do
 	new_defs = [char_type|sentence_data.defs]
 
 	case char_type do
-		:ws ->
+		:ws ->			
 			sd = %SentenceData{sentence_data | defs: new_defs, sentence: new_sentence}
 			handleToken(sd) 	#new_defs has the extra whitespace while token does not
 			#why does this not return a char reading function?
 
 		:period ->
-			sd = %SentenceData{sentence_data | token: <<char <> sentence_data.token>>, sentence: new_sentence, defs: new_defs, period_count: period_count + 1}
+			sd = %SentenceData{sentence_data | token: <<char <> sentence_data.token>>, sentence: new_sentence, defs: new_defs, period_count: sentence_data.period_count + 1}
 			%TextReader{sentence_data: sd, handler: &TextReader.cx_read_token/3}	
 
 		_ ->
@@ -353,12 +350,6 @@ end
 def handle_tok({token, tokens, defs, sentence, sentences, period_count}) do
 	handleToken({token, tokens, defs, sentence, sentences, period_count})
 end
-
-
-def handle_sent(token, next_char_type, tokens, defs, sentence, sentences, period_pos, handler) do
-	handleSentence({token, next_char_type, tokens, defs, sentence, sentences, period_pos}, handler) 
-end
-
 
 def trim_sent(sent, num) do
 	trimSent(sent, num)

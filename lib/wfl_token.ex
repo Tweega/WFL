@@ -144,7 +144,7 @@ def handleSentence({token, next_char_type, tokens, defs, sentence, sentence_id, 
 	end
 
 	new_sent = trimSent(sentence, trim_len)
-	Sentences.new(sentence_id, new_sent)
+#	Sentences.new(sentence_id, new_sent)
 	#note that handleSentence does not need to return anything as nothing is carried over an endline boundary.
 	[token_data: {token, 0, tokens, [next_char_type], <<token <> sent_start>>, sentence_id, [{new_sent, sentence_id}|sentences], 0}, handler: handler]
 
@@ -195,6 +195,7 @@ def cx_read_token(char, char_type, {token, token_count, tokens, defs, sentence, 
 
 	case char_type do
 		:ws ->
+			Logger.debug(token)
 			handleToken({token, token_count, tokens, new_defs, new_sentence, sentence_id, sentences, period_count}) 	#new_defs has the extra whitespace while token does not
 
 		:period ->

@@ -1,5 +1,5 @@
-defmodule WFL_Item do
-	defstruct([:token_type, :token_id, :freq, instances: []])
+defmodule WFL_Type do
+	defstruct([:type, :type_id, :freq, instances: []])
 end
 
 defmodule TokenInput do
@@ -10,12 +10,14 @@ defmodule TokenInstance do
 	defstruct([:sentence_id, :offset])
 end
 
+defmodule WFL_Data do
+	defstruct([depth: 0, types: %{}, type_ids: %{}])	#both types and type_ids map into the same WFL_Type collections
+end
 
 defmodule WFL do
-	defstruct([depth: 0, token_types: %{}, token_ids: %{}])	#both token_types and token_ids map into the same wfl_item collections
-
+	
 	@name :wfl
-	@defaults %WFL{}	#set default text processing module here
+	@defaults %WFL_Data{}	#set default text processing module here
 	
 	use GenServer
 	
@@ -36,8 +38,7 @@ defmodule WFL do
 		wfl = 
 		case initial_wfl do
 			%{} -> Map.merge(@defaults, initial_wfl)
-			_   -> @defaults				
-			end
+			_   -> @defaults			
 		end		
 		{:ok, wfl}
 	end
@@ -47,24 +48,28 @@ defmodule WFL do
 		#included in token_info should be a pid to higher level wfl which can be used to deconstruct compound types
 		#unless raw tokens, such as "cat" are being passed in, in which case pid is nil
 
-		#wfl.token_types is dictionary (map) of occurences of each type - keyed on the plain text of the type, eg "cat"
+		#wfl.types is dictionary (map) of occurences of each type - keyed on the plain text of the type, eg "cat"
 		#we also need to be able to key on token-id.
-		#token id should be stored in wfl_item
+		#token id should be stored in WFL_Type
 
-		wfl_item = Map.get(wfl.token_types, token)
-			case wfl_item do
-				%{freq: freq, instances: instances} ->	
-					%WFL_Item{token: token, token_id: tokenID, freq: freq + 1, instances: [ %TokenInstance{sentence_id: sentence_id, offset: offset} | instances]}
+		wfl_type = Map.get(wfl.types, token)
+
+		new_wfl_type =
+			case wfl_type do
+				%WFL_Type{freq: freq, instances: instances} ->	
+					%WFL_Type{wfl_type | freq: freq + 1,  instances: [%TokenInstance{sentence_id: sentence_id, offset: offset} | instances]}					
 				_ ->
 					#token does not exist in wfl - add token_info to instances collection
-					tokenID = TokenCounter.get_token_id()
-					%WFL_Item{token: token, token_id: tokenID, freq: 1, instances: [%TokenInstance{sentence_id: sentence_id, offset: offset}]}
+					type_id = TokenCounter.get_type_id()
+					%WFL_Type{type: token, type_id: type_id, freq: 1, instances: [%TokenInstance{sentence_id: sentence_id, offset: offset}]}
 			end
 
-		#update wfl maps so we can retrievewfl-items on token or token-id
-		new_toke_types_map = Map.update(wfl.token_types, token, wfl_item, wfl_item)
-		new_toke_id_map = Map.update(wfl.token_ids, tokenID, wfl_item, wfl_item)	#check that update does an insert if key does not exist.  i think it does.
-		new_wfl = Map.update(wfl, token_types: new_toke_types)
+		#update wfl maps so we can retrieve wfl-items on token or token-id
+		new_toke_types = Map.update(wfl.types, token, new_wfl_type, new_wfl_type)
+		new_toke_ids = Map.update(wfl.type_ids, new_wfl_type.type_id, new_wfl_type, new_wfl_type)	#check that update does an insert if key does not exist.  i think it does.
+		new_wfl = %WFL_Data{wfl | types: new_toke_types, type_ids: new_toke_ids}
+
+		Map.update(wfl, types: new_toke_types)
 			 
 		{:reply, :ok, new_wfl}	#don't think we need to return anything.
 	end
@@ -73,33 +78,9 @@ defmodule WFL do
 		{:noreply, [new|stack]}
 	end
 	
-	def handle_cast( {:token_id, token}, stack) do
-		s = process_wfl(filePath)
+	def handle_cast( {:type_id, _token}, stack) do
+		#_s = process_wfl(filePath)
 		{:noreply, stack}
 	end
 
-	defp process_wfl(filePath) do
-		#open file - add each token to stack
-		File.stream!(filePath)  |> Enum.each(fn (line) ->
-  			#:gen_server.cast(:WFL, {:push, line})
-  			tokenise(String.codepoints(line))  			
-		end)			
-	end
-
-	defp tokenise([]) do
-
-	end
-
-	defp tokenise([h|t]) do
-		#check if h is a stop char - for this we might want to consult an agent
-		#although if we have a distributed system all nodes should have their own copy
-		
-		#res = Agent.get(@stoppers, fn hd -> HashDict.get(hd, h) end)
-		unless nil do
-			#we have a stopper
-			:gen_server.cast(:WFL, {:push, h})
-		end
-		
-		tokenise(t)
-	end
 end

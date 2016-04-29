@@ -6,11 +6,12 @@ defmodule TokenID do
     
   end
 
-  def get_token_id(pid) do   #should callers have to know pid?
+  def get_token_id(_pid) do   #should callers have to know pid?
     #this is called when we have a new token and need to determine its type id
     #we need to see if this type already exists, otherwise create entry for it.  return token-id as 4 bytes.
 
-    Agent.get_and_update(pid, fn({next_id, map}) -> {{next_id, n + 1} end)
+    ##Agent.get_and_update(pid, fn({next_id, map}) -> {next_id, n + 1} end)
+
   end
 
   def set(pid, new_value) do

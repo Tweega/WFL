@@ -27,7 +27,7 @@ defmodule WFLScratch.Server do
 	end
 	
 	def handle_cast( {:wfl_file, filePath}, stack) do
-		s = process_wfl(filePath)
+		_s = process_wfl(filePath)
 		{:noreply, stack}
 	end
 
