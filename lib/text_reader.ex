@@ -5,40 +5,38 @@ end
 defmodule TextReader do
 	require Logger
 
-	@name :text_reader
-	use GenServer
-
 	defstruct([sentence_data: %SentenceData{}, handler: &TextReader.cx_new_token/3])
 	
 	#API
-	def processText(filePath) do
-		#may want to process text with specific helper.
-		:gen_server.cast(@name, {:wfl_file, filePath })
+	def processText(filePath, wfl_pid, char_def_tree, server) do		
+		#spawn a process that will start reader and listen out for completion
+		spawn(fn -> process_file(filePath, wfl_pid, char_def_tree, server) end)	#this function is being called on client thread so don't spawn link here
 		:ok
 	end
 
-	def start_link(state) do		
-		#need to raise error if no wfl_pid - might even check if something on the other end
-		#might be passed in a helper to read text
-		#we either need to register the name of the sever or keep it in state
-		:gen_server.start_link({:local, @name}, __MODULE__, state, [])
-	end
-
-
-	#Server
-	def init(state) do
-		#{:ok, stoppers} = WFLScratch.Stoppers.start_link()	# we will need a superviser here and rather than create the process here we should be either be passed the name of the process
-		#should this be part of a helper?
+	
+	defp process_file(filePath, wfl_pid, char_def_tree, server) do
+		#start monitored process to read file
+		res = spawn_monitor(fn ->read_file(filePath, wfl_pid, char_def_tree) end)
 		
-		{:ok, state}	#use a struct?
+		#now wait for the processing to finish and alert wfl_server
+		IO.puts inspect res
+		receive do
+			{:DOWN, _ref, :process, _pid, :normal} ->
+				IO.puts "File complete: Normal"
+				send(server, {:file_complete, filePath})
+			{_DOWN, _ref, _process, _pid, {{:nocatch, _}, _} = x} ->
+				IO.puts "File read: Unhandled exception"
+				IO.inspect(x)
+				send(server, {:file_error, filePath})
+			msg ->
+				IO.puts "File read: Something else"
+				IO.inspect(msg)
+				send(server, {:file_complete, filePath})		
+		end
 	end
 
-	def handle_cast( {:wfl_file, filePath}, {wfl_pid, bt} = state) do
-		_s = process_wfl(filePath, wfl_pid, bt)
-		{:noreply, state}
-	end
-
-	defp process_wfl(filePath, wfl_pid, char_def_tree) do
+	defp read_file(filePath, wfl_pid, char_def_tree) do
 		#open file - add each token to stack
 		#for each line is the reader, add token to the wfl
 		#each iteration of reader should supply a list of tokens that comprise a sentence ["the", "cat", "sat", "on", "the", "mat"]
