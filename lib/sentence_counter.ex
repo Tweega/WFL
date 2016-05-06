@@ -6,13 +6,8 @@ defmodule SentenceCounter do
     
   end
 
-  def get_sentence_id(pid) do
-    Agent.get_and_update(pid, fn(n) -> {n, n + 1} end)
-  end
-
-  def set(pid, new_value) do
-    #this should be for internal use only
-    Agent.update(pid, fn(_n) -> new_value end)
+  def get_sentence_id() do
+    Agent.get_and_update(:sent_id_gen, fn(n) -> {n, n + 1} end)
   end
 
 end

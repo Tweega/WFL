@@ -1,15 +1,15 @@
-defmodule SentenceData do	
-	defstruct([token: "" , token_count: 0, char_type: :none, tokens: [], defs: [], sentence: <<>>, sentences: [], period_count: 0, punct_len: 0 ])
-end
+#wfl_types.ex
+	
+#end wfl_types.ex
 
 defmodule TextReader do
 	require Logger
 
-	defstruct([sentence_data: %SentenceData{}, handler: &TextReader.cx_new_token/3])
+	defstruct([reader_info: %ReaderInfo{}, handler: &TextReader.cx_new_token/3])
 	
 	#API
-	def processText(filePath, wfl_pid, char_def_tree, server) do		
-		#spawn a process that will start reader and listen out for completion
+	def processText(filePath, char_def_tree, server, wfl_pid) do		
+		#spawn a process that will start reader and listen out for completion		
 		spawn(fn -> process_file(filePath, wfl_pid, char_def_tree, server) end)	#this function is being called on client thread so don't spawn link here
 		:ok
 	end
@@ -32,7 +32,7 @@ defmodule TextReader do
 			msg ->
 				IO.puts "File read: Something else"
 				IO.inspect(msg)
-				send(server, {:file_complete, filePath})		
+				send(server, {:file_complete, filePath})					
 		end
 	end
 
@@ -49,34 +49,26 @@ defmodule TextReader do
 	end
 
 
-def process_line(str, _wfl_pid, char_tree) when is_binary(str) do
+def process_line(str, wfl_pid, char_tree) when is_binary(str) do
 
-	sentence_data = _each_char(str, char_tree, %TextReader{})
+	%ReaderInfo{sentences: sentences} = _each_char(str, char_tree, %TextReader{})
 		|> handleToken()
 		|> handleEndline()	#handleToken and handleEndline are only called once after line has been processed to mop up last word/sentence
 
 
-	Enum.each(sentence_data.sentences, fn s -> 	
-	s	
-		#Logger.debug(String.reverse(s))
-	end)
-	###|> WFL.addTokens(wfl_pid
-
-	#Logger.debug(tokes)
-	IO.inspect(sentence_data)
-
+	GenServer.cast(wfl_pid, {:add_tokens, sentences})	#this should accept spawn acknowledge
 end
 
 def process_line(_str, _wfl_pid, _char_tree) do
 end
 
-def _each_char(<<>>, _char_tree, %TextReader{sentence_data: %SentenceData{} = sentence_data}) do
+def _each_char(<<>>, _char_tree, %TextReader{reader_info: %ReaderInfo{} = reader_info}) do
 	#finished processing line
-	sentence_data
+	reader_info
 end
 
 
-def _each_char(<<char :: utf8, rest :: binary>>, char_tree, %TextReader{sentence_data: %SentenceData{} = sentence_data, handler: handler}) do
+def _each_char(<<char :: utf8, rest :: binary>>, char_tree, %TextReader{reader_info: %ReaderInfo{} = reader_info, handler: handler}) do
 	#classify char
 
 	char_def = BTree2.find(char_tree, char)	
@@ -87,8 +79,9 @@ def _each_char(<<char :: utf8, rest :: binary>>, char_tree, %TextReader{sentence
 	end
 	
 	grapheme = List.to_string([char])	#yuck
-	res = handler.(grapheme, char_type, sentence_data)
-	_each_char(rest, char_tree, %TextReader{sentence_data: res.sentence_data,  handler: res.handler})
+	new_text_reader = handler.(grapheme, char_type, reader_info)
+	#new_text_reader = %ReaderInfo{reader_info: %ReaderInfo{reader_info | token_info: | token_data: res.token_data}
+	_each_char(rest, char_tree, new_text_reader)
 end
 
 
@@ -105,7 +98,7 @@ def trimSent(sent, _num) do
 end
 
 
-def handleToken(%SentenceData{token: token, token_count: token_count, tokens: tokens, defs: defs, sentence: sentence, sentences: sentences, period_count: period_count}) do
+def handleToken(%ReaderInfo{token_info: %TokenInfo{token: token, token_count: token_count, defs: defs, period_count: period_count},  sentence_info: %SentenceInfo{tokens: tokens, sentence: sentence}}) do
 	#defs will normally have a whitespace at the end which is carried over to cx_new_token/3 along with any additional punctuation after the token
 
 	toke = get_token(token, defs, period_count)		#if we want to canonicalise tokens we need to return an indicator that this has happened so we don't compare token length with def length.
@@ -114,7 +107,7 @@ def handleToken(%SentenceData{token: token, token_count: token_count, tokens: to
 	new_tokens = nil
 
 	if toke_len > 0 do
-		new_tokens = [{toke, token_count} | tokens]
+		new_tokens = [toke | tokens]
 		token_count = token_count + 1				
 	end
 
@@ -122,12 +115,14 @@ def handleToken(%SentenceData{token: token, token_count: token_count, tokens: to
 
 	post_defs = Enum.take(defs, post_def_len)
 	post_chars = String.slice(sentence, 0, post_def_len)
+	new_token_info = %TokenInfo{token: post_chars, token_count: token_count, defs: post_defs, period_count: period_count}
+	new_sentence_info = %SentenceInfo{tokens: new_tokens||tokens, sentence: sentence}
 
-	%TextReader{sentence_data: %SentenceData{token: post_chars, token_count: token_count, tokens: new_tokens||tokens, defs: post_defs, sentence: sentence, sentences: sentences, period_count: period_count}, handler: &TextReader.cx_new_token/3} 	#new_defs has the extra whitespace while token does not
+	%TextReader{reader_info: %ReaderInfo{token_info: new_token_info, sentence_info: new_sentence_info}, handler: &TextReader.cx_new_token/3} 	#new_defs has the extra whitespace while token does not
 
 end
 
-def handleSentence(%SentenceData{token: token, defs: [next_char_type | defs], sentence: sentence, sentences: sentences, punct_len: punct_len} = sentence_data) do
+def handleSentence(%ReaderInfo{token_info: %TokenInfo{token: token, defs: [next_char_type | defs], punct_len: punct_len} = token_data, sentence_info: %SentenceInfo{sentence: sentence, tokens: tokens} = sentence_info, sentences: sentences}) do
 #output looks strange.  we need to clarify what inputs are and what we should be doing with them.
 #need to check if sentence long enough - has any content
 	trim_len = length(defs) - punct_len
@@ -140,21 +135,26 @@ def handleSentence(%SentenceData{token: token, defs: [next_char_type | defs], se
 		""
 	end
 
-	new_sent = trimSent(sentence, trim_len)
+	new_sent = trimSent(sentence, trim_len)	#this is trimmed sentence - we either need access to the wfl now.. or we store back into sentence
 	#Logger.debug("new sent: #{new_sent}")
 	#could do a merge with a defaults object - here we repeat period_count and punct_len default values.
-	%SentenceData{sentence_data | defs: [next_char_type], sentence: <<token <> sent_start>>, sentences: [new_sent|sentences], period_count: 0, punct_len: 0}	
-	
+	%ReaderInfo{
+		token_info: %TokenInfo{token_data | defs: [next_char_type], period_count: 0, punct_len: 0}, 
+		sentence_info: %SentenceInfo{sentence_info | tokens: [], sentence: <<token <> sent_start>>}, 
+		sentences: [%SentenceInfo{tokens: tokens, sentence: new_sent}  | sentences]
+	}
+
 end
 
-def handleEndline(%TextReader{sentence_data: %SentenceData{defs: defs} = sentence_data}) do
-	#{token, _token_count, tokens, defs, sentence, sentences, punct_len} = sentence_data
-	sd = %SentenceData{sentence_data | defs: [:end | defs]}	
-	
-	handleSentence(sd)
+def handleEndline(%TextReader{reader_info: %ReaderInfo{token_info: %TokenInfo{defs: defs} = token_info} = reader_info}) do
+	#{token, _token_count, tokens, defs, sentence, sentences, punct_len} = token_data
+	new_token_info = %TokenInfo{token_info | defs: [:end | defs]}
+	new_reader_info = %ReaderInfo{reader_info | token_info: new_token_info}
+		
+	handleSentence(new_reader_info)
 end
 
-def cx_new_token(char, char_type, %SentenceData{token: token, sentence: sentence, defs: defs} = sentence_data ) do
+def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: token, defs: defs} = token_info, sentence_info: %SentenceInfo{sentence: sentence} = sentence_info }) do
 	#looking for an alpha numeric to start a new token - also for sentence boundary
 	
 	case char_type do
@@ -168,42 +168,42 @@ def cx_new_token(char, char_type, %SentenceData{token: token, sentence: sentence
 		if result == true do	
 			#we have the start of a new token (in a new sentence)
 			#s_id = SentenceCounter.get_sentence_id(:sent_id_gen)			
-			sd = handleSentence(%SentenceData{sentence_data |  token: char, defs: [char_type | defs], punct_len: punct_len}) 
-			%TextReader{sentence_data: sd,  handler: &TextReader.cx_read_token/3}
+			new_reader_info = handleSentence(%ReaderInfo{token_info: %TokenInfo{token_info |  token: char, defs: [char_type | defs], punct_len: punct_len}, sentence_info: sentence_info}) 
+			%TextReader{reader_info: new_reader_info,  handler: &TextReader.cx_read_token/3}
 		else
-			sd = %SentenceData{sentence_data | token: char, defs: [char_type], sentence: <<char <> sentence>>, period_count: 0} 
-			%TextReader{sentence_data: sd, handler: &TextReader.cx_read_token/3}			
+			new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | token: char, defs: [char_type], period_count: 0}, sentence_info: %SentenceInfo{sentence_info | sentence: <<char <> sentence>>}}
+			%TextReader{reader_info: new_reader_info,  handler: &TextReader.cx_read_token/3}
 		end
 
 	_ ->
 		#add token info to idefs, and continue to look for token start		
-		sd = %SentenceData{sentence_data | defs: [char_type|defs], sentence: <<char <> sentence>>} 
-		%TextReader{sentence_data: sd, handler: &TextReader.cx_new_token/3}
+		new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | defs: [char_type|defs]}, sentence_info: %SentenceInfo{sentence_info | sentence: <<char <> sentence>>}} 
+		%TextReader{reader_info: new_reader_info, handler: &TextReader.cx_new_token/3}
 
 	end	
 end
 
 
-def cx_read_token(char, char_type, %SentenceData{} = sentence_data ) do
+def cx_read_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{} = token_info, sentence_info: %SentenceInfo{} = sentence_info} ) do
 	#we are collecting characters for a token - keep going till we get whitespace, count any periods on the way
 
-	new_sentence = <<char <> sentence_data.sentence>>
-	new_defs = [char_type|sentence_data.defs]
+	new_sentence = <<char <> sentence_info.sentence>>
+	new_defs = [char_type|token_info.defs]
 
 	case char_type do
-		:ws ->			
-			sd = %SentenceData{sentence_data | defs: new_defs, sentence: new_sentence}
-			handleToken(sd) 	#new_defs has the extra whitespace while token does not
+		:ws ->
+			new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | defs: new_defs}, sentence_info: %SentenceInfo{sentence_info | sentence: new_sentence}}
+			handleToken(new_reader_info) 	#new_defs has the extra whitespace while token does not
 			#why does this not return a char reading function?
 
 		:period ->
-			sd = %SentenceData{sentence_data | token: <<char <> sentence_data.token>>, sentence: new_sentence, defs: new_defs, period_count: sentence_data.period_count + 1}
-			%TextReader{sentence_data: sd, handler: &TextReader.cx_read_token/3}	
+			new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | token: <<char <> token_info.token>>, defs: new_defs, period_count: token_info.period_count + 1}, sentence_info: %SentenceInfo{sentence_info | sentence: new_sentence}}
+			%TextReader{reader_info: new_reader_info, handler: &TextReader.cx_read_token/3}	
 
 		_ ->
 			#add this character to the token queue
-			sd = %SentenceData{sentence_data | token: <<char <> sentence_data.token>>, defs: new_defs, sentence: new_sentence}
-			%TextReader{sentence_data: sd, handler: &TextReader.cx_read_token/3}		
+			new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | token: <<char <> token_info.token>>, defs: new_defs}, sentence_info: %SentenceInfo{sentence_info | sentence: new_sentence}}
+			%TextReader{reader_info: new_reader_info, handler: &TextReader.cx_read_token/3}		
 	end
 	
 end

@@ -1,20 +1,20 @@
+
 defmodule Sentences do
   @name :sentences
+  #the aim here will be to save off to a db eg mongodb or redis  Agent is temporary
   
   def start_link() do        
-    Agent.start_link(fn -> %{} end, name: @name)  #should be a struct  - this returns agent's pid  
+    Agent.start_link(fn -> %{} end, name: @name)
   end
 
-  def new(sentence_id, token_array) do 
+  def new(sentence_id, sentence) do 
     #we need to swap tokens for type_ids
-    Enum.map(token_array, fn toke ->
-      toke_id = TokenCounter.get_token_id()
-    end)
-    Agent.update(@name, &Map.put(&1, sentence_id, token_array))
+    
+    Agent.update(:sentences, &Map.put(&1, sentence_id, sentence))
   end
 
   def get(sentence_id) do        
-    Agent.get(@name, &Map.get(&1, sentence_id))
+    Agent.get(:sentences, &Map.get(&1, sentence_id))
   end
 
 end

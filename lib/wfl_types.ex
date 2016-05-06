@@ -1,0 +1,38 @@
+defmodule SentenceInfo do	
+		#this struct is used when reading text file initially
+		defstruct([tokens: [], sentence: <<>>])
+	end
+
+	defmodule BinTokens do
+		#this is an expansion of all tokens in a sentence - 4 bytes per token - including amalgamated tokens.
+
+		defstruct(bin_tokens: <<>>)
+	end
+
+	defmodule Paragraph do
+		defstruct(sentences: [])	#list of SentenceInfo
+	end
+
+	defmodule TokenInfo do
+		defstruct([token: "" , token_count: 0, char_type: :none, defs: [], period_count: 0, punct_len: 0])
+	end
+
+	defmodule ReaderInfo do
+		defstruct([token_info: %TokenInfo{}, sentence_info: %SentenceInfo{}, sentences: []])	#sentences is an array of %SentenceInfo
+	end
+
+	defmodule WFL_Type do
+		defstruct([:type, :type_id, :freq, instances: []])
+	end
+
+	defmodule TokenInstance do
+		defstruct([:sentence_id, :offset])
+	end
+
+	defmodule TokenInput do
+		defstruct([:token, :instance])
+	end
+
+	defmodule WFL_Data do
+		defstruct([depth: 0, types: %{}, type_ids: %{}])	#both types and type_ids map into the same WFL_Type collections
+	end
