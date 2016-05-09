@@ -90,12 +90,8 @@ defmodule WFL do
 
 		#update / create WFL_Type for each token
 		List.foldl(tokens, {0, <<"">>, wfl_data}, fn (token, {token_offset, tokens_binary, wfl_data1}) -> 
-			{token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1)	
-			#IO.inspect(token_id)	
-			#IO.inspect(token_offset)	
-			#IO.inspect(tokens_binary)	
-			#IO.inspect(wfl_data2)		
-			{token_offset + 1, << <<token_id :: integer-unit(8)-size(4)>> <> tokens_binary >>, wfl_data2} end
+			{token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1)				
+			{token_offset + 1, << token_id <> tokens_binary >>,  wfl_data2} end			
 		)		
 	end
 
@@ -117,19 +113,19 @@ defmodule WFL do
 			#IO.inspect(new_type_info.type_id)
 			#IO.inspect("new_type_info.type_id")
 			#IO.inspect(new_type_info.type_id)
-			{{new_type_info.type_id, new_type_info}, new_type_info}
+			{new_type_info.type_id, new_type_info}
 		end)
 
 
 		#we want to be able to look up type from id
 		new_type_ids = Map.put_new(type_ids, type_id, token)
-IO.inspect("type_id")
-IO.inspect(type_id)
+#IO.inspect("type_id")
+#IO.inspect(type_id)
 #IO.inspect("type_id")
 #IO.inspect("type_id")
 #IO.inspect(type_id)
 		z = {type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
-		IO.inspect(z)
+		#IO.inspect(z)
 		z
 		
 	end
