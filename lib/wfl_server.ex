@@ -21,7 +21,7 @@ defmodule WFLScratch.Server do
 	end
 	
 	def handle_cast( {:wfl_file, {filePath, readerModule}}, state) do
-		wfl_pid = WFL.start_link()	#store this in map with filename as key? we need to have a completed status flag in state
+		{:ok, wfl_pid} = WFL.start_link()	#store this in map with filename as key? we need to have a completed status flag in state
 		new_state = Map.put_new(state, filePath, wfl_pid)	#check if a wfl for this filename already exists
 		process_file(filePath, readerModule, wfl_pid)	#should process_file be async?  what is the effect of handle_info calls which set state before this call terminates?
 		{:noreply, new_state}
@@ -42,7 +42,8 @@ defmodule WFLScratch.Server do
 		
 		char_def_tree = CharClass.new()
 		me = self()
-		apply(readerModule, :processText, [filePath, wfl_pid, char_def_tree, me])	#handle_info will be called when finished
+		
+		apply(readerModule, :processText, [filePath, char_def_tree, me, wfl_pid])	#handle_info will be called when finished
 		
 		#readers = [reader | readers]
 		

@@ -64,7 +64,7 @@ defmodule WFL do
 		
 		new_wfl_data = List.foldl(sentences, wfl_data, fn (%SentenceInfo{tokens: tokens, sentence: sentence}, wfl_data1) -> 
 			#get a sentence id
-			sentence_id = SentenceCounter.get_sentence_id(:sent_id_gen)
+			sentence_id = SentenceCounter.get_sentence_id()
 
 			#save the sentence somewhere - we don't need it for a while.  We could even store only offset and length in a filename bucket
 			Sentences.new(sentence_id, sentence)
@@ -90,7 +90,8 @@ defmodule WFL do
 
 		#update / create WFL_Type for each token
 		List.foldl(tokens, {0, <<"">>, wfl_data}, fn (token, {token_offset, tokens_binary, wfl_data1}) -> 
-			{token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1)			
+			{token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1)	
+			IO.inspect(token_id)		
 			{token_offset + 1, << <<token_id :: integer-unit(8)-size(4)>> <> tokens_binary >>, wfl_data2} end
 		)		
 	end
@@ -100,24 +101,24 @@ defmodule WFL do
 		new_instance = {sentence_id,  offset}
 
 		#see if we already have this token in wfl
-		{token_id, new_types} = Map.get_and_update(types, token, fn type_info -> 			
+		{type_id, new_types} = Map.get_and_update(types, token, fn type_info -> 			
 			new_type_info = case type_info do				
 				%WFL_Type{freq: freq, instances: instances} ->					
 					#existing type
 					%WFL_Type{type_info | freq: freq + 1, instances: [new_instance | instances]}			
 				_ ->
 					#token not seen before
-					new_type_id = TokenCounter.get_token_id(:token_id_gen)				
+					new_type_id = TokenCounter.get_token_id()				
 					%WFL_Type{type: token, type_id: new_type_id, freq: 1, instances: [new_instance]}
 			end
-			{{new_type_info.token_id, new_type_info}, new_type_info}
+			{{new_type_info.type_id, new_type_info}, new_type_info}
 		end)
 
 
 		#we want to be able to look up type from id
-		new_type_ids = Map.put_new(type_ids, token_id, token)
+		new_type_ids = Map.put_new(type_ids, type_id, token)
 
-		{token_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
+		{type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
 		
 	end
 
