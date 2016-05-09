@@ -110,24 +110,14 @@ defmodule WFL do
 					new_type_id = TokenCounter.get_token_id()				
 					%WFL_Type{type: token, type_id: new_type_id, freq: 1, instances: [new_instance]}
 			end
-			#IO.inspect(new_type_info.type_id)
-			#IO.inspect("new_type_info.type_id")
-			#IO.inspect(new_type_info.type_id)
 			{new_type_info.type_id, new_type_info}
 		end)
 
 
 		#we want to be able to look up type from id
 		new_type_ids = Map.put_new(type_ids, type_id, token)
-#IO.inspect("type_id")
-#IO.inspect(type_id)
-#IO.inspect("type_id")
-#IO.inspect("type_id")
-#IO.inspect(type_id)
-		z = {type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
-		#IO.inspect(z)
-		z
-		
+
+		{type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
 	end
 
 
