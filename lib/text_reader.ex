@@ -122,7 +122,7 @@ def handleToken(%ReaderInfo{token_info: %TokenInfo{token: token, token_count: to
 
 end
 
-def handleSentence(%ReaderInfo{token_info: %TokenInfo{token: token, defs: [next_char_type | defs], punct_len: punct_len} = token_data, sentence_info: %SentenceInfo{sentence: sentence, tokens: tokens} = sentence_info, sentences: sentences}) do
+def handleSentence(%ReaderInfo{token_info: %TokenInfo{token: token, defs: [next_char_type | defs], punct_len: punct_len} = token_data, sentence_info: %SentenceInfo{sentence: sentence, tokens: tokens} = sentence_info, sentences: sentence_infos}) do
 #output looks strange.  we need to clarify what inputs are and what we should be doing with them.
 #need to check if sentence long enough - has any content
 	trim_len = length(defs) - punct_len
@@ -138,11 +138,11 @@ def handleSentence(%ReaderInfo{token_info: %TokenInfo{token: token, defs: [next_
 	new_sent = trimSent(sentence, trim_len)	#this is trimmed sentence - we either need access to the wfl now.. or we store back into sentence
 	#Logger.debug("new sent: #{new_sent}")
 	#could do a merge with a defaults object - here we repeat period_count and punct_len default values.
-	IO.inspect(sentences)
+	IO.inspect(sentence_infos)
 	%ReaderInfo{
 		token_info: %TokenInfo{token_data | defs: [next_char_type], period_count: 0, punct_len: 0}, 
 		sentence_info: %SentenceInfo{sentence_info | tokens: [], sentence: <<token <> sent_start>>}, 
-		sentences: [%SentenceInfo{tokens: tokens, sentence: new_sent}  | sentences]
+		sentences: [%SentenceInfo{tokens: tokens, sentence: new_sent}  | sentence_infos]
 	}
 
 end
@@ -157,6 +157,7 @@ end
 
 def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: token, defs: defs} = token_info, sentence_info: %SentenceInfo{sentence: sentence} = sentence_info, sentences: sentence_infos }) do
 	#looking for an alpha numeric to start a new token - also for sentence boundary
+	IO.inspect(sentence_infos)
 	
 	case char_type do
 		y when y == :letter or y == :number ->  #use binary attributes?
@@ -169,7 +170,7 @@ def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: toke
 		if result == true do	
 			#we have the start of a new token (in a new sentence)
 			#s_id = SentenceCounter.get_sentence_id(:sent_id_gen)			
-			new_reader_info = handleSentence(%ReaderInfo{token_info: %TokenInfo{token_info |  token: char, defs: [char_type | defs], punct_len: punct_len}, sentence_info: sentence_info, sentences: sentence_infos}) 
+			new_reader_info = handleSentence(%ReaderInfo{token_info: %TokenInfo{token_info |  token: char, defs: [char_type | defs], punct_len: punct_len}, sentence_info: sentence_info, sentences: sentence_infos})
 			%TextReader{reader_info: new_reader_info,  handler: &TextReader.cx_read_token/3}
 		else
 			new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | token: char, defs: [char_type], period_count: 0}, sentence_info: %SentenceInfo{sentence_info | sentence: <<char <> sentence>>}, sentences: sentence_infos}
