@@ -98,7 +98,7 @@ def trimSent(sent, _num) do
 end
 
 
-def handleToken(%ReaderInfo{token_info: %TokenInfo{token: token, token_count: token_count, defs: defs, period_count: period_count},  sentence_info: %SentenceInfo{tokens: tokens, sentence: sentence}}) do
+def handleToken(%ReaderInfo{token_info: %TokenInfo{token: token, token_count: token_count, defs: defs, period_count: period_count},  sentence_info: %SentenceInfo{tokens: tokens, sentence: sentence}, sentences: sentence_infos}) do
 	#defs will normally have a whitespace at the end which is carried over to cx_new_token/3 along with any additional punctuation after the token
 
 	toke = get_token(token, defs, period_count)		#if we want to canonicalise tokens we need to return an indicator that this has happened so we don't compare token length with def length.
@@ -118,11 +118,11 @@ def handleToken(%ReaderInfo{token_info: %TokenInfo{token: token, token_count: to
 	new_token_info = %TokenInfo{token: post_chars, token_count: token_count, defs: post_defs, period_count: period_count}
 	new_sentence_info = %SentenceInfo{tokens: new_tokens||tokens, sentence: sentence}
 
-	%TextReader{reader_info: %ReaderInfo{token_info: new_token_info, sentence_info: new_sentence_info}, handler: &TextReader.cx_new_token/3} 	#new_defs has the extra whitespace while token does not
+	%TextReader{reader_info: %ReaderInfo{token_info: new_token_info, sentence_info: new_sentence_info, sentences: sentence_infos}, handler: &TextReader.cx_new_token/3} 	#new_defs has the extra whitespace while token does not
 
 end
 
-def handleSentence(%ReaderInfo{token_info: %TokenInfo{token: token, defs: [next_char_type | defs], punct_len: punct_len} = token_data, sentence_info: %SentenceInfo{sentence: sentence, tokens: tokens} = sentence_info, sentences: sentence_infos}) do
+def handleSentence(%ReaderInfo{token_info: %TokenInfo{token: token, defs: [next_char_type | defs], punct_len: punct_len}, sentence_info: %SentenceInfo{sentence: sentence, tokens: tokens} = sentence_info, sentences: sentence_infos}) do
 #output looks strange.  we need to clarify what inputs are and what we should be doing with them.
 #need to check if sentence long enough - has any content
 	trim_len = length(defs) - punct_len
@@ -138,9 +138,9 @@ def handleSentence(%ReaderInfo{token_info: %TokenInfo{token: token, defs: [next_
 	new_sent = trimSent(sentence, trim_len)	#this is trimmed sentence - we either need access to the wfl now.. or we store back into sentence
 	#Logger.debug("new sent: #{new_sent}")
 	#could do a merge with a defaults object - here we repeat period_count and punct_len default values.
-	IO.inspect(sentence_infos)
+	
 	%ReaderInfo{
-		token_info: %TokenInfo{token_data | defs: [next_char_type], period_count: 0, punct_len: 0}, 
+		token_info: %TokenInfo{token: token, defs: [next_char_type]}, 
 		sentence_info: %SentenceInfo{sentence_info | tokens: [], sentence: <<token <> sent_start>>}, 
 		sentences: [%SentenceInfo{tokens: tokens, sentence: new_sent}  | sentence_infos]
 	}
@@ -149,16 +149,21 @@ end
 
 def handleEndline(%TextReader{reader_info: %ReaderInfo{token_info: %TokenInfo{defs: defs} = token_info} = reader_info}) do
 	#{token, _token_count, tokens, defs, sentence, sentences, punct_len} = token_data
-	new_token_info = %TokenInfo{token_info | defs: [:end | defs]}
-	new_reader_info = %ReaderInfo{reader_info | token_info: new_token_info}
+	
+	case token_info.token_count do
+		token_count when token_count > 0 ->			
+			new_token_info = %TokenInfo{token_info | defs: [:end | defs]}
+			new_reader_info = %ReaderInfo{reader_info | token_info: new_token_info}				
+			handleSentence(new_reader_info)
 		
-	handleSentence(new_reader_info)
+		_ -> %ReaderInfo{}
+	end
+	
 end
 
 def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: token, defs: defs} = token_info, sentence_info: %SentenceInfo{sentence: sentence} = sentence_info, sentences: sentence_infos }) do
 	#looking for an alpha numeric to start a new token - also for sentence boundary
-	IO.inspect(sentence_infos)
-	
+
 	case char_type do
 		y when y == :letter or y == :number ->  #use binary attributes?
 	
