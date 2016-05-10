@@ -10,12 +10,17 @@ defmodule WFLScratch.Server do
 		:gen_server.cast(:WFL, {:wfl_file, {filePath, readerModule}})
 	end
 
-	def get_wfl_raw(key) do		
+	def get_wfl_raw(key) do	
+		#key identifies an alias for a given wfl.
 		:gen_server.call(:WFL, {:get_wfl_raw, key})
 	end
 
 	def get_wfl(key, field \\ :freq, order \\ :desc) do		
 		:gen_server.call(:WFL, {:get_wfl, key, field, order})
+	end
+
+	def get_token_info(key, token) do
+		:gen_server.call(:WFL, {:get_token_info, key, token})
 	end
 
 	def start_link(_x) do 	#we could initialise with an existing wfl or lemma file? if so we could spawn the process that reads those in.
@@ -39,6 +44,13 @@ defmodule WFLScratch.Server do
 		wfl_pid = Map.get(state, key)
 		wfl = WFL.get_wfl(wfl_pid)
 		{:reply, wfl, state}
+	end
+
+	def handle_call({:get_token_info, key, token}, _client, state) do
+		wfl_pid = Map.get(state, key)
+		wfl = WFL.get_wfl(wfl_pid).types
+		wfl_item = Map.get(wfl, token)
+		{:reply, wfl_item, state}
 	end
 
 	def handle_call({:get_wfl, key, field, order}, _client, state) do

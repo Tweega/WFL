@@ -96,10 +96,11 @@ defmodule WFL do
 		#we want a map of tokens so that we have [97, 123, 554, 98, 222, 27] etc. for e.g. the cat sat on the mat....except we want that as a binary string with 4 bytes per number
 #IO.inspect(tokens)
 
-		#update / create WFL_Type for each token		
-		List.foldl(tokens, {0, <<"">>, wfl_data}, fn (token, {token_offset, tokens_binary, wfl_data1}) -> 
+		#update / create WFL_Type for each token	
+		toke_offset = length(tokens)	# -1 if we want zero based index.  as it is the first offset is 1
+		List.foldl(tokens, {toke_offset, <<"">>, wfl_data}, fn (token, {token_offset, tokens_binary, wfl_data1}) -> 
 			{token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1)				
-			{token_offset + 1, << token_id <> tokens_binary >>,  wfl_data2} end			
+			{token_offset - 1, << token_id <> tokens_binary >>,  wfl_data2} end			
 		)		
 	end
 
