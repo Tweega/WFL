@@ -10,6 +10,14 @@ defmodule WFLScratch.Server do
 		:gen_server.cast(:WFL, {:wfl_file, {filePath, readerModule}})
 	end
 
+	def get_wfl_raw(key) do		
+		:gen_server.call(:WFL, {:get_wfl_raw, key})
+	end
+
+	def get_wfl(key, field \\ :freq, order \\ :desc) do		
+		:gen_server.call(:WFL, {:get_wfl, key, field, order})
+	end
+
 	def start_link(_x) do 	#we could initialise with an existing wfl or lemma file? if so we could spawn the process that reads those in.
 		:gen_server.start_link({:local, @name}, __MODULE__, %{}, [])
 	end
@@ -26,7 +34,41 @@ defmodule WFLScratch.Server do
 		process_file(filePath, readerModule, wfl_pid)	#should process_file be async?  what is the effect of handle_info calls which set state before this call terminates?
 		{:noreply, new_state}
 	end
+	
+	def handle_call({:get_wfl_raw, key}, _client, state) do
+		wfl_pid = Map.get(state, key)
+		wfl = WFL.get_wfl(wfl_pid)
+		{:reply, wfl, state}
+	end
 
+	def handle_call({:get_wfl, key, field, order}, _client, state) do
+		wfl_pid = Map.get(state, key)
+		wfl_types = WFL.get_wfl(wfl_pid).types
+		wfl = Map.to_list(wfl_types)
+		[{_a, h} | _t] = wfl
+		IO.inspect(h.freq)
+		sorted_wfl = 
+
+case field do    #a nuisance here that structs don't implement access behaviour
+	:freq ->
+		case order do
+			:asc ->
+				Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq <= wfl_item_b.freq end)
+			_ -> 
+				Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq >= wfl_item_b.freq end)
+		end
+	_ ->
+		case order do
+			:asc ->
+				Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type <= wfl_item_b.type end)
+			_ -> 
+				Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type >= wfl_item_b.type end)
+		end
+	
+end	
+		{:reply, sorted_wfl, state}
+	end
+	
 	def handle_info( {:file_complete, _filePath}, state) do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
 		{:noreply, state}
@@ -48,4 +90,5 @@ defmodule WFLScratch.Server do
 		#readers = [reader | readers]
 		
 	end
+	
 end

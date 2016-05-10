@@ -11,6 +11,10 @@ defmodule WFL do
 		:gen_server.call(pid, {:add_token, token_info })
 	end
 
+	def get_wfl(wfl_pid) do		
+		:gen_server.call(wfl_pid, :get_wfl)
+	end
+
 	def start_link() do		#pass in an initial wfl?
 		:gen_server.start_link(__MODULE__, %WFL_Data{}, [])		
 	end
@@ -20,6 +24,10 @@ defmodule WFL do
 		#the state of a wfl is a WFL
 			
 		{:ok, initial_wfl}
+	end
+
+	def handle_call(:get_wfl, _from, state) do
+		{:reply, state, state}
 	end
 
 	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, wfl) do
@@ -68,14 +76,14 @@ defmodule WFL do
 
 			#save the sentence somewhere - we don't need it for a while.  We could even store only offset and length in a filename bucket
 			Sentences.new(sentence_id, sentence)
-
+			
 			{_token_offset, tokens_binary, wfl_data2} = process_tokens(tokens, sentence_id, wfl_data1)
 
 			#store tokens binary data - this will be the input 'text' for the next round of tokens.
 			TokensBinary.new(sentence_id, tokens_binary)
 			wfl_data2			
 		end)
-	#state contains wfl_data
+		
 		{:noreply, new_wfl_data}
 	end
 
@@ -86,9 +94,9 @@ defmodule WFL do
 		# we also want sentences of the form <<tok_id1 <> tok_id2>>...a binary string - so we are not storing the actual text here - should this be binary string or 
 
 		#we want a map of tokens so that we have [97, 123, 554, 98, 222, 27] etc. for e.g. the cat sat on the mat....except we want that as a binary string with 4 bytes per number
+#IO.inspect(tokens)
 
-
-		#update / create WFL_Type for each token
+		#update / create WFL_Type for each token		
 		List.foldl(tokens, {0, <<"">>, wfl_data}, fn (token, {token_offset, tokens_binary, wfl_data1}) -> 
 			{token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1)				
 			{token_offset + 1, << token_id <> tokens_binary >>,  wfl_data2} end			
@@ -125,8 +133,8 @@ defmodule WFL do
 	 <<l :: integer-unit(8)-size(4)>>
 	end
 
-	def to_4_bytes(l) do
-		Enum.reduce(Enum.reverse(l), <<>>, fn(t, acc) -> << <<t :: integer-unit(8)-size(4)>> <> acc >> end)
+	def to_4_bytes(_l) do
+		
 	end
 
 end
