@@ -1,13 +1,15 @@
 
 defmodule TokensBinary do
-  @name :tokens_bin
+  defstruct(bin_tokens: <<>>)
+
+  @name :tokens_bin 
   
-  def start_link() do        
+  def start_link() do        #have one of these per text file?
     Agent.start_link(fn -> %{} end, name: @name)
   end
 
-  def new(sentence_id, tokens_bin) do 
-    Agent.update(:tokens_bin, &Map.put(&1, sentence_id, tokens_bin))
+  def new(sentence_id, %TokensBinary{} = tokens_bin) do 
+    Agent.update(:tokens_bin, &Map.put(&1, sentence_id, tokens_bin))  #include sentence_id in with tokens_bin data in tuple?
   end
 
   def get(sentence_id) do        

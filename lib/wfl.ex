@@ -1,5 +1,8 @@
 #wfl_types.ex
 #end wfl_types.ex
+defmodule CollocInfo do
+	defstruct([:bin_tokens, :sent_id, :offset])
+end
 
 defmodule WFL do	
 	@defaults %WFL_Data{}	#set default text processing module here
@@ -75,17 +78,36 @@ defmodule WFL do
 			sentence_id = SentenceCounter.get_sentence_id()
 
 			#save the sentence somewhere - we don't need it for a while.  We could even store only offset and length in a filename bucket
+			#this could/should be in a different process
 			Sentences.new(sentence_id, sentence)
 			
 			{_token_offset, tokens_binary, wfl_data2} = process_tokens(tokens, sentence_id, wfl_data1)
 
-			#store tokens binary data - this will be the input 'text' for the next round of tokens.
-			TokensBinary.new(sentence_id, tokens_binary)
+			#store tokens binary data - this will be the input 'text' for the next round of tokens.			
+			TokensBinary.new(sentence_id, %TokensBinary{bin_tokens: tokens_binary})
 			wfl_data2			
 		end)
 		
 		{:noreply, new_wfl_data}
 	end
+
+
+	def handle_cast({:add_collocations, collocs}, %WFL_Data{} = wfl_data) do	
+		#at the end of this process
+			#what we have is a collection of types in binary form, the sentence they are from and the offset to first token
+			#[{bin_tokens, sent_id, offset}...]  as in [{<<82, 12>>, 21, 2}...]
+
+			new_wfl_data = List.foldl(collocs, wfl_data, fn ({bin_tokens, sentence_id, token_offset}, wfl_data1) -> 
+			
+			#we want to add new type to the wfl along with instance data
+			{_token_id, wfl_data2} = process_token(bin_tokens, sentence_id, token_offset, wfl_data1)
+
+			wfl_data2
+		end)
+		
+		{:noreply, new_wfl_data}
+	end
+
 
 	defp process_tokens(tokens, sentence_id, %WFL_Data{} = wfl_data) do
 		
@@ -105,7 +127,6 @@ defmodule WFL do
 	end
 
 	defp process_token(token, sentence_id, offset, %WFL_Data{types: types, type_ids: type_ids}) do
-		
 		new_instance = {sentence_id,  offset}
 
 		#see if we already have this token in wfl

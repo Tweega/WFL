@@ -24,7 +24,7 @@ defmodule TextReader do
 		receive do
 			{:DOWN, _ref, :process, _pid, :normal} ->
 				IO.puts "File complete: Normal"
-				send(server, {:file_complete, filePath})
+				send(server, {:file_complete, wfl_pid})
 			{_DOWN, _ref, _process, _pid, {{:nocatch, _}, _} = x} ->
 				IO.puts "File read: Unhandled exception"
 				#IO.inspect(x)

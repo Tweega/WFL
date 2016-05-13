@@ -23,6 +23,10 @@ defmodule WFLScratch.Server do
 		:gen_server.call(:WFL, {:get_token_info, key, token})
 	end
 
+	def get_wfl_stream(key) do
+		:gen_server.call(:WFL, {:get_wfl_stream, key})
+	end
+
 	def start_link(_x) do 	#we could initialise with an existing wfl or lemma file? if so we could spawn the process that reads those in.
 		:gen_server.start_link({:local, @name}, __MODULE__, %{}, [])
 	end
@@ -37,7 +41,8 @@ defmodule WFLScratch.Server do
 		{:ok, wfl_pid} = WFL.start_link()	#store this in map with filename as key? we need to have a completed status flag in state
 		new_state = Map.put_new(state, filePath, wfl_pid)	#check if a wfl for this filename already exists
 		process_file(filePath, readerModule, wfl_pid)	#should process_file be async?  what is the effect of handle_info calls which set state before this call terminates?
-		{:noreply, new_state}
+		
+		{:noreply, new_state}	#note that new_state will not yet have an up-to-date wfl - we get a handle_info notification when file has been read.
 	end
 	
 	def handle_call({:get_wfl_raw, key}, _client, state) do
@@ -53,36 +58,17 @@ defmodule WFLScratch.Server do
 		{:reply, wfl_item, state}
 	end
 
+	
 	def handle_call({:get_wfl, key, field, order}, _client, state) do
 		wfl_pid = Map.get(state, key)
-		wfl_types = WFL.get_wfl(wfl_pid).types
-		wfl = Map.to_list(wfl_types)
-		[{_a, h} | _t] = wfl
-		IO.inspect(h.freq)
-		sorted_wfl = 
-
-case field do    #a nuisance here that structs don't implement access behaviour
-	:freq ->
-		case order do
-			:asc ->
-				Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq <= wfl_item_b.freq end)
-			_ -> 
-				Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq >= wfl_item_b.freq end)
-		end
-	_ ->
-		case order do
-			:asc ->
-				Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type <= wfl_item_b.type end)
-			_ -> 
-				Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type >= wfl_item_b.type end)
-		end
-	
-end	
+		sorted_wfl = get_sorted_wfl(wfl_pid, field,  order)
+			
 		{:reply, sorted_wfl, state}
 	end
 	
-	def handle_info( {:file_complete, _filePath}, state) do
+	def handle_info( {:file_complete, wfl_pid}, state) do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
+		process_collocations(wfl_pid, wfl_pid)				
 		{:noreply, state}
 	end
 
@@ -102,5 +88,59 @@ end
 		#readers = [reader | readers]
 		
 	end
+
+
+	defp get_sorted_wfl(wfl_pid, field, order) do
+		IO.inspect(wfl_pid)
+		wfl_types = WFL.get_wfl(wfl_pid).types
+		wfl = Map.to_list(wfl_types)
+		
+		case field do    #a nuisance here that structs don't implement access behaviour
+			:freq ->
+				case order do
+					:asc ->
+						Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq <= wfl_item_b.freq end)
+					_ -> 
+						Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq >= wfl_item_b.freq end)
+				end
+			_ ->
+				case order do
+					:asc ->
+						Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type <= wfl_item_b.type end)
+					_ -> 
+						Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type >= wfl_item_b.type end)
+				end
+			
+		end	
+	end
+
+	defp process_collocations(source_wfl_pid, accum_wfl_pid) do
+		#one wfl for all collocs or once for each level?
+		#create a listener (genserver?) that will listen out for completed wfls that need merging in to main wfl.
+		#why merge?
+		#for a given type i want a list of all its collocs so catsat is in list for cat and sat - is this stored in main wfl
+		#we get all the collocs, then break them down and update the lists for each token we have a list of paired-types
+		#there is a paired-type wfl and one for each level, three-some, 4-some etc.
+		#this is an iterative process - we process while there are items left in the current wfl
+		cutoff = 2	#this will have to be in config or similar.
+		#create wfl for colloc results
+		{:ok, current_wfl_pid} = WFL.start_link()
+
+		# get the list of wfl_items 		
+		sorted_wfl = get_sorted_wfl(source_wfl_pid, :freq, :desc)
+      	filtered_list = Enum.take_while(sorted_wfl, fn({_key, item}) -> item.freq >= cutoff end)
+
+		#given list of things to do things on - ie wfl_items
+		#create a list of listeners and wait for the mall to reply
+		#IO.inspect(filtered_list)
+
+		#we need bin_tokens and a wfl
+		Parallel.pjob(filtered_list, [{CollocReader, :get_collocs, []}, {CollocReader, :add_collocs_to_wfl, [current_wfl_pid]}, {WFLScratch.Server, :get_sorted_wfl, [:freq, :desc]}])
+	end
+
+	defp merge_wfls(_a, accum) do
+		accum
+	end
+	
 	
 end
