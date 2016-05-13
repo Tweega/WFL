@@ -34,34 +34,10 @@ defmodule WFL do
 	end
 
 	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, wfl) do
-		#if token is in wfl, update frequency and add sentence/offset/length info 
-		#included in token_info should be a pid to higher level wfl which can be used to deconstruct compound types
-		#unless raw tokens, such as "cat" are being passed in, in which case pid is nil
-
-		#wfl.types is dictionary (map) of occurences of each type - keyed on the plain text of the type, eg "cat"
-		#we also need to be able to key on token-id.
-		#token id should be stored in WFL_Type
-
-		wfl_type = Map.get(wfl.types, token)
-
-		new_wfl_type =
-			case wfl_type do
-				%WFL_Type{freq: freq, instances: instances} ->	
-					%WFL_Type{wfl_type | freq: freq + 1,  instances: [%TokenInstance{sentence_id: sentence_id, offset: offset} | instances]}					
-				_ ->
-					#token does not exist in wfl - add token_info to instances collection
-					type_id = TokenCounter.get_type_id()
-					%WFL_Type{type: token, type_id: type_id, freq: 1, instances: [%TokenInstance{sentence_id: sentence_id, offset: offset}]}
-			end
-
-		#update wfl maps so we can retrieve wfl-items on token or token-id
-		new_toke_types = Map.update(wfl.types, token, new_wfl_type, new_wfl_type)
-		new_toke_ids = Map.update(wfl.type_ids, new_wfl_type.type_id, new_wfl_type, new_wfl_type)	#check that update does an insert if key does not exist.  i think it does.
-		new_wfl = %WFL_Data{wfl | types: new_toke_types, type_ids: new_toke_ids}
-
-		Map.update(wfl, types: new_toke_types)
-			 
-		{:reply, :ok, new_wfl}	#don't think we need to return anything.
+		
+		{_token_id, new_wfl} = process_token(token, sentence_id, offset, wfl)				
+					 
+		{:reply, :ok, new_wfl}	
 	end
 
 	def handle_cast({:add_tokens, sentences}, %WFL_Data{} = wfl_data) do	
@@ -122,8 +98,8 @@ defmodule WFL do
 		toke_offset = length(tokens)	# -1 if we want zero based index.  as it is the first offset is 1
 		List.foldl(tokens, {toke_offset, <<"">>, wfl_data}, fn (token, {token_offset, tokens_binary, wfl_data1}) -> 
 			{token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1)				
-			{token_offset - 1, << token_id <> tokens_binary >>,  wfl_data2} end			
-		)		
+			{token_offset - 1, << token_id <> tokens_binary >>,  wfl_data2}	#next accumulator value		
+		end)		
 	end
 
 	defp process_token(token, sentence_id, offset, %WFL_Data{types: types, type_ids: type_ids}) do

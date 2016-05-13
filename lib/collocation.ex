@@ -1,4 +1,4 @@
-defmodule CollocReader do
+defmodule Collocation do
 	require Logger
 
 	def test({_key, wfl_item}) do
@@ -9,26 +9,26 @@ defmodule CollocReader do
 		IO.inspect(wfl_item)
 	end
 
-
 	def add_collocs_to_wfl(collocs, wfl_pid) do
 		#[{2, [{<<0, 0, 0, 6, 0, 0, 0, 5>>, 32}, {<<0, 0, 0, 7, 0, 0, 0, 6>>, 31},...]},
 		#for each sentence
 		inputs = Enum.reduce(collocs, [], fn({sent_id, token_offsets}, token_inputs_accum) ->
 			#for each token_offset
-			toke_inputs = Enum.reduce(token_offsets, token_inputs_accum, fn({bin_token, offset}, token_inputs) ->
+			toke_inputs = Enum.reduce(token_offsets, [], fn({bin_token, offset}, token_inputs) ->
 				#create instance
 				instance = %TokenInstance{sentence_id: sent_id, offset: offset}
 				[%TokenInput{token: bin_token, instance: instance}  | token_inputs]			
 			end)
-			[toke_inputs | token_inputs_accum]
+			toke_inputs ++ token_inputs_accum
 		end)
 		#add each input to the supplied wfl
-		Enum.each(inputs, fn(input)->
-			WFL.addToken(wfl_pid, input)
+		#IO.inspect(inputs)
+		Enum.each(inputs, fn(input) -> 			
+			WFL.addToken(wfl_pid, input)	
 		end)
+		
 		wfl_pid
 	end
-
 
 	def get_collocs({_key, wfl_item}) do
 		#wfl_item:  %WFL_Type{freq: 2, instances: [{6, 9}, {2, 29}], type: "place", type_id: <<0, 0, 0, 9>>}
@@ -83,5 +83,10 @@ defmodule CollocReader do
 			end)
 			[{sent_id, new_tokes} | new_sent_tokens]
 		end)
+	end
+
+	def check_wfl(wfl_pid) do
+		x = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)
+		IO.inspect(x)
 	end
 end

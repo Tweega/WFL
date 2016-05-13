@@ -90,7 +90,7 @@ defmodule WFLScratch.Server do
 	end
 
 
-	defp get_sorted_wfl(wfl_pid, field, order) do
+	def get_sorted_wfl(wfl_pid, field, order) do
 		IO.inspect(wfl_pid)
 		wfl_types = WFL.get_wfl(wfl_pid).types
 		wfl = Map.to_list(wfl_types)
@@ -109,19 +109,19 @@ defmodule WFLScratch.Server do
 						Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type <= wfl_item_b.type end)
 					_ -> 
 						Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type >= wfl_item_b.type end)
-				end
-			
-		end	
-	end
+					end
+				
+			end	
+		end
 
-	defp process_collocations(source_wfl_pid, accum_wfl_pid) do
+		defp process_collocations(source_wfl_pid, accum_wfl_pid) do
 		#one wfl for all collocs or once for each level?
 		#create a listener (genserver?) that will listen out for completed wfls that need merging in to main wfl.
 		#why merge?
 		#for a given type i want a list of all its collocs so catsat is in list for cat and sat - is this stored in main wfl
 		#we get all the collocs, then break them down and update the lists for each token we have a list of paired-types
 		#there is a paired-type wfl and one for each level, three-some, 4-some etc.
-		#this is an iterative process - we process while there are items left in the current wfl
+		#this is an iterative process - we process while there are items length(_)														ft in the current wfl
 		cutoff = 2	#this will have to be in config or similar.
 		#create wfl for colloc results
 		{:ok, current_wfl_pid} = WFL.start_link()
@@ -135,7 +135,7 @@ defmodule WFLScratch.Server do
 		#IO.inspect(filtered_list)
 
 		#we need bin_tokens and a wfl
-		Parallel.pjob(filtered_list, [{CollocReader, :get_collocs, []}, {CollocReader, :add_collocs_to_wfl, [current_wfl_pid]}, {WFLScratch.Server, :get_sorted_wfl, [:freq, :desc]}])
+		Parallel.pjob(filtered_list, [{Collocation, :get_collocs, []}, {Collocation, :add_collocs_to_wfl, [current_wfl_pid]}, {Collocation, :check_wfl, []}])
 	end
 
 	defp merge_wfls(_a, accum) do
