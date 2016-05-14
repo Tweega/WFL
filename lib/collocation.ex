@@ -1,3 +1,4 @@
+
 defmodule Collocation do
 	require Logger
 
@@ -30,11 +31,41 @@ defmodule Collocation do
 		wfl_pid
 	end
 
+
+	def get_pairs({_key, wfl_item}, wfl_pid) do
+		
+		tokenID = wfl_item.type_id
+
+		inputs = Enum.reduce(wfl_item.instances, [], fn({sent_id, token_index}, new_sent_tokens) ->
+			sent_bin_tokens = TokensBinary.get(sent_id).bin_tokens
+			token_count = div(byte_size(sent_bin_tokens), 4)
+			if token_index < token_count do
+				ex_token = binary_part(sent_bin_tokens, (token_index) * 4, 4) #All we will ever want is a single extra token
+				
+				new_token =  tokenID <> ex_token
+				#[{new_token, token_index} | new_sent_tokens]
+				#token, sent_id, offset
+				[%TokenInput{token: new_token, instance: %TokenInstance{sentence_id: sent_id, offset: token_index}} | new_sent_tokens]
+			else
+				new_sent_tokens
+			end
+		end)
+
+		Enum.each(inputs, fn(input) -> 			
+			WFL.addToken(wfl_pid, input)	
+		end)
+IO.inspect(inputs)
+		wfl_pid
+		
+	end
+
 	def get_collocs({_key, wfl_item}) do
 		#wfl_item:  %WFL_Type{freq: 2, instances: [{6, 9}, {2, 29}], type: "place", type_id: <<0, 0, 0, 9>>}
-		#wfl_item:  %WFL_Type{freq: 2, instances: [{6, 9}, {2, 29}], type: "place", type_id: <<0, 0, 0, 9>>}
-		#Logger.debug("do we get here?")
-		#for each instance get binary tokens for the sentence, then do the business with pairing them up
+		
+		#going to refactor so that first time round we only look at immediate pairs, then with triples to hollow out the phrase and to mark the hollow versions as possible abstractions
+		#abstractions only remain in the wfl if their frequency is sufficiently greater than any one more specific phrasing.
+
+		depth = 1	#this could derive from token_length
 		tokenID = wfl_item.type_id
 		offsets = [-3, -2, -1, 1, 2, 3]
 		

@@ -27,6 +27,10 @@ defmodule WFLScratch.Server do
 		:gen_server.call(:WFL, {:get_wfl_stream, key})
 	end
 
+	def get_wfl_pid(key) do
+		:gen_server.call(:WFL, {:get_wfl_pid, key})		
+	end
+
 	def start_link(_x) do 	#we could initialise with an existing wfl or lemma file? if so we could spawn the process that reads those in.
 		:gen_server.start_link({:local, @name}, __MODULE__, %{}, [])
 	end
@@ -51,6 +55,11 @@ defmodule WFLScratch.Server do
 		{:reply, wfl, state}
 	end
 
+	def handle_call({:get_wfl_pid, key}, _client, state) do
+		wfl_pid = Map.get(state, key)		
+		{:reply, wfl_pid, state}
+	end
+
 	def handle_call({:get_token_info, key, token}, _client, state) do
 		wfl_pid = Map.get(state, key)
 		wfl = WFL.get_wfl(wfl_pid).types
@@ -59,13 +68,18 @@ defmodule WFLScratch.Server do
 	end
 
 	
+	def handle_call({:get_wfl, key, field, order}, _client, state) when is_pid(key) do		
+		sorted_wfl = get_sorted_wfl(key, field,  order)
+			
+		{:reply, sorted_wfl, state}
+	end
+	
 	def handle_call({:get_wfl, key, field, order}, _client, state) do
 		wfl_pid = Map.get(state, key)
 		sorted_wfl = get_sorted_wfl(wfl_pid, field,  order)
 			
 		{:reply, sorted_wfl, state}
 	end
-	
 	def handle_info( {:file_complete, wfl_pid}, state) do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
 		process_collocations(wfl_pid, wfl_pid)				
@@ -141,6 +155,6 @@ defmodule WFLScratch.Server do
 	defp merge_wfls(_a, accum) do
 		accum
 	end
-	
+
 	
 end
