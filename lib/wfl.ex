@@ -18,20 +18,58 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, :get_wfl)
 	end
 
-	def start_link() do		#pass in an initial wfl?
-		:gen_server.start_link(__MODULE__, %WFL_Data{}, [])		
+	def get_token_info(wfl_pid, token) do
+		:gen_server.call(wfl_pid, {:get_token_info, token})
+	end
+
+	def get_parent(wfl_pid) do		
+		:gen_server.call(wfl_pid, :get_parent)
+	end
+
+	def expand_type_id(type_id) do		
+		:gen_server.call(wfl_pid, {:expand_type_id, type_id})
+	end
+
+	def start_link(parent_wfl_pid \\ nil) do		#pass in an initial wfl?
+		:gen_server.start_link(__MODULE__, {%WFL_Data{}, parent_wfl_pid}, [])		
 	end
 
 	#Server
-	def init(initial_wfl) do		
+	def init(state) do		
 		#the state of a wfl is a WFL
 			
-		{:ok, initial_wfl}
+		{:ok, state}
 	end
 
-	def handle_call(:get_wfl, _from, state) do
-		{:reply, state, state}
+	def handle_call(:get_wfl, _from, {wfl, _parent} = state) do
+		{:reply, wfl, state}
 	end
+
+	def handle_call(:get_parent, _from, {_wfl, parent} = state) do
+		{:reply, parent, state}
+	end
+
+	def handle_call({:expand_type, type_id}, _from, state) do
+		
+		{:reply, parent, state}
+	end
+
+	defp expand_type({wfl, parent} , key) do
+
+		#we may have token id <<0,0,0,3,  0,0,0,4>> in which case we have two lookups - we may also have a  space in the middle WORKING HERE
+		token = get_token_info(wfl, key)
+		x = case token do
+			%WFL_Type{} ->
+				case parent do
+					nil -> token
+					_ -> WFL.expand_type(parent, token)
+				end
+
+			_ -> nil
+		end
+
+	end
+	
 
 	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, wfl) do
 		
@@ -40,6 +78,12 @@ defmodule WFL do
 		{:reply, {:ok, token_id}, new_wfl}	
 	end
 
+	def handle_call({:get_token_info, token}, _client, state) do
+		wfl_item = get_token_info(state, token)
+		{:reply, wfl_item, state}
+	end
+
+	
 	def handle_cast({:add_tokens, sentences}, %WFL_Data{} = wfl_data) do	
 		#at the end of this process
 			#ok - all sentences in sentences should be saved somewhere keyed on sentence_id
@@ -124,6 +168,11 @@ defmodule WFL do
 		new_type_ids = Map.put_new(type_ids, type_id, token)
 
 		{type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
+	end
+
+	defp get_token_info(wfl, token) do
+		wfl = get_wfl(key).wfl_types
+		Map.get(wfl, token)
 	end
 
 

@@ -60,15 +60,18 @@ defmodule WFLScratch.Server do
 		{:reply, wfl_pid, state}
 	end
 
-	def handle_call({:get_token_info, key, token}, _client, state) do
-		wfl_pid = Map.get(state, key)
-		wfl = WFL.get_wfl(wfl_pid).types
-		wfl_item = Map.get(wfl, token)
+	def handle_call({:get_token_info, key, token}, _client, state) when is_pid(key) or is_atom(key) do		
+		wfl_item = WFL.get_token_info(key, token)
 		{:reply, wfl_item, state}
 	end
 
+	def handle_call({:get_token_info, key, token}, _client, state) 
+		wfl_pid = Map.get(state, key)		
+		wfl_item = WFL.get_token_info(wfl_pid, token)
+		{:reply, wfl_item, state}
+	end
 	
-	def handle_call({:get_wfl, key, field, order}, _client, state) when is_pid(key) or is_atom(key) do		
+	def handle_call({:get_wfl, key, field, order}, _client, state) when is_pid(key) or is_atom(key) do
 		sorted_wfl = get_sorted_wfl(key, field,  order)
 			
 		{:reply, sorted_wfl, state}
@@ -104,7 +107,7 @@ defmodule WFLScratch.Server do
 	end
 
 
-	def get_sorted_wfl(wfl_pid, field, order) do
+	def get_sorted_wfl(wfl_pid, field, order) do #this should be on wfl
 		IO.inspect(wfl_pid)
 		wfl_types = WFL.get_wfl(wfl_pid).types
 		wfl = Map.to_list(wfl_types)
