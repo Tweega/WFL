@@ -23,7 +23,7 @@ defmodule Collocation do
 			toke_inputs ++ token_inputs_accum
 		end)
 		#add each input to the supplied wfl
-		#IO.inspect(inputs)
+		IO.inspect(inputs)
 		Enum.each(inputs, fn(input) -> 			
 			WFL.addToken(wfl_pid, input)	
 		end)
@@ -35,7 +35,7 @@ defmodule Collocation do
 	def get_pairs({_key, wfl_item}, wfl_pid) do
 		
 		tokenID = wfl_item.type_id
-
+IO.inspect("hello")
 		inputs = Enum.reduce(wfl_item.instances, [], fn({sent_id, token_index}, new_sent_tokens) ->
 			sent_bin_tokens = TokensBinary.get(sent_id).bin_tokens
 			token_count = div(byte_size(sent_bin_tokens), 4)
@@ -52,11 +52,46 @@ defmodule Collocation do
 		end)
 
 		Enum.each(inputs, fn(input) -> 			
-			WFL.addToken(wfl_pid, input)	
+			{:ok, _token_id} = WFL.addToken(wfl_pid, input)	
 		end)
-IO.inspect(inputs)
-		wfl_pid
-		
+		#IO.inspect(inputs)
+		wfl_pid		
+	end
+
+	def extend_pairs(pair_pid) do
+		#get list of pairs with freq > 2
+		# get the list of wfl_items 		
+		cutoff = 2
+		sorted_wfl = WFLScratch.Server.get_sorted_wfl(pair_pid, :freq, :desc)
+      	filtered_list = Enum.take_while(sorted_wfl, fn({_key, item}) -> item.freq >= cutoff end)
+
+      
+
+	end
+	
+	def get_sent_off_tokens(wfl_info_list) do		
+		get_sent_off_tokens(wfl_info_list, [])
+	end
+
+	def get_sent_off_tokens([], acc) do 	#no wfl-infos left
+		acc
+	end
+
+	def get_sent_off_tokens([wfl_info | tail], acc) do
+		x = get_sent_off_tokes(wfl_info, acc)
+		get_sent_off_tokens(tail, x)
+	end
+
+	def get_sent_off_tokes({_, %WFL_Type{} = wt}, acc) do	
+		get_sent_off_tokes(wt.type_id, wt.instances, acc)
+	end
+
+	def get_sent_off_tokes(_type_id, [], acc) do 	#no more sentence instances
+		acc
+	end
+
+	def get_sent_off_tokes(type_id, [{sent_id, offset} | tail], acc) do
+		get_sent_off_tokes(type_id, tail, [{type_id, sent_id, offset} | acc])
 	end
 
 	def get_collocs({_key, wfl_item}) do

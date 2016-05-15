@@ -35,9 +35,9 @@ defmodule WFL do
 
 	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, wfl) do
 		
-		{_token_id, new_wfl} = process_token(token, sentence_id, offset, wfl)				
-					 
-		{:reply, :ok, new_wfl}	
+		{token_id, new_wfl} = process_token(token, sentence_id, offset, wfl)				
+
+		{:reply, {:ok, token_id}, new_wfl}	
 	end
 
 	def handle_cast({:add_tokens, sentences}, %WFL_Data{} = wfl_data) do	

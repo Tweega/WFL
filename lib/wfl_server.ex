@@ -68,7 +68,7 @@ defmodule WFLScratch.Server do
 	end
 
 	
-	def handle_call({:get_wfl, key, field, order}, _client, state) when is_pid(key) do		
+	def handle_call({:get_wfl, key, field, order}, _client, state) when is_pid(key) or is_atom(key) do		
 		sorted_wfl = get_sorted_wfl(key, field,  order)
 			
 		{:reply, sorted_wfl, state}
@@ -123,12 +123,12 @@ defmodule WFLScratch.Server do
 						Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type <= wfl_item_b.type end)
 					_ -> 
 						Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type >= wfl_item_b.type end)
-					end
+				end
 				
-			end	
-		end
+		end	
+	end
 
-		defp process_collocations(source_wfl_pid, accum_wfl_pid) do
+	defp process_collocations(source_wfl_pid, accum_wfl_pid) do
 		#one wfl for all collocs or once for each level?
 		#create a listener (genserver?) that will listen out for completed wfls that need merging in to main wfl.
 		#why merge?
@@ -139,6 +139,7 @@ defmodule WFLScratch.Server do
 		cutoff = 2	#this will have to be in config or similar.
 		#create wfl for colloc results
 		{:ok, current_wfl_pid} = WFL.start_link()
+		Process.register current_wfl_pid, :colloc_wfl
 
 		# get the list of wfl_items 		
 		sorted_wfl = get_sorted_wfl(source_wfl_pid, :freq, :desc)
@@ -149,7 +150,9 @@ defmodule WFLScratch.Server do
 		#IO.inspect(filtered_list)
 
 		#we need bin_tokens and a wfl
-		Parallel.pjob(filtered_list, [{Collocation, :get_collocs, []}, {Collocation, :add_collocs_to_wfl, [current_wfl_pid]}, {Collocation, :check_wfl, []}])
+		#Parallel.pjob(filtered_list, [{Collocation, :get_collocs, []}, {Collocation, :add_collocs_to_wfl, [current_wfl_pid]}, {Collocation, :check_wfl, []}])
+		Parallel.pjob(filtered_list, [{Collocation, :get_pairs, [current_wfl_pid]}])
+
 	end
 
 	defp merge_wfls(_a, accum) do
