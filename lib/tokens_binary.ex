@@ -4,7 +4,7 @@ defmodule TokensBinary do
 
   @name :tokens_bin 
   
-  def start_link() do        #have one of these per text file?
+  def start_link() do        #have one of these per text file? one per wfl at any rate.
     Agent.start_link(fn -> %{} end, name: @name)
   end
 
@@ -16,4 +16,7 @@ defmodule TokensBinary do
     Agent.get(:tokens_bin, &Map.get(&1, sentence_id))
   end
 
+  def get_map() do        
+    Agent.get(:tokens_bin, &(&1))
+  end
 end

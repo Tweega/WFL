@@ -1,4 +1,4 @@
-defmodule SentenceInfo do	
+	defmodule SentenceInfo do	
 		#this struct is used when reading text file initially
 		defstruct([tokens: [], sentence: <<>>])
 	end
@@ -35,4 +35,26 @@ defmodule SentenceInfo do
 
 	defmodule WFL_Data do
 		defstruct([depth: 0, types: %{}, type_ids: %{}])	#both types and type_ids map into the same WFL_Type collections
+	end
+
+	defmodule Check_Type do		
+		def check(%TokenInput{} = struc) do
+			IO.puts("TokenInput")
+			struc
+		end
+
+		def check(%SentenceInfo{} = struc) do
+			IO.puts("SentenceInfo")
+			struc
+		end
+
+		def check(%WFL_Type{} = struc) do
+			IO.puts("WFL_Type")
+			struc
+		end
+
+		def check(%WFL_Data{} = struc) do
+			IO.puts("WFL_Data")
+			struc
+		end
 	end

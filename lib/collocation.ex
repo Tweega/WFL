@@ -155,4 +155,34 @@ IO.inspect("hello")
 		x = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)
 		IO.inspect(x)
 	end
+
+	def say_hello({sentence_id, %TokensBinary{} = bin_tokens}, source_wfl_pid) do
+		#for each token in bin_tokens, get its freq
+		#WFL.get_token_info(source_wfl_pid, token) 
+
+		IO.inspect(bin_tokens)
+	end
+
+
+end
+
+defmodule TokenStream do
+
+  def get_token_stream(bin_tokens) when is_binary(bin_tokens) do
+    Stream.resource(
+      fn -> 
+      	bin_tokens #list of wfl items.
+      end,	#this fn intitialises the resource - it takes no params and returns 'the resource' - which will be a sorted wfl 
+      fn(bin_tokes) -> 
+        case bin_tokes do 	#return next wfl_item.  {:halt, accumulator} when finished.
+        	<<>> -> {:halt, []}
+        	<<token_id :: binary-size(4), token_ids :: binary>> ->
+            	{[token_id], token_ids}
+        end
+      end,
+      fn(empty_token_list) -> empty_token_list end 	#tidy up - returns the final value of the stream if there is one.
+    )
+  end
+
+
 end

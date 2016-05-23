@@ -26,7 +26,7 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, :get_parent)
 	end
 
-	def expand_type_id(type_id) do		
+	def expand_type_id(wfl_pid, type_id) do		
 		:gen_server.call(wfl_pid, {:expand_type_id, type_id})
 	end
 
@@ -50,41 +50,25 @@ defmodule WFL do
 	end
 
 	def handle_call({:expand_type, type_id}, _from, state) do
-		
+		parent = 12333
 		{:reply, parent, state}
 	end
 
-	defp expand_type({wfl, parent} , key) do
-
-		#we may have token id <<0,0,0,3,  0,0,0,4>> in which case we have two lookups - we may also have a  space in the middle WORKING HERE
-		token = get_token_info(wfl, key)
-		x = case token do
-			%WFL_Type{} ->
-				case parent do
-					nil -> token
-					_ -> WFL.expand_type(parent, token)
-				end
-
-			_ -> nil
-		end
-
-	end
 	
-
-	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, wfl) do
+	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
 		
-		{token_id, new_wfl} = process_token(token, sentence_id, offset, wfl)				
+		{token_id, new_wfl} = process_token(token, sentence_id, offset, wfl_data)				
 
-		{:reply, {:ok, token_id}, new_wfl}	
+		{:reply, {:ok, token_id}, {new_wfl, parent_wfl_pid}}	
 	end
 
 	def handle_call({:get_token_info, token}, _client, state) do
-		wfl_item = get_token_info(state, token)
+		wfl_item = fetch_token_info(state, token)
 		{:reply, wfl_item, state}
 	end
 
 	
-	def handle_cast({:add_tokens, sentences}, %WFL_Data{} = wfl_data) do	
+	def handle_cast({:add_tokens, sentences}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do	
 		#at the end of this process
 			#ok - all sentences in sentences should be saved somewhere keyed on sentence_id
 			#ok  jut to be added to map - all tokens in a sentence should be merged into a binary format containing the token ids only, 4 bytes per token
@@ -108,11 +92,11 @@ defmodule WFL do
 			wfl_data2			
 		end)
 		
-		{:noreply, new_wfl_data}
+		{:noreply, {new_wfl_data, parent_wfl_pid}}
 	end
 
 
-	def handle_cast({:add_collocations, collocs}, %WFL_Data{} = wfl_data) do	
+	def handle_cast({:add_collocations, collocs}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do	
 		#at the end of this process
 			#what we have is a collection of types in binary form, the sentence they are from and the offset to first token
 			#[{bin_tokens, sent_id, offset}...]  as in [{<<82, 12>>, 21, 2}...]
@@ -125,9 +109,25 @@ defmodule WFL do
 			wfl_data2
 		end)
 		
-		{:noreply, new_wfl_data}
+		{:noreply, {new_wfl_data, parent_wfl_pid}}
 	end
 
+defp expand_type({wfl, parent} , key) do
+
+		#we may have token id <<0,0,0,3,  0,0,0,4>> in which case we have two lookups - we may also have a  space in the middle WORKING HERE
+		token = fetch_token_info(wfl, key)
+		x = case token do
+			%WFL_Type{} ->
+				case parent do
+					nil -> token
+					_ -> WFL.expand_type(parent, token)
+				end
+
+			_ -> nil
+		end
+
+	end
+	
 
 	defp process_tokens(tokens, sentence_id, %WFL_Data{} = wfl_data) do
 		
@@ -170,9 +170,13 @@ defmodule WFL do
 		{type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
 	end
 
-	defp get_token_info(wfl, token) do
-		wfl = get_wfl(key).wfl_types
-		Map.get(wfl, token)
+	defp fetch_token_info(wfl, token_id) when is_integer(token_id) do		
+		token = Map.get(wfl.type_ids, token_id)		
+		Map.get(wfl.wfl_types, token)
+	end
+
+	defp fetch_token_info(wfl, token) do
+		Map.get(wfl.wfl_types, token)
 	end
 
 

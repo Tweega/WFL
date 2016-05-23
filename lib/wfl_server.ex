@@ -65,7 +65,7 @@ defmodule WFLScratch.Server do
 		{:reply, wfl_item, state}
 	end
 
-	def handle_call({:get_token_info, key, token}, _client, state) 
+	def handle_call({:get_token_info, key, token}, _client, state) do
 		wfl_pid = Map.get(state, key)		
 		wfl_item = WFL.get_token_info(wfl_pid, token)
 		{:reply, wfl_item, state}
@@ -154,13 +154,19 @@ defmodule WFLScratch.Server do
 
 		#we need bin_tokens and a wfl
 		#Parallel.pjob(filtered_list, [{Collocation, :get_collocs, []}, {Collocation, :add_collocs_to_wfl, [current_wfl_pid]}, {Collocation, :check_wfl, []}])
-		Parallel.pjob(filtered_list, [{Collocation, :get_pairs, [current_wfl_pid]}])
+		#Parallel.pjob(filtered_list, [{Collocation, :get_pairs, [current_wfl_pid]}])
+		#get list of sentences and update each of the tokens so that we have their frequency - or at least a function that can get the frequency
+		#function that can get the frequency is - perhaps not necessary? we will have the wfl_item - no we have the token from the sentence
+		#provide a stream?
+		s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)
+		Parallel.pjob(s, [{Collocation, :say_hello, [source_wfl_pid]}])
 
 	end
 
 	defp merge_wfls(_a, accum) do
 		accum
 	end
+	
 
 	
 end

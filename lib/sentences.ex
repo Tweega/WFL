@@ -2,6 +2,7 @@
 defmodule Sentences do
   @name :sentences
   #the aim here will be to save off to a db eg mongodb or redis  Agent is temporary
+  #sentences to be linked to a wfl?
   
   def start_link() do        
     Agent.start_link(fn -> %{} end, name: @name)
