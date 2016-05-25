@@ -1,6 +1,11 @@
+defmodule TokenFreq do
+	defstruct([token_id: <<>>, freq: 0])
+end
 
 defmodule Collocation do
 	require Logger
+
+	defstruct([token_ids: <<>>, concretisations: []])	#anything that further defines a pattern is a concretisation - though a shorter word would be nice.  ab is concretisation of a and b as is a_b.  acb is concretisation of a_b
 
 	def test({_key, wfl_item}) do
 		wfl_item
@@ -32,7 +37,7 @@ defmodule Collocation do
 	end
 
 
-	def get_pairs({_key, wfl_item}, wfl_pid) do
+	def get_pairs_x({_key, wfl_item}, wfl_pid) do
 		
 		tokenID = wfl_item.type_id
 IO.inspect("hello")
@@ -160,30 +165,88 @@ IO.inspect("hello")
 		
 		#get freqs for each token_id - TokenStream
 		token_stream = TokenStream.get_token_stream(sent_bin_tokens.bin_tokens)	#using a stream to hand out token_ids into 4 byte chunks
-		token_count = div(byte_size(sent_bin_tokens.bin_tokens), 4)
+		_token_count = div(byte_size(sent_bin_tokens.bin_tokens), 4)
 
 		#get freqs for each token_id - map
-		bin_tok_freq_map = Enum.map(token_stream, fn(tok_id) ->
+		bin_tok_freq_list = Enum.map(token_stream, fn(tok_id) ->
 			#get the wfl_info for this token
 			wfl_info = WFL.get_token_info_from_id(source_wfl_pid, tok_id)
-			{tok_id, wfl_info.freq}
+			%TokenFreq{token_id: tok_id, freq: wfl_info.freq}
 		end)
-		IO.inspect(bin_tok_freq_map)
-		bin_tok_freq_map	
+		IO.inspect(bin_tok_freq_list)
+		#bin_tok_freq_list	
 
 		#now get pairs
-		xx = get_pairs2(bin_tok_freq_map)
+		#pairs = get_pairs(bin_tok_freq_list)
+		#IO.inspect(pairs)
+	end
+
+	#i want to go through bin_tok_freq_list a,b   b, c  :  c,d etc until a pair is unobtainable
+	
+	def get_pairs(bin_tok_freq_list, cutoff \\ 2) do
+		get_pairs({nil, nil}, bin_tok_freq_list, 0, cutoff, [])
+	end
+
+	def get_pairs(_pair, [], _index, _cutoff, accum) do
+		accum
 	end
 	
-	def get_pairs2(bin_tok_freq_map) do
-		
+	def get_pairs(pr, bin_tok_freq_list, index, cutoff, accum) do		
+		{{a, b} = new_pair, new_toke_list, new_index} = get_pair(pr, bin_tok_freq_list, index, cutoff)		
+		#IO.puts("a: #{a}\nb: #{b}\nindex: #{index}\nnew_index: #{new_index}")
+		new_accum = 
+			if not(is_nil(b) || is_nil(a) || new_index - index > cutoff) do				
+				[new_pair | accum]
+			else
+				accum
+			end
+		get_pairs({b, nil}, new_toke_list, new_index, cutoff, new_accum)
 	end
+
+	def get_pair({%TokenFreq{}, %TokenFreq{}} = pair, token_freqs, index, _cutoff) do
+		#we have a pair		
+		{pair, token_freqs, index}
+	end
+
+	def get_pair({_, _}, [], index, _cutoff) do		
+		#unable to complete a pair
+		{{nil, nil}, [], index}	#right thing to return?
+	end
+
+	def get_pair({%TokenFreq{} = tf_a, _tf_b}, token_freqs, index, cutoff) do		
+		#we have first of pair - get second.
+		{tf_b, rest, new_index} = get_frequent_token(token_freqs, index, cutoff)
+		get_pair({tf_a, tf_b}, rest, new_index, cutoff)
+	end
+
+	def get_pair({_, _}, token_freqs, index, cutoff) do		
+		#we don't have any of the pair yet - get first
+		{tf_a, new_list, new_index} = get_frequent_token(token_freqs, index, cutoff)
+		IO.inspect(tf_a)
+		get_pair({tf_a, nil}, new_list, new_index, cutoff)
+	end
+
+	def get_frequent_token([], index, _cutoff) do		
+		{nil, [], index}
+	end
+
+	def get_frequent_token([h | t], index, cutoff) do
+		IO.puts("G")
+		if h.freq >= cutoff do			
+			{h, t, index}
+		else
+			get_frequent_token(t, index + 1, cutoff)	#we need too keep track of the token index also
+		end
+	end
+
 end
+
+
 
 defmodule TokenStream do
   def get_token_stream(bin_tokens) when is_binary(bin_tokens) do
     Stream.resource(
-      fn -> 
+      fn -> 9
       	bin_tokens #list of wfl items.
       end,	#this fn intitialises the resource - it takes no params and returns 'the resource' - which will be a sorted wfl 
       fn(bin_tokes) -> 
