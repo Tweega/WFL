@@ -22,6 +22,10 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, {:get_token_info, token})
 	end
 
+	def get_token_info_from_id(wfl_pid, token_id) do 	#can't distinguish between binary and string so have to make a different api call
+		:gen_server.call(wfl_pid, {:get_token_info_from_id, token_id})
+	end
+
 	def get_parent(wfl_pid) do		
 		:gen_server.call(wfl_pid, :get_parent)
 	end
@@ -62,8 +66,13 @@ defmodule WFL do
 		{:reply, {:ok, token_id}, {new_wfl, parent_wfl_pid}}	
 	end
 
-	def handle_call({:get_token_info, token}, _client, state) do
-		wfl_item = fetch_token_info(state, token)
+	def handle_call({:get_token_info, token}, _client, {%WFL_Data{} = wfl_data, _parent_wfl_pid} = state) do
+		wfl_item = fetch_token_info(wfl_data, token)
+		{:reply, wfl_item, state}
+	end
+
+	def handle_call({:get_token_info_from_id, token_id}, _client, {%WFL_Data{} = wfl_data, _parent_wfl_pid} = state) do
+		wfl_item = fetch_token_info_from_id(wfl_data, token_id)
 		{:reply, wfl_item, state}
 	end
 
@@ -115,7 +124,16 @@ defmodule WFL do
 defp expand_type({wfl, parent} , key) do
 
 		#we may have token id <<0,0,0,3,  0,0,0,4>> in which case we have two lookups - we may also have a  space in the middle WORKING HERE
-		token = fetch_token_info(wfl, key)
+		#how to know if we have a binary or a string?
+		#if we call this function we have to assume that we are being passed an actual key, in which case the existence of a parent will indicate the level
+		#assuming that actual tokens are only used as keys for the root wfl
+
+		token = if is_nil (parent) do
+			fetch_token_info(wfl, key)
+		else
+			fetch_token_info_from_id(wfl, key)			
+		end
+		
 		x = case token do
 			%WFL_Type{} ->
 				case parent do
@@ -170,13 +188,13 @@ defp expand_type({wfl, parent} , key) do
 		{type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
 	end
 
-	defp fetch_token_info(wfl, token_id) when is_integer(token_id) do		
-		token = Map.get(wfl.type_ids, token_id)		
-		Map.get(wfl.wfl_types, token)
+	defp fetch_token_info_from_id(wfl, token_id) do
+		token = Map.get(wfl.type_ids, token_id)
+		Map.get(wfl.types, token)
 	end
 
 	defp fetch_token_info(wfl, token) do
-		Map.get(wfl.wfl_types, token)
+		Map.get(wfl.types, token)
 	end
 
 

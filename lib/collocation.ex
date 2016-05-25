@@ -20,7 +20,7 @@ defmodule Collocation do
 				instance = %TokenInstance{sentence_id: sent_id, offset: offset}
 				[%TokenInput{token: bin_token, instance: instance}  | token_inputs]			
 			end)
-			toke_inputs ++ token_inputs_accum
+			toke_inputs ++ token_inputs_accum	#better to recurse?
 		end)
 		#add each input to the supplied wfl
 		IO.inspect(inputs)
@@ -156,18 +156,31 @@ IO.inspect("hello")
 		IO.inspect(x)
 	end
 
-	def say_hello({sentence_id, %TokensBinary{} = bin_tokens}, source_wfl_pid) do
-		#for each token in bin_tokens, get its freq
-		#WFL.get_token_info(source_wfl_pid, token) 
+	def say_hello({sentence_id, %TokensBinary{} = sent_bin_tokens}, source_wfl_pid) do
+		
+		#get freqs for each token_id - TokenStream
+		token_stream = TokenStream.get_token_stream(sent_bin_tokens.bin_tokens)	#using a stream to hand out token_ids into 4 byte chunks
+		token_count = div(byte_size(sent_bin_tokens.bin_tokens), 4)
 
-		IO.inspect(bin_tokens)
+		#get freqs for each token_id - map
+		bin_tok_freq_map = Enum.map(token_stream, fn(tok_id) ->
+			#get the wfl_info for this token
+			wfl_info = WFL.get_token_info_from_id(source_wfl_pid, tok_id)
+			{tok_id, wfl_info.freq}
+		end)
+		IO.inspect(bin_tok_freq_map)
+		bin_tok_freq_map	
+
+		#now get pairs
+		xx = get_pairs2(bin_tok_freq_map)
 	end
-
-
+	
+	def get_pairs2(bin_tok_freq_map) do
+		
+	end
 end
 
 defmodule TokenStream do
-
   def get_token_stream(bin_tokens) when is_binary(bin_tokens) do
     Stream.resource(
       fn -> 
@@ -184,5 +197,8 @@ defmodule TokenStream do
     )
   end
 
-
+  def get_token_stream(bin_tokens) do
+    IO.puts("not a binary then?")
+    IO.inspect(bin_tokens)
+  end
 end
