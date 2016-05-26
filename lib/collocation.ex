@@ -227,8 +227,9 @@ defmodule Collocation do
 
 	def get_pair({_, _}, token_freqs, index, cutoff) do		
 		#we don't have any of the pair yet - get first
+		IO.puts("about to get freq index: #{index}")
 		{tf_a, new_list, new_index} = get_frequent_token(token_freqs, index, cutoff)
-
+IO.puts("receiving index: #{new_index}")
 		new_tf_a = 
 			if is_nil(tf_a) do
 				nil 
@@ -260,7 +261,7 @@ end
 defmodule TokenStream do
   def get_token_stream(bin_tokens) when is_binary(bin_tokens) do
     Stream.resource(
-      fn -> 9
+      fn ->
       	bin_tokens #list of wfl items.
       end,	#this fn intitialises the resource - it takes no params and returns 'the resource' - which will be a sorted wfl 
       fn(bin_tokes) -> 
