@@ -1,5 +1,5 @@
 defmodule TokenFreq do
-	defstruct([token_id: <<>>, freq: 0])
+	defstruct([token_id: <<>>, freq: 0, index: -1])
 end
 
 defmodule Collocation do
@@ -28,7 +28,7 @@ defmodule Collocation do
 			toke_inputs ++ token_inputs_accum	#better to recurse?
 		end)
 		#add each input to the supplied wfl
-		IO.inspect(inputs)
+		#IO.inspect(inputs)
 		Enum.each(inputs, fn(input) -> 			
 			WFL.addToken(wfl_pid, input)	
 		end)
@@ -40,7 +40,7 @@ defmodule Collocation do
 	def get_pairs_x({_key, wfl_item}, wfl_pid) do
 		
 		tokenID = wfl_item.type_id
-IO.inspect("hello")
+
 		inputs = Enum.reduce(wfl_item.instances, [], fn({sent_id, token_index}, new_sent_tokens) ->
 			sent_bin_tokens = TokensBinary.get(sent_id).bin_tokens
 			token_count = div(byte_size(sent_bin_tokens), 4)
@@ -140,7 +140,7 @@ IO.inspect("hello")
 					
 					if token_count > index do
 						new_token = binary_part(sent_bin_tokens, index * 4, 4)
-						IO.inspect(new_token)
+						#IO.inspect(new_token)
 						
 						if zero_count >  0 do
 							new_token = Enum.reduce(1..zero_count, new_token, fn(_x, acc) -> <<0 :: integer-unit(8)-size(4)>> <> <<acc :: binary>> end)
@@ -173,12 +173,12 @@ IO.inspect("hello")
 			wfl_info = WFL.get_token_info_from_id(source_wfl_pid, tok_id)
 			%TokenFreq{token_id: tok_id, freq: wfl_info.freq}
 		end)
-		IO.inspect(bin_tok_freq_list)
+		#IO.inspect(bin_tok_freq_list)
 		#bin_tok_freq_list	
 
 		#now get pairs
-		#pairs = get_pairs(bin_tok_freq_list)
-		#IO.inspect(pairs)
+		pairs = get_pairs(bin_tok_freq_list)
+		IO.inspect(pairs)
 	end
 
 	#i want to go through bin_tok_freq_list a,b   b, c  :  c,d etc until a pair is unobtainable
@@ -216,26 +216,40 @@ IO.inspect("hello")
 	def get_pair({%TokenFreq{} = tf_a, _tf_b}, token_freqs, index, cutoff) do		
 		#we have first of pair - get second.
 		{tf_b, rest, new_index} = get_frequent_token(token_freqs, index, cutoff)
-		get_pair({tf_a, tf_b}, rest, new_index, cutoff)
+		new_tf_b = 
+			if is_nil(tf_b) do
+				nil 
+			else
+				%TokenFreq{tf_b | index: new_index }
+			end
+		get_pair({tf_a, new_tf_b}, rest, new_index, cutoff)
 	end
 
 	def get_pair({_, _}, token_freqs, index, cutoff) do		
 		#we don't have any of the pair yet - get first
 		{tf_a, new_list, new_index} = get_frequent_token(token_freqs, index, cutoff)
-		IO.inspect(tf_a)
-		get_pair({tf_a, nil}, new_list, new_index, cutoff)
+
+		new_tf_a = 
+			if is_nil(tf_a) do
+				nil 
+			else
+				%TokenFreq{tf_a | index: new_index }
+			end
+
+		#IO.inspect(tf_a)
+		get_pair({new_tf_a, nil}, new_list, new_index, cutoff)
 	end
 
 	def get_frequent_token([], index, _cutoff) do		
 		{nil, [], index}
 	end
 
-	def get_frequent_token([h | t], index, cutoff) do
-		IO.puts("G")
+	def get_frequent_token([h | t], index, cutoff) do		
 		if h.freq >= cutoff do			
 			{h, t, index}
 		else
-			get_frequent_token(t, index + 1, cutoff)	#we need too keep track of the token index also
+			IO.puts("adding to index: #{index}")
+			get_frequent_token(t, index + 1, cutoff)	#we need to keep track of the token index also
 		end
 	end
 

@@ -108,7 +108,7 @@ defmodule WFLScratch.Server do
 
 
 	def get_sorted_wfl(wfl_pid, field, order) do #this should be on wfl
-		IO.inspect(wfl_pid)
+		#IO.inspect(wfl_pid)
 		wfl_types = WFL.get_wfl(wfl_pid).types
 		wfl = Map.to_list(wfl_types)
 		
