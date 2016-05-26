@@ -184,7 +184,7 @@ defmodule Collocation do
 	#i want to go through bin_tok_freq_list a,b   b, c  :  c,d etc until a pair is unobtainable
 	
 	def get_pairs(bin_tok_freq_list, cutoff \\ 2) do
-		get_pairs({nil, nil}, bin_tok_freq_list, 0, cutoff, [])
+		get_pairs({nil, nil}, bin_tok_freq_list, -1, cutoff, [])
 	end
 
 	def get_pairs(_pair, [], _index, _cutoff, accum) do
@@ -227,9 +227,8 @@ defmodule Collocation do
 
 	def get_pair({_, _}, token_freqs, index, cutoff) do		
 		#we don't have any of the pair yet - get first
-		IO.puts("about to get freq index: #{index}")
 		{tf_a, new_list, new_index} = get_frequent_token(token_freqs, index, cutoff)
-IO.puts("receiving index: #{new_index}")
+
 		new_tf_a = 
 			if is_nil(tf_a) do
 				nil 
@@ -247,9 +246,8 @@ IO.puts("receiving index: #{new_index}")
 
 	def get_frequent_token([h | t], index, cutoff) do		
 		if h.freq >= cutoff do			
-			{h, t, index}
+			{h, t, index + 1}
 		else
-			IO.puts("adding to index: #{index}")
 			get_frequent_token(t, index + 1, cutoff)	#we need to keep track of the token index also
 		end
 	end
