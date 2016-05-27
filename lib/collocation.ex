@@ -210,8 +210,8 @@ defmodule Collocation do
 		IO.inspect(merged_token)
 
 		#if the length of the merged token is > 2 then do combinations of the inner tokens replacing non-gaps with gaps
-  		abstractions = if length(tf_a.token_id) + length(tf_b.token_id) > 2 do
-  			get_abstrctions()
+  		abstractions = if length(tf_a.token_id) + length(tf_b.token_id) > 2 do 	#this will only work if we are using expanded token_ids
+  			get_abstractions(merged_token)
   		else
   			[]
   		end
@@ -222,9 +222,11 @@ defmodule Collocation do
 
 	end
 
-	def get_abstractions() do
+	def get_abstractions(_merged_token) do
 		[]
 	end
+
+	#def abstract
 
 	def merge_pair(tok_a, tok_b, overlap) when overlap <= 0 do
 		#we need abs(overlap) gaps between a and b
