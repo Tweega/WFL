@@ -180,28 +180,65 @@ defmodule Collocation do
 
 		#now get pairs
 		pairs = get_pairs(bin_tok_freq_list)
-		IO.inspect(pairs)
+		#IO.inspect(pairs)
 
 		#next job is to merge pairs and add them to a new wfl - new wfl should be created at start of each pairing operation		
 
-		#merged_pairs = merge_pairs(pairs, source_wfl_pid, colloc_wfl_pid)
-	end
-
-	def merge_pairs(pairs, source_wfl_pid, colloc_wfl_pid) do
-		#go through each pair, and combine the two - also create gap abstractions where appropriate
-		#try a reduce
-		#Enum.reduce(pairs, acc, fun)
-		nil
+		merged_pairs = merge_pairs(pairs, [])
 	end
 
 	def merge_pairs([], accum) do
 		accum
 	end
 
-	def merge_pairs([h | t], accum) do
-		#for the moment just stick them together regardless of indices.
-		#WORKING HERE
+	def merge_pairs([{%TokenFreq{} = tf_a, %TokenFreq{} = tf_b} | t], accum) do
+		
+		sample = {
+			%TokenFreq{freq: 5, index: 2, token_id: <<0, 0, 0, 2>>},
+	  		%TokenFreq{freq: 2, index: 3, token_id: <<0, 0, 0, 1>>}
+  		}
+
+  		a_ndx = tf_a.index
+  		a_len = round(byte_size(tf_a.token_id) / 4)
+  		b_ndx = tf_b.index
+  		b_len = round(byte_size(tf_b.token_id) / 4)
+
+  		overlap = a_ndx + a_len - b_ndx
+
+  		merged_token = merge_pair(tf_a.token_id, tf_b.token_id, overlap)
+
+		IO.inspect(merged_token)
+
+		#if the length of the merged token is > 2 then do combinations of the inner tokens replacing non-gaps with gaps
+  		abstractions = if length(tf_a.token_id) + length(tf_b.token_id) > 2 do
+  			get_abstrctions()
+  		else
+  			[]
+  		end
+
+  		new_accum = [{merged_token, tf_a.token_id, tf_b.token_id, abstractions} | accum]	#use a map / struct?
+
+		merge_pairs(t, new_accum)  		
+
 	end
+
+	def get_abstractions() do
+		[]
+	end
+
+	def merge_pair(tok_a, tok_b, overlap) when overlap <= 0 do
+		#we need abs(overlap) gaps between a and b
+		gap_bytes = abs(overlap) * 4
+		tok_a <> <<0x00 :: integer-unit(8)-size(gap_bytes)>> <> tok_b		
+	end
+
+	def merge_pair(tok_a, tok_b, overlap) when overlap > 0 do
+		IO.puts("overlap: #{overlap}")
+		n_bytes = 4 * overlap
+		<<_h :: binary-size(n_bytes),  rhs :: binary>> = tok_b
+		tok_a <> rhs
+	end
+
 	
 	#i want to go through bin_tok_freq_list a,b   b, c  :  c,d etc until a pair is unobtainable
 	
