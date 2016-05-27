@@ -18,11 +18,11 @@
 	end
 
 	defmodule ReaderInfo do
-		defstruct([token_info: %TokenInfo{}, sentence_info: %SentenceInfo{}, sentences: []])	#sentences is an array of %SentenceInfo
+		defstruct([token_info: %TokenInfo{}, sentence_info: %SentenceInfo{}, sentences: []])  #sentences is an array of %SentenceInfo
 	end
 
 	defmodule WFL_Type do
-		defstruct([:type, :type_id, :freq, instances: []])
+		defstruct([:type, :type_id, :freq, instances: [], concretisations: MapSet.new()])	#concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat
 	end
 
 	defmodule TokenInstance do

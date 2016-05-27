@@ -92,13 +92,18 @@ end
 
 
 def mask_tokens(<<num :: binary>>, mask) do 
+	#num is concatenation of token_ids as in <<0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3>>
+	#mask is a list of 1s and 0s as in [1, 0, 1] which would turn off the middle token id giving <<0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 3>>
 	num_bytes = byte_size(num)
-	<<x :: integer-unit(8)-size(num_bytes)>> = num
-	mask_bin = mask_to_bits(mask)
+	<<x :: integer-unit(8)-size(num_bytes)>> = num	
+	mask_bin = mask_to_bits(mask)	
 	nb = byte_size(mask_bin)
 	<<y :: integer-unit(8)-size(nb)>> = mask_bin
 	masked_bin = x &&& y
-	:binary.encode_unsigned(masked_bin)
+	new_toke = :binary.encode_unsigned(masked_bin)
+	n_bytes = num_bytes - byte_size(new_toke)
+	#we now have to prepend zeros so that we still have num_bytes of binary	
+	<<0x00 :: integer-unit(8)-size(n_bytes)>> <> <<new_toke :: binary>>	
 end
 
 def mask_to_bits(mask) do

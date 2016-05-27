@@ -85,7 +85,7 @@ defmodule WFLScratch.Server do
 	end
 	def handle_info( {:file_complete, wfl_pid}, state) do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
-		process_collocations(wfl_pid, wfl_pid)				
+		process_collocations(wfl_pid)				
 		{:noreply, state}
 	end
 
@@ -131,7 +131,7 @@ defmodule WFLScratch.Server do
 		end	
 	end
 
-	defp process_collocations(source_wfl_pid, accum_wfl_pid) do
+	defp process_collocations(source_wfl_pid) do
 		#one wfl for all collocs or once for each level?
 		#create a listener (genserver?) that will listen out for completed wfls that need merging in to main wfl.
 		#why merge?
@@ -158,8 +158,11 @@ defmodule WFLScratch.Server do
 		#get list of sentences and update each of the tokens so that we have their frequency - or at least a function that can get the frequency
 		#function that can get the frequency is - perhaps not necessary? we will have the wfl_item - no we have the token from the sentence
 		#provide a stream?
+
+		#for the moment use the parent_wfl_pid to store source.  this may not end up as method of choice
+		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
 		s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)
-		Parallel.pjob(s, [{Collocation, :say_hello, [source_wfl_pid]}])
+		Parallel.pjob(s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
 
 	end
 

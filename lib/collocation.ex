@@ -161,8 +161,10 @@ defmodule Collocation do
 		IO.inspect(x)
 	end
 
-	def say_hello({sentence_id, %TokensBinary{} = sent_bin_tokens}, source_wfl_pid) do
-		
+	def say_hello({sentence_id, %TokensBinary{} = sent_bin_tokens}, colloc_wfl_pid) do
+		#note that this function is being called in a parallel job one for each sentence
+		source_wfl_pid = WFL.get_parent(colloc_wfl_pid)
+
 		#get freqs for each token_id - TokenStream
 		token_stream = TokenStream.get_token_stream(sent_bin_tokens.bin_tokens)	#using a stream to hand out token_ids into 4 byte chunks
 		_token_count = div(byte_size(sent_bin_tokens.bin_tokens), 4)
@@ -174,13 +176,33 @@ defmodule Collocation do
 			%TokenFreq{token_id: tok_id, freq: wfl_info.freq}
 		end)
 		#IO.inspect(bin_tok_freq_list)
-		#bin_tok_freq_list	
+		#bin_tok_freq_list
 
 		#now get pairs
 		pairs = get_pairs(bin_tok_freq_list)
 		IO.inspect(pairs)
+
+		#next job is to merge pairs and add them to a new wfl - new wfl should be created at start of each pairing operation		
+
+		#merged_pairs = merge_pairs(pairs, source_wfl_pid, colloc_wfl_pid)
 	end
 
+	def merge_pairs(pairs, source_wfl_pid, colloc_wfl_pid) do
+		#go through each pair, and combine the two - also create gap abstractions where appropriate
+		#try a reduce
+		#Enum.reduce(pairs, acc, fun)
+		nil
+	end
+
+	def merge_pairs([], accum) do
+		accum
+	end
+
+	def merge_pairs([h | t], accum) do
+		#for the moment just stick them together regardless of indices.
+		#WORKING HERE
+	end
+	
 	#i want to go through bin_tok_freq_list a,b   b, c  :  c,d etc until a pair is unobtainable
 	
 	def get_pairs(bin_tok_freq_list, cutoff \\ 2) do
