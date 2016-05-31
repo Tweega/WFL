@@ -210,8 +210,14 @@ defmodule Collocation do
 		IO.inspect(merged_token)
 
 		#if the length of the merged token is > 2 then do combinations of the inner tokens replacing non-gaps with gaps
-  		abstractions = if length(tf_a.token_id) + length(tf_b.token_id) > 2 do 	#this will only work if we are using expanded token_ids
-  			get_abstractions(merged_token)
+  		
+  		inner_size = byte_size(merged_token) - 2
+  		
+  		abstractions = if inner_size > 0 do 	#this will only work if we are using expanded token_ids
+  		
+  			inner_tokens = << left :: binary-size(1), inner :: binary-size(inner_size), last :: binary-size(1)>> = merged_token
+  				get_abstractions(inner_tokens)
+  		
   		else
   			[]
   		end
@@ -222,12 +228,7 @@ defmodule Collocation do
 
 	end
 
-	def get_abstractions(_merged_token) do
-		[]
-	end
-
-	#def abstract
-
+	
 	def merge_pair(tok_a, tok_b, overlap) when overlap <= 0 do
 		#we need abs(overlap) gaps between a and b
 		gap_bytes = abs(overlap) * 4
@@ -313,6 +314,61 @@ defmodule Collocation do
 		end
 	end
 
+
+	def get_abstractions(merged_token) do
+		combinations = get_set_bits(merged_token, 0, [])
+			|> combine_list()
+		#map the combinations to a list of abstract tokens
+		abstractions = Enum.map(combinations, fn(bit_list)->
+			set_bits(bit_list, merged_token)
+		end)
+
+	end
+
+	def set_bits([], abstract_token) do
+		#set bits replaces flagged tokens with a blank <0,0,0,0> token
+		abstract_token
+	end
+
+	def set_bits([index | indices], abstract_token) do
+		start = index * 4
+		<< left :: binary-size(start), _token_id :: binary-size(4), rest :: binary >> = abstract_token
+		new_token = left <> <<0 :: integer-unit(8)-size(4)>> <> rest
+
+		set_bits(indices, new_token)
+	end
+
+	def get_set_bits(<<>>, _index, accum) do
+		accum
+	end
+
+	def get_set_bits(<< left :: integer-unit(8)-size(4), rest :: binary >>, index, accum) do
+		new_accum = if left >  0 do
+			[index | accum]
+		else
+			accum
+		end
+		get_set_bits(rest, index + 1, new_accum)
+	end
+
+
+	def combine_list(list) do
+		combine_list(list, [[]], [])		
+	end
+
+	def combine_list([], _with, accum) do
+		#include the empty set for completeness
+		#[[] | accum]
+		#actually don't - caller can add it - or if the client knows it is at the front of the list it can always remove the head []
+		accum
+	end
+
+	def combine_list([next | rest], with, accum) do
+		new_list = Enum.reduce(with, accum, fn(list, accum2) ->
+			[[next | list] | accum2]		
+		end)
+		combine_list(rest, [[] | new_list], new_list)
+	end
 end
 
 
@@ -339,3 +395,4 @@ defmodule TokenStream do
     IO.inspect(bin_tokens)
   end
 end
+
