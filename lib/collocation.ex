@@ -2,6 +2,11 @@ defmodule TokenFreq do
 	defstruct([token_id: <<>>, freq: 0, index: -1])
 end
 
+defmodule TokenAbstractions do
+	defstruct([token: <<>>, left_token: <<>>, right_token: <<>>, abstractions: [] ])
+end
+
+
 defmodule Collocation do
 	require Logger
 
@@ -182,9 +187,10 @@ defmodule Collocation do
 		pairs = get_pairs(bin_tok_freq_list)
 		#IO.inspect(pairs)
 
-		#next job is to merge pairs and add them to a new wfl - new wfl should be created at start of each pairing operation		
+		#next job is to merge pairs and add them to a new wfl
 
 		merged_pairs = merge_pairs(pairs, [])
+		IO.inspect(merged_pairs)
 	end
 
 	def merge_pairs([], accum) do
@@ -207,22 +213,18 @@ defmodule Collocation do
 
   		merged_token = merge_pair(tf_a.token_id, tf_b.token_id, overlap)
 
-		IO.inspect(merged_token)
-
 		#if the length of the merged token is > 2 then do combinations of the inner tokens replacing non-gaps with gaps
   		
-  		inner_size = byte_size(merged_token) - 2
+  		inner_size = byte_size(merged_token) - 8
   		
-  		abstractions = if inner_size > 0 do 	#this will only work if we are using expanded token_ids
-  		
-  			inner_tokens = << left :: binary-size(1), inner :: binary-size(inner_size), last :: binary-size(1)>> = merged_token
-  				get_abstractions(inner_tokens)
-  		
+  		{abstractions, left_token, right_token} = if inner_size > 0 do 	#this will only work if we are using expanded token_ids  		
+  			inner_tokens = << left :: binary-size(4), inner :: binary-size(inner_size), last :: binary-size(4)>> = merged_token
+  			{get_abstractions(inner_tokens), tf_a.token_id, tf_b.token_id}
   		else
-  			[]
+  			{[], <<>>, <<>>}
   		end
 
-  		new_accum = [{merged_token, tf_a.token_id, tf_b.token_id, abstractions} | accum]	#use a map / struct?
+  		new_accum = [%TokenAbstractions{token: merged_token, left_token: left_token, right_token: right_token, abstractions: abstractions} | accum]
 
 		merge_pairs(t, new_accum)  		
 
@@ -369,6 +371,70 @@ defmodule Collocation do
 		end)
 		combine_list(rest, [[] | new_list], new_list)
 	end
+
+	def remove_one([], _carousel, accum) do
+		accum
+	end
+
+	def remove_one([index | indices], [h | t], accum) do		
+		new_accum = [t | accum]		
+		remove_one(indices, t ++ [h], new_accum)
+	end
+
+	def get_abstraction_tree(list) do		
+		tree_sample = 
+		[
+			{
+				[1, 2, 3],
+		  		[
+		  			{
+		  				[2, 3], 
+		  				[
+		  					{[3], []}, 
+		  					{[2], []}
+		  				]
+		  			}, 
+		  			{
+		  				[3, 1], 
+						[
+							{[1], []}, 
+							{[3], []}
+						]
+					},
+		   			{
+		   				[1, 2], 
+		   				[
+		   					{[2], []}, 
+		   					{[1], []}
+		   				]
+		   			}
+		   		]
+		   	}
+		]
+
+		remove_one_by_one([list], [])
+	end
+
+	def remove_one_by_one([], accum) do
+		accum
+	end
+
+	def remove_one_by_one([concretiser | t], accum) do
+		one_less = remove_one(concretiser, concretiser, [])
+		#this one_less list is associated with the concretiser		
+		children = remove_one_by_one(one_less, [])
+		#IO.puts("length: #{length(concretiser)}")	
+		#could trap if there are no concretiser and just add [] to the accum
+		#new_accum = [{concretiser, children} | accum]
+		new_accum = if length(concretiser) == 0 do
+			[]
+		else
+			[{concretiser, children} | accum]
+		end
+
+		remove_one_by_one(t, new_accum)		
+	end
+
 end
 
 
