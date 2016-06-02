@@ -1,9 +1,9 @@
 defmodule TokenFreq do
-	defstruct([token_id: <<>>, freq: 0, index: -1])
+	defstruct([token_id: <<>>, freq: 0, index: -1, offset: -1, is_common: false])
 end
 
 defmodule TokenAbstractions do
-	defstruct([token: <<>>, left_token: <<>>, right_token: <<>>, abstractions: [] ])
+	defstruct([token: <<>>, abstractions: [] ])
 end
 
 
@@ -71,7 +71,7 @@ defmodule Collocation do
 	def extend_pairs(pair_pid) do
 		#get list of pairs with freq > 2
 		# get the list of wfl_items 		
-		cutoff = 2
+		cutoff = get_cutoff()
 		sorted_wfl = WFLScratch.Server.get_sorted_wfl(pair_pid, :freq, :desc)
       	filtered_list = Enum.take_while(sorted_wfl, fn({_key, item}) -> item.freq >= cutoff end)
 
@@ -169,6 +169,7 @@ defmodule Collocation do
 	def say_hello({sentence_id, %TokensBinary{} = sent_bin_tokens}, colloc_wfl_pid) do
 		#note that this function is being called in a parallel job one for each sentence
 		source_wfl_pid = WFL.get_parent(colloc_wfl_pid)
+		cutoff = get_cutoff()
 
 		#get freqs for each token_id - TokenStream
 		token_stream = TokenStream.get_token_stream(sent_bin_tokens.bin_tokens)	#using a stream to hand out token_ids into 4 byte chunks
@@ -180,22 +181,73 @@ defmodule Collocation do
 			wfl_info = WFL.get_token_info_from_id(source_wfl_pid, tok_id)
 			%TokenFreq{token_id: tok_id, freq: wfl_info.freq}
 		end)
-		#IO.inspect(bin_tok_freq_list)
+		
+		#split this list on sequences of tokens with freq > cutoff or where the gap is less than 3 ignore phrases of length 1 only
+		phrases = get_phrases(bin_tok_freq_list, cutoff)
+		IO.inspect(phrases)
 		#bin_tok_freq_list
 
 		#now get pairs
-		pairs = get_pairs(bin_tok_freq_list)
+		##pairs = get_pairs(bin_tok_freq_list, cutoff)
 		#IO.inspect(pairs)
 
 		#next job is to merge pairs and add them to a new wfl
 
-		merged_pairs = merge_pairs(pairs, [])
-		IO.inspect(merged_pairs)
+		##merged_pairs = merge_pairs(pairs, [])
+		##IO.inspect(pairs)
+
+		#set_bits(bit_list, merged_token)
 	end
+
+
+	def get_phrases(bin_tok_freq_list, cutoff) do		
+		get_phrases(bin_tok_freq_list, cutoff, 0, [], [], 0, 0)
+	end
+
+	def get_phrases([], _cutoff, gap_count, phrase, phrases, _index, _offset) do
+		new_phrase = Enum.drop(phrase, gap_count)
+		add_phrase(new_phrase, phrases)		
+	end
+
+	def get_phrases(bin_tok_freq_list, cutoff, gap_count, phrase, phrases, _index, offset) when gap_count > 1 do #ideally want to pull max_gap_count out of config
+		new_phrase = Enum.drop(phrase, gap_count)
+		new_phrases = add_phrase(new_phrase, phrases)
+		get_phrases(bin_tok_freq_list, cutoff, 0, [], new_phrases, 0, offset)
+	end
+
+	def get_phrases([tok_freq | rest], cutoff, gap_count, phrase, phrases, index, offset) do
+		new_gap_count = if tok_freq.freq < cutoff || tok_freq.is_common == true do
+			gap_count + 1
+		else
+			0
+		end	
+
+		{new_phrase, new_index} = if new_gap_count > gap_count && index == 0 do
+			#low_freq or  word cannot start a phrase
+			{phrase, index}
+		else
+			{[%TokenFreq{tok_freq | index: index, offset: offset} | phrase], index + 1}
+		end
+
+		get_phrases(rest, cutoff, new_gap_count, new_phrase, phrases, new_index, offset  + 1)
+	end
+
+	def add_phrase(phrase, phrases) do		
+		if length(phrase) > 1 do
+			[phrase | phrases]
+		else
+			phrases
+		end
+	end
+
 
 	def merge_pairs([], accum) do
 		accum
 	end
+
+	#WORKING HERE - don't want to merge pairs only but work instead on the whole phrases - or sections of it that meet proximity rules
+	#abstractions will be derived in get_abstraction_tree
+	#so we want an array of phrases from the sentence where phrases are demarkated by frequent types not more than 2 spaces apart. 
 
 	def merge_pairs([{%TokenFreq{} = tf_a, %TokenFreq{} = tf_b} | t], accum) do
 		
@@ -213,18 +265,9 @@ defmodule Collocation do
 
   		merged_token = merge_pair(tf_a.token_id, tf_b.token_id, overlap)
 
-		#if the length of the merged token is > 2 then do combinations of the inner tokens replacing non-gaps with gaps
-  		
-  		inner_size = byte_size(merged_token) - 8
-  		
-  		{abstractions, left_token, right_token} = if inner_size > 0 do 	#this will only work if we are using expanded token_ids  		
-  			inner_tokens = << left :: binary-size(4), inner :: binary-size(inner_size), last :: binary-size(4)>> = merged_token
-  			{get_abstractions(inner_tokens), tf_a.token_id, tf_b.token_id}
-  		else
-  			{[], <<>>, <<>>}
-  		end
-
-  		new_accum = [%TokenAbstractions{token: merged_token, left_token: left_token, right_token: right_token, abstractions: abstractions} | accum]
+  		abstractions = get_abstractions(merged_token)
+  	
+  		new_accum = [%TokenAbstractions{token: merged_token, abstractions: abstractions} | accum]
 
 		merge_pairs(t, new_accum)  		
 
@@ -247,7 +290,7 @@ defmodule Collocation do
 	
 	#i want to go through bin_tok_freq_list a,b   b, c  :  c,d etc until a pair is unobtainable
 	
-	def get_pairs(bin_tok_freq_list, cutoff \\ 2) do
+	def get_pairs(bin_tok_freq_list, cutoff) do		
 		get_pairs({nil, nil}, bin_tok_freq_list, -1, cutoff, [])
 	end
 
@@ -319,12 +362,7 @@ defmodule Collocation do
 
 	def get_abstractions(merged_token) do
 		combinations = get_set_bits(merged_token, 0, [])
-			|> combine_list()
-		#map the combinations to a list of abstract tokens
-		abstractions = Enum.map(combinations, fn(bit_list)->
-			set_bits(bit_list, merged_token)
-		end)
-
+			|> get_abstraction_tree()
 	end
 
 	def set_bits([], abstract_token) do
@@ -435,6 +473,9 @@ defmodule Collocation do
 		remove_one_by_one(t, new_accum)		
 	end
 
+	def get_cutoff do
+		2
+	end
 end
 
 

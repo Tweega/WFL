@@ -85,6 +85,8 @@ defmodule WFLScratch.Server do
 	end
 	def handle_info( {:file_complete, wfl_pid}, state) do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
+		#mark grammar/common words - for the moment just using ["the", "a", "an"]
+		WFL.mark_common(wfl_pid, ["the", "a"])
 		process_collocations(wfl_pid)				
 		{:noreply, state}
 	end

@@ -34,6 +34,10 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, {:expand_type_id, type_id})
 	end
 
+	def mark_common(wfl_pid, type_list) do		
+		:gen_server.call(wfl_pid, {:mark_common, type_list})
+	end
+
 	def start_link(parent_wfl_pid \\ nil) do		#pass in an initial wfl?
 		:gen_server.start_link(__MODULE__, {%WFL_Data{}, parent_wfl_pid}, [])		
 	end
@@ -52,6 +56,7 @@ defmodule WFL do
 	def handle_call(:get_parent, _from, {_wfl, parent} = state) do
 		{:reply, parent, state}
 	end
+
 
 	def handle_call({:expand_type, type_id}, _from, state) do
 		parent = 12333
@@ -75,6 +80,18 @@ defmodule WFL do
 		wfl_item = fetch_token_info_from_id(wfl_data, token_id)
 		{:reply, wfl_item, state}
 	end
+
+	def handle_call({:mark_common, common_list}, _from, {wfl, parent}) do
+
+		new_wfl_types = Enum.reduce(common_list, wfl.types, fn(common_token, wfl_types) -> 			
+			Map.update(wfl_types, common_token, %WFL_Type{}, fn(wfl_info) -> 
+				%WFL_Type{wfl_info | is_common: true} 
+			end)				
+		end)
+
+		{:reply, :ok, {%WFL_Data{wfl | types: new_wfl_types}, parent}}
+	end
+
 
 	
 	def handle_cast({:add_tokens, sentences}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do	
