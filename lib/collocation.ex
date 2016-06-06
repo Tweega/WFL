@@ -186,6 +186,12 @@ defmodule Collocation do
 		phrases = get_phrases(bin_tok_freq_list, cutoff)
 		IO.inspect(phrases)
 		#bin_tok_freq_list
+		sample_phrases = [%TokenFreq{freq: 5, index: 3, is_common: false, offset: 38, token_id: <<0, 0, 0, 2>>},
+						  %TokenFreq{freq: 1, index: 2, is_common: false, offset: 37, token_id: <<0, 0, 0, 145>>},
+						  %TokenFreq{freq: 8, index: 1, is_common: false, offset: 36, token_id: <<0, 0, 0, 10>>},
+						  %TokenFreq{freq: 2, index: 0, is_common: false, offset: 35, token_id: <<0, 0, 0, 126>>}]
+
+		#for each phrase generate combinations such that bookends are neither low freq nor common.
 
 		#now get pairs
 		##pairs = get_pairs(bin_tok_freq_list, cutoff)
@@ -222,14 +228,14 @@ defmodule Collocation do
 			0
 		end	
 
-		{new_phrase, new_index} = if new_gap_count > gap_count && index == 0 do
-			#low_freq or  word cannot start a phrase
-			{phrase, index}
+		new_phrase = if tok_freq.freq < cutoff || (tok_freq.is_common == true && index == 0) do
+			#low_freq or common word cannot start a phrase
+			phrase
 		else
-			{[%TokenFreq{tok_freq | index: index, offset: offset} | phrase], index + 1}
+			[%TokenFreq{tok_freq | index: index, offset: offset} | phrase]
 		end
 
-		get_phrases(rest, cutoff, new_gap_count, new_phrase, phrases, new_index, offset  + 1)
+		get_phrases(rest, cutoff, new_gap_count, new_phrase, phrases, index + 1, offset  + 1)
 	end
 
 	def add_phrase(phrase, phrases) do		
@@ -240,6 +246,51 @@ defmodule Collocation do
 		end
 	end
 
+	def get_quartets([]) do
+		#quartets are rolling sequences of 4 - Enum.chunk does something simiar but does not do the tail where the chunk length tapers to 1
+		#a quartet may not have four members  it has up to 4 members and at least 2
+		[]
+	end
+
+	def get_quartets(token_freq_list) do
+		get_quartets(token_freq_list, [], [])
+	end
+
+	def get_quartets([_ | []], [], quartets) do
+		IO.puts("Hello")
+		#quartet needs at least 2 members
+		quartets
+	end
+
+	def get_quartets([a | bcd_etc], quartet, quartets) do
+		bcd = get_bcd(bcd_etc, [])
+		new_quartet = [{a, bcd} | quartet]
+		new_quartets = [new_quartet | quartets]
+		get_quartets(bcd_etc, [], new_quartets)
+	end
+
+
+	def get_bcd([], bcd) do
+		bcd		
+	end
+
+	def get_bcd(_, [_, _, _] = bcd) do
+		bcd	
+	end
+
+	def get_bcd([h | t], bcd) do
+		new_bcd = [h | bcd]
+		get_bcd(t, new_bcd)
+	end
+	
+	def handle_quartet(x) do
+		
+	end
+
+	def get_bcd([h | t], accum) do
+		new_accum = [h | accum]
+		get_bcd(t, accum)		
+	end
 
 	def merge_pairs([], accum) do
 		accum
@@ -419,7 +470,9 @@ defmodule Collocation do
 		remove_one(indices, t ++ [h], new_accum)
 	end
 
-	def get_abstraction_tree(list) do		
+#%TokenFreq{freq: 1, index: 2, is_common: false, offset: 37, token_id: <<0, 0, 0, 145>>},
+
+	def get_abstraction_tree(token_freq_list) do		
 		tree_sample = 
 		[
 			{
@@ -450,7 +503,7 @@ defmodule Collocation do
 		   	}
 		]
 
-		remove_one_by_one([list], [])
+		remove_one_by_one([token_freq_list], [])
 	end
 
 	def remove_one_by_one([], accum) do
