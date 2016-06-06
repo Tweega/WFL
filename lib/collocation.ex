@@ -179,28 +179,25 @@ defmodule Collocation do
 		bin_tok_freq_list = Enum.map(token_stream, fn(tok_id) ->
 			#get the wfl_info for this token
 			wfl_info = WFL.get_token_info_from_id(source_wfl_pid, tok_id)
-			%TokenFreq{token_id: tok_id, freq: wfl_info.freq}
+			%TokenFreq{token_id: tok_id, freq: wfl_info.freq, is_common: wfl_info.is_common}
 		end)
 		
 		#split this list on sequences of tokens with freq > cutoff or where the gap is less than 3 ignore phrases of length 1 only
 		phrases = get_phrases(bin_tok_freq_list, cutoff)
-		IO.inspect(phrases)
+		#IO.inspect(phrases)
 		#bin_tok_freq_list
-		sample_phrases = [%TokenFreq{freq: 5, index: 3, is_common: false, offset: 38, token_id: <<0, 0, 0, 2>>},
-						  %TokenFreq{freq: 1, index: 2, is_common: false, offset: 37, token_id: <<0, 0, 0, 145>>},
-						  %TokenFreq{freq: 8, index: 1, is_common: false, offset: 36, token_id: <<0, 0, 0, 10>>},
-						  %TokenFreq{freq: 2, index: 0, is_common: false, offset: 35, token_id: <<0, 0, 0, 126>>}]
+		sample_phrases = [%TokenFreq{freq: 9, index: 1, is_common: false, offset: 8,  token_id: <<0, 0, 0, 42>>},
+						  %TokenFreq{freq: 4, index: 2, is_common: false, offset: 9,  token_id: <<0, 0, 0, 125>>},
+  						  %TokenFreq{freq: 2, index: 4, is_common: false, offset: 11, token_id: <<0, 0, 0, 121>>}]
 
-		#for each phrase generate combinations such that bookends are neither low freq nor common.
+		
+		#for each phrase, get quartets
+		quartets = get_quartets(phrases)
 
-		#now get pairs
-		##pairs = get_pairs(bin_tok_freq_list, cutoff)
-		#IO.inspect(pairs)
+		IO.inspect(quartets)
 
-		#next job is to merge pairs and add them to a new wfl
-
-		##merged_pairs = merge_pairs(pairs, [])
-		##IO.inspect(pairs)
+		#now add all these to a wfl -colloc_wfl_pid.
+		#before we do that we need to mark phrase up for abstractions
 
 		#set_bits(bit_list, merged_token)
 	end
@@ -222,25 +219,20 @@ defmodule Collocation do
 	end
 
 	def get_phrases([tok_freq | rest], cutoff, gap_count, phrase, phrases, index, offset) do
-		new_gap_count = if tok_freq.freq < cutoff || tok_freq.is_common == true do
-			gap_count + 1
+		{new_phrase, new_gap_count}  = if tok_freq.freq < cutoff || tok_freq.is_common == true do
+			{phrase, gap_count + 1}
 		else
-			0
+			{[%TokenFreq{tok_freq | index: index, offset: offset} | phrase], 0}
 		end	
 
-		new_phrase = if tok_freq.freq < cutoff || (tok_freq.is_common == true && index == 0) do
-			#low_freq or common word cannot start a phrase
-			phrase
-		else
-			[%TokenFreq{tok_freq | index: index, offset: offset} | phrase]
-		end
-
+		#need to keep track of definite article instances - perhaps and as well an pronouns but?- so that we can see if they concretise the phrase
+		#we would need to stick this onto an accumulator associated with the phrase.
 		get_phrases(rest, cutoff, new_gap_count, new_phrase, phrases, index + 1, offset  + 1)
 	end
 
 	def add_phrase(phrase, phrases) do		
 		if length(phrase) > 1 do
-			[phrase | phrases]
+			[Enum.reverse(phrase) | phrases]
 		else
 			phrases
 		end
@@ -256,8 +248,7 @@ defmodule Collocation do
 		get_quartets(token_freq_list, [], [])
 	end
 
-	def get_quartets([_ | []], [], quartets) do
-		IO.puts("Hello")
+	def get_quartets([_ | []], [], quartets) do		
 		#quartet needs at least 2 members
 		quartets
 	end
@@ -265,7 +256,7 @@ defmodule Collocation do
 	def get_quartets([a | bcd_etc], quartet, quartets) do
 		bcd = get_bcd(bcd_etc, [])
 		new_quartet = [{a, bcd} | quartet]
-		new_quartets = [new_quartet | quartets]
+		new_quartets = [{a, bcd} | quartets]
 		get_quartets(bcd_etc, [], new_quartets)
 	end
 
