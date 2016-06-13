@@ -191,8 +191,14 @@ defmodule Collocation do
   						  %TokenFreq{freq: 2, index: 4, is_common: false, offset: 11, token_id: <<0, 0, 0, 121>>}]
 
 		
+
+		phrase_stream = PhraseStream.get_phrase_stream(phrases)
+
+		#get_quartets not happy with a stream which is a function.
 		#for each phrase, get quartets
-		quartets = get_quartets(phrases)
+		quartets = get_quartets(phrase_stream)
+
+		#do_dah(quartets)
 
 		IO.inspect(quartets)
 
@@ -202,6 +208,9 @@ defmodule Collocation do
 		#set_bits(bit_list, merged_token)
 	end
 
+	def do_dah(quartets) do
+		#[{4, [5]}, {3, [5, 4]}, {2, [5, 4, 3]}, {1, [4, 3, 2]}]	 - where each number is a TokenFreq struct	
+	end
 
 	def get_phrases(bin_tok_freq_list, cutoff) do		
 		get_phrases(bin_tok_freq_list, cutoff, 0, [], [], 0, 0)
@@ -547,3 +556,75 @@ defmodule TokenStream do
   end
 end
 
+
+defmodule PhraseStream do
+  def get_phrase_stream(phrases_list) do
+    Stream.resource(
+      fn ->
+      	phrases_list #array per sentence each with array of phrases.
+      end,	#this fn intitialises the resource - it takes no params and returns 'the resource' 
+      fn(remaining_phrases_list) -> 
+        case remaining_phrases_list do 	#return next wfl_item.  {:halt, accumulator} when finished.        
+        	[] -> {:halt, []}
+        	[phrase | remaining_phrases] ->  
+
+            	{[phrase], remaining_phrases}
+        end
+      end,
+      fn(empty_phrases_list) -> empty_phrases_list end 	#tidy up - returns the final value of the stream if there is one.
+    )
+  end  
+
+	def unchained(enumerable) do
+		fn() ->  			
+			case enumerable do  				
+				[h | []] ->
+					{h, unchained(nil)}
+				[h | t] ->
+					{h, unchained(t)}
+				_ ->
+					{nil, unchained(nil)}
+			end  			 	
+		end
+	end
+
+	def chained(fCx) do  		
+		chained(unchained(nil), fCx)
+	end
+
+	def chained(fData, fCx) do  		
+		fn() ->
+			{data, fData2} = fData.()	#see if we have data of our own - fData2 is continuation func holding remainder of the list after data has been stripped from the head
+			{nextData, next_fData, next_fCx} = case data do
+				nil ->
+					#we have no data of our own, so get context from parent, and etxtract that
+					{data2, fCx2} = fCx.()	#data2 is the new context (expected to be a list), and fCx2 the continuation function for the remainder of list of lists.
+					fData3 = unchained(data2)	#unchained enumerates a list - in this case of parent contexts
+					{data3, fData4} = fData3.()	#data3 is the first of the contexts - which in our case is all we want, but we might want to add an extractor  function
+					{data3, fData4, fCx2}
+				_ ->
+					{data, fData2, fCx}
+			end
+			{nextData, chained(next_fData, next_fCx)}
+		end
+	end
+	
+
+	def stream_chained(fChain) do
+		Stream.resource(
+		  fn ->
+		  	fChain
+		  end,	
+		  fn(fChain) ->  
+		  	{v, f} = fChain.()         	
+		      	if is_nil(v) do 
+		      		{:halt, f}
+		      	else 
+		      		{[v], f}
+		      	end    
+		  	
+		  end,
+		  fn(chain) -> chain end
+		)
+	end
+end
