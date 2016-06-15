@@ -184,33 +184,35 @@ defmodule Collocation do
 		
 		#split this list on sequences of tokens with freq > cutoff or where the gap is less than 3 ignore phrases of length 1 only
 		phrases = get_phrases(bin_tok_freq_list, cutoff)
-		#IO.inspect(phrases)
+		###IO.inspect(phrases)
 		#bin_tok_freq_list
 		sample_phrases = [%TokenFreq{freq: 9, index: 1, is_common: false, offset: 8,  token_id: <<0, 0, 0, 42>>},
 						  %TokenFreq{freq: 4, index: 2, is_common: false, offset: 9,  token_id: <<0, 0, 0, 125>>},
   						  %TokenFreq{freq: 2, index: 4, is_common: false, offset: 11, token_id: <<0, 0, 0, 121>>}]
 
-		
+		#--chained(fData, fCx) fData is func for quartets which will initially return nil.  
+		# fCx is called on data is nil and returns a new data item and data continuation func and cx cont func
 
-		phrase_stream = PhraseStream.get_phrase_stream(phrases)
+		nilFunc = PhraseStream.unchained(nil)	#this is initial setting for quartets - data
+		fPhrase = PhraseStream.unchained(phrases)
+		fQuartetExtractor = PhraseStream.quartet_extractor(fPhrase)
 
-		#get_quartets not happy with a stream which is a function.
-		#for each phrase, get quartets
-		quartets = get_quartets(phrase_stream)
+		fQuartets = PhraseStream.chained(nilFunc, fQuartetExtractor)
 
-		#do_dah(quartets)
+		#quartets = PhraseStream.chained(phrase_stream)
+		quartet_stream = PhraseStream.stream_chained(fQuartets) #- looks like we don't need this after all, though we could modify how we extract data for quartet
+		Enum.each(quartet_stream, fn(i) -> IO.inspect(i) end)
 
-		IO.inspect(quartets)
+		#IO.inspect(quartets)
+
+		#WE STILL NEED to expand quartets as they are in {a, [b,c,d]} form at the moment.
 
 		#now add all these to a wfl -colloc_wfl_pid.
-		#before we do that we need to mark phrase up for abstractions
+		#before we do that we need to mark phrase up for abstractions - in this case a is concretisation for all comb([b,c,d])
 
 		#set_bits(bit_list, merged_token)
 	end
 
-	def do_dah(quartets) do
-		#[{4, [5]}, {3, [5, 4]}, {2, [5, 4, 3]}, {1, [4, 3, 2]}]	 - where each number is a TokenFreq struct	
-	end
 
 	def get_phrases(bin_tok_freq_list, cutoff) do		
 		get_phrases(bin_tok_freq_list, cutoff, 0, [], [], 0, 0)
@@ -245,51 +247,6 @@ defmodule Collocation do
 		else
 			phrases
 		end
-	end
-
-	def get_quartets([]) do
-		#quartets are rolling sequences of 4 - Enum.chunk does something simiar but does not do the tail where the chunk length tapers to 1
-		#a quartet may not have four members  it has up to 4 members and at least 2
-		[]
-	end
-
-	def get_quartets(token_freq_list) do
-		get_quartets(token_freq_list, [], [])
-	end
-
-	def get_quartets([_ | []], [], quartets) do		
-		#quartet needs at least 2 members
-		quartets
-	end
-
-	def get_quartets([a | bcd_etc], quartet, quartets) do
-		bcd = get_bcd(bcd_etc, [])
-		new_quartet = [{a, bcd} | quartet]
-		new_quartets = [{a, bcd} | quartets]
-		get_quartets(bcd_etc, [], new_quartets)
-	end
-
-
-	def get_bcd([], bcd) do
-		bcd		
-	end
-
-	def get_bcd(_, [_, _, _] = bcd) do
-		bcd	
-	end
-
-	def get_bcd([h | t], bcd) do
-		new_bcd = [h | bcd]
-		get_bcd(t, new_bcd)
-	end
-	
-	def handle_quartet(x) do
-		
-	end
-
-	def get_bcd([h | t], accum) do
-		new_accum = [h | accum]
-		get_bcd(t, accum)		
 	end
 
 	def merge_pairs([], accum) do
@@ -558,6 +515,42 @@ end
 
 
 defmodule PhraseStream do
+  
+  def get_quartets([]) do  #doubt we come here
+		#quartets are rolling sequences of 4 - Enum.chunk does something simiar but does not do the tail where the chunk length tapers to 1
+		#a quartet may not have four members  it has up to 4 members and at least 2
+		[]
+	end
+
+	def get_quartets(token_freq_list) do
+		get_quartets(token_freq_list, [])
+	end
+
+	def get_quartets([_ | []], quartets) do		
+		#quartet needs at least 2 members
+		quartets
+	end
+
+	def get_quartets([a | bcd_etc], quartets) do
+		bcd = get_bcd(bcd_etc, [])
+		new_quartets = [{a, bcd} | quartets]
+		get_quartets(bcd_etc, new_quartets)
+	end
+
+
+	def get_bcd([], bcd) do
+		bcd		
+	end
+
+	def get_bcd(_, [_, _, _] = bcd) do
+		bcd	
+	end
+
+	def get_bcd([h | t], bcd) do
+		new_bcd = [h | bcd]
+		get_bcd(t, new_bcd)
+	end
+
   def get_phrase_stream(phrases_list) do
     Stream.resource(
       fn ->
@@ -592,20 +585,36 @@ defmodule PhraseStream do
 		chained(unchained(nil), fCx)
 	end
 
-	def chained(fData, fCx) do  		
-		fn() ->
+	def chained(fData, fCx) do  				
+		fn() ->			
 			{data, fData2} = fData.()	#see if we have data of our own - fData2 is continuation func holding remainder of the list after data has been stripped from the head
 			{nextData, next_fData, next_fCx} = case data do
 				nil ->
-					#we have no data of our own, so get context from parent, and etxtract that
-					{data2, fCx2} = fCx.()	#data2 is the new context (expected to be a list), and fCx2 the continuation function for the remainder of list of lists.
-					fData3 = unchained(data2)	#unchained enumerates a list - in this case of parent contexts
-					{data3, fData4} = fData3.()	#data3 is the first of the contexts - which in our case is all we want, but we might want to add an extractor  function
-					{data3, fData4, fCx2}
+					#we have no data of our own, so get context from parent, and extract that
+					{newDataFunc, newCxFunc} = fCx.()	#data2 is the new context (expected to be a list), and fCx2 the continuation function for the remainder of list of lists.
+					{newData, newNextDataFunc} = newDataFunc.()
+					
+					{newData, newNextDataFunc, newCxFunc}
 				_ ->
 					{data, fData2, fCx}
 			end
 			{nextData, chained(next_fData, next_fCx)}
+		end
+	end
+
+	def quartet_extractor(fPhraseIterator) do
+		fn() ->
+			{phrase,  fNextPhraseIterator} = fPhraseIterator.()		
+			
+			if is_nil(phrase) do
+				nilFunc = unchained(nil)
+				{nilFunc, nilFunc}
+			else
+				quartets = get_quartets(phrase)
+				qUnchained = unchained(quartets)					
+				nextExtractor = quartet_extractor(fNextPhraseIterator)
+				{qUnchained, nextExtractor}
+			end			
 		end
 	end
 	
@@ -615,8 +624,8 @@ defmodule PhraseStream do
 		  fn ->
 		  	fChain
 		  end,	
-		  fn(fChain) ->  
-		  	{v, f} = fChain.()         	
+		  fn(f_chain) ->
+		  	{v, f} = f_chain.()    	
 		      	if is_nil(v) do 
 		      		{:halt, f}
 		      	else 
