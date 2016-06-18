@@ -401,21 +401,25 @@ defmodule Collocation do
 
 
 	def combine_list(list) do
-		combine_list(list, [[]], [])		
+		combine_list(list, [[]], [], [])		
 	end
 
-	def combine_list([], _with, accum) do
+	def combine_list(list, seed) do
+		combine_list(list, [seed], [], seed)		
+	end
+
+	def combine_list([], _with, accum, _seed) do
 		#include the empty set for completeness
 		#[[] | accum]
 		#actually don't - caller can add it - or if the client knows it is at the front of the list it can always remove the head []
 		accum
 	end
 
-	def combine_list([next | rest], with, accum) do
+	def combine_list([next | rest], with, accum, seed) do
 		new_list = Enum.reduce(with, accum, fn(list, accum2) ->
 			[[next | list] | accum2]		
 		end)
-		combine_list(rest, [[] | new_list], new_list)
+		combine_list(rest, [seed | new_list], new_list, seed)
 	end
 
 	def remove_one([], _carousel, accum) do
