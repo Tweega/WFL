@@ -55,7 +55,7 @@ def process_line(str, wfl_pid, char_tree) when is_binary(str) do
 		|> handleToken()
 		|> handleEndline()	#handleToken and handleEndline are only called once after line has been processed to mop up last word/sentence
 
-#IO.inspect(sentences)
+	#IO.inspect(sentences)
 	GenServer.cast(wfl_pid, {:add_tokens, sentences})	#this should accept spawn acknowledge
 end
 

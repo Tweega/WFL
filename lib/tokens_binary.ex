@@ -1,5 +1,6 @@
 
 defmodule TokensBinary do
+  #stores a binary representation of a sentence <<11, 43, 41, 2, 83>> - keyed on sentence, where each number represents a wrod such as cat.  numbers will actually be 4 bytes
   defstruct(bin_tokens: <<>>)
 
   @name :tokens_bin 

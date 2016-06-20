@@ -168,6 +168,7 @@ defmodule Collocation do
 
 	def say_hello({sentence_id, %TokensBinary{} = sent_bin_tokens}, colloc_wfl_pid) do
 		#note that this function is being called in a parallel job one for each sentence
+
 		source_wfl_pid = WFL.get_parent(colloc_wfl_pid)
 		cutoff = get_cutoff()
 
@@ -186,9 +187,9 @@ defmodule Collocation do
 		phrases = get_phrases(bin_tok_freq_list, cutoff)
 		###IO.inspect(phrases)
 		#bin_tok_freq_list
-		sample_phrases = [%TokenFreq{freq: 9, index: 1, is_common: false, offset: 8,  token_id: <<0, 0, 0, 42>>},
+		sample_phrases = [[%TokenFreq{freq: 9, index: 1, is_common: false, offset: 8,  token_id: <<0, 0, 0, 42>>},
 						  %TokenFreq{freq: 4, index: 2, is_common: false, offset: 9,  token_id: <<0, 0, 0, 125>>},
-  						  %TokenFreq{freq: 2, index: 4, is_common: false, offset: 11, token_id: <<0, 0, 0, 121>>}]
+  						  %TokenFreq{freq: 2, index: 4, is_common: false, offset: 11, token_id: <<0, 0, 0, 121>>}], ['more phrases']]
 
 		#--chained(fData, fCx) fData is func for quartets which will initially return nil.  
 		# fCx is called on data is nil and returns a new data item and data continuation func and cx cont func
@@ -200,8 +201,43 @@ defmodule Collocation do
 		fQuartets = PhraseStream.chained(nilFunc, fQuartetExtractor)
 
 		#quartets = PhraseStream.chained(phrase_stream)
-		quartet_stream = PhraseStream.stream_chained(fQuartets) #- looks like we don't need this after all, though we could modify how we extract data for quartet
-		Enum.each(quartet_stream, fn(i) -> IO.inspect(i) end)
+		quartet_stream = PhraseStream.stream_chained(fQuartets)
+
+sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
+  token_id: <<0, 0, 0, 30>>},
+ [%TokenFreq{freq: 3, index: 4, is_common: false, offset: 6,
+   token_id: <<0, 0, 0, 27>>},
+  %TokenFreq{freq: 2, index: 3, is_common: false, offset: 5,
+   token_id: <<0, 0, 0, 28>>},
+  %TokenFreq{freq: 8, index: 2, is_common: false, offset: 4,
+   token_id: <<0, 0, 0, 29>>}]}
+		
+		Enum.each(quartet_stream, fn({key_type, colloc_types} = quartet) -> 
+			IO.inspect(quartet)
+			collocs_len = length(colloc_types)
+	
+			quartet_id = QuartetCounter.get_quartet_id()
+
+			#Quartets.new(quartet_id, {sentence_id, quartet})
+			
+			#from each colloc we want {bin_tokens, sentence_id, token_offset}
+			#store quartet
+
+			collocs = CollocStream.get_colloc_stream(quartet)
+
+			collocations = Enum.map(collocs, fn(colloc) ->
+				colloc
+			end)
+			IO.inspect(collocations)
+
+			#{bin_tokens, sentence_id, token_offset}
+
+			#GenServer.cast(colloc_wfl_pid, {:add_collocs, collocs})
+		end)
+
+
+   
+#	%TokenFreq{freq: 5, index: 2, token_id: <<0, 0, 0, 2>>},
 
 		#IO.inspect(quartets)
 
@@ -211,6 +247,7 @@ defmodule Collocation do
 		#before we do that we need to mark phrase up for abstractions - in this case a is concretisation for all comb([b,c,d])
 
 		#set_bits(bit_list, merged_token)
+
 	end
 
 
@@ -515,6 +552,54 @@ defmodule TokenStream do
     IO.puts("not a binary then?")
     IO.inspect(bin_tokens)
   end
+end
+
+defmodule CollocStream do
+	def get_colloc_stream(quartet) do
+	    Stream.resource(
+	      fn ->
+	      	{key_type, colloc_types} = quartet
+	      	quartet_len = length(colloc_types)
+	      	combinations = quartet_combination(quartet_len)
+	      	
+	      	quartet_map = List.foldl(colloc_types, %{key_type.index - 1 => key_type}, fn(q, map_acc) ->
+				Map.put(map_acc, q.index - 1 , q)
+			end)
+			{combinations, quartet_map}
+	      end,
+	      fn({combinations, quartet_map}) -> 
+	        case combinations do 	#return next quartet as a token binary.  {:halt, accumulator} when finished.        	
+	        	[] -> {:halt, []}
+	        	[combination | rest] ->
+	            	colloc = get_colloc(combination,  quartet_map, <<>>)
+	            	{[colloc], {rest, quartet_map}}
+	        end
+	      end,
+	      fn(empty_combination_list) -> empty_combination_list end 	#tidy up - returns the final value of the stream if there is one.
+	    )  
+  	end
+
+	def get_colloc([], quartet_map, acc) do
+		acc
+	end
+
+	def get_colloc([index | indices], quartet_map, colloc) do
+		tok_freq = Map.get(quartet_map, index)
+		new_colloc = << tok_freq.token_id <> colloc >>
+		get_colloc(indices, quartet_map, new_colloc)
+	end
+
+	def quartet_combination(3) do 
+		[[3, 1, 0], [3, 2, 0], [3, 2, 1, 0], [3, 0], [2, 1, 0], [2, 0], [1, 0]]
+	end
+
+	def quartet_combination(2) do 
+		[[2, 1, 0], [2, 0], [1, 0]]
+	end
+
+	def quartet_combination(1) do 
+		[[1, 0]]
+	end
 end
 
 

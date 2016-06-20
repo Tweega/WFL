@@ -85,7 +85,7 @@ defmodule WFLScratch.Server do
 	end
 	def handle_info( {:file_complete, wfl_pid}, state) do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
-		#mark grammar/common words - for the moment just using ["the", "a", "an"]
+		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
 		WFL.mark_common(wfl_pid, ["the", "a"])
 		process_collocations(wfl_pid)				
 		{:noreply, state}
@@ -140,7 +140,7 @@ defmodule WFLScratch.Server do
 		#for a given type i want a list of all its collocs so catsat is in list for cat and sat - is this stored in main wfl
 		#we get all the collocs, then break them down and update the lists for each token we have a list of paired-types
 		#there is a paired-type wfl and one for each level, three-some, 4-some etc.
-		#this is an iterative process - we process while there are items length(_)														ft in the current wfl
+		#this is an iterative process - we process while there are items left in the current wfl
 		cutoff = 2	#this will have to be in config or similar.
 		#create wfl for colloc results
 		{:ok, current_wfl_pid} = WFL.start_link()
@@ -163,7 +163,9 @@ defmodule WFLScratch.Server do
 
 		#for the moment use the parent_wfl_pid to store source.  this may not end up as method of choice
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
-		s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)
+		#this iterates each binary representation of sentence - but not by going to sentence list as it probably should - it goes straight to the store
+		#we need to get passed in a list of sentences and iterate that - or have a different tokens_binary for phrases.
+		s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)	
 		Parallel.pjob(s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
 
 	end
