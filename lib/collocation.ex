@@ -177,15 +177,28 @@ defmodule Collocation do
 		_token_count = div(byte_size(sent_bin_tokens.bin_tokens), 4)
 
 		#get freqs for each token_id - map
-		bin_tok_freq_list = Enum.map(token_stream, fn(tok_id) ->
+		bin_tok_freq_listzz = Enum.map(token_stream, fn(tok_id) ->
 			#get the wfl_info for this token
 			wfl_info = WFL.get_token_info_from_id(source_wfl_pid, tok_id)
 			%TokenFreq{token_id: tok_id, freq: wfl_info.freq, is_common: wfl_info.is_common}
 		end)
+
+		{bin_tok_freq_list, index_map, _ndx} = Enum.reduce(token_stream, {[], %{}, 0}, fn(tok_id, {list_acc, map_acc, index}) ->
+			#get the wfl_info for this token
+			wfl_info = WFL.get_token_info_from_id(source_wfl_pid, tok_id)
+			tok_freq = %TokenFreq{token_id: tok_id, freq: wfl_info.freq, is_common: wfl_info.is_common, offset: index}
+			#IO.inspect(tok_freq)
+			new_list_acc = [tok_freq | list_acc]
+			new_map = Map.put(map_acc, index, tok_freq)
+			{new_list_acc, new_map, index + 1}
+		end)
+		#IO.inspect(bin_tok_freq_list)
 		
 		#split this list on sequences of tokens with freq > cutoff or where the gap is less than 3 ignore phrases of length 1 only
+		#changing phrases to record only offsets not tokenfreq records
+		#to revert go to commit a52d471101afcc79f63e5b614ea78cc6d03bf10d
 		phrases = get_phrases(bin_tok_freq_list, cutoff)
-		###IO.inspect(phrases)
+		IO.inspect(phrases)
 		#bin_tok_freq_list
 		sample_phrases = [[%TokenFreq{freq: 9, index: 1, is_common: false, offset: 8,  token_id: <<0, 0, 0, 42>>},
 						  %TokenFreq{freq: 4, index: 2, is_common: false, offset: 9,  token_id: <<0, 0, 0, 125>>},
@@ -213,9 +226,10 @@ sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
    token_id: <<0, 0, 0, 29>>}]}
 		
 		Enum.each(quartet_stream, fn({key_type, colloc_types} = quartet) -> 
-			IO.inspect(quartet)
+			#IO.inspect(quartet)
 			collocs_len = length(colloc_types)
-	
+	if 1 == 2 do
+
 			quartet_id = QuartetCounter.get_quartet_id()
 
 			#Quartets.new(quartet_id, {sentence_id, quartet})
@@ -228,11 +242,12 @@ sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
 			collocations = Enum.map(collocs, fn(colloc) ->
 				colloc
 			end)
-			IO.inspect(collocations)
+			#IO.inspect(collocations)
 
 			#{bin_tokens, sentence_id, token_offset}
 
 			#GenServer.cast(colloc_wfl_pid, {:add_collocs, collocs})
+			end ##end debug is 1 ==2 
 		end)
 
 
@@ -252,30 +267,30 @@ sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
 
 
 	def get_phrases(bin_tok_freq_list, cutoff) do		
-		get_phrases(bin_tok_freq_list, cutoff, 0, [], [], 0, 0)
+		get_phrases(bin_tok_freq_list, cutoff, 0, [], [])
 	end
 
-	def get_phrases([], _cutoff, gap_count, phrase, phrases, _index, _offset) do
+	def get_phrases([], _cutoff, gap_count, phrase, phrases) do
 		new_phrase = Enum.drop(phrase, gap_count)
 		add_phrase(new_phrase, phrases)		
 	end
 
-	def get_phrases(bin_tok_freq_list, cutoff, gap_count, phrase, phrases, _index, offset) when gap_count > 1 do #ideally want to pull max_gap_count out of config
+	def get_phrases(bin_tok_freq_list, cutoff, gap_count, phrase, phrases) when gap_count > 1 do #ideally want to pull max_gap_count out of config
 		new_phrase = Enum.drop(phrase, gap_count)
 		new_phrases = add_phrase(new_phrase, phrases)
-		get_phrases(bin_tok_freq_list, cutoff, 0, [], new_phrases, 0, offset)
+		get_phrases(bin_tok_freq_list, cutoff, 0, [], new_phrases)
 	end
 
-	def get_phrases([tok_freq | rest], cutoff, gap_count, phrase, phrases, index, offset) do
+	def get_phrases([tok_freq | rest], cutoff, gap_count, phrase, phrases) do
 		{new_phrase, new_gap_count}  = if tok_freq.freq < cutoff || tok_freq.is_common == true do
 			{phrase, gap_count + 1}
 		else
-			{[%TokenFreq{tok_freq | index: index, offset: offset} | phrase], 0}
+			{[tok_freq.offset | phrase], 0}
 		end	
 
 		#need to keep track of definite article instances - perhaps and as well an pronouns but?- so that we can see if they concretise the phrase
 		#we would need to stick this onto an accumulator associated with the phrase.
-		get_phrases(rest, cutoff, new_gap_count, new_phrase, phrases, index + 1, offset  + 1)
+		get_phrases(rest, cutoff, new_gap_count, new_phrase, phrases)
 	end
 
 	def add_phrase(phrase, phrases) do		
@@ -555,38 +570,35 @@ defmodule TokenStream do
 end
 
 defmodule CollocStream do
-	def get_colloc_stream(quartet) do
+	def get_colloc_stream(quartet, token_map) do
 	    Stream.resource(
 	      fn ->
 	      	{key_type, colloc_types} = quartet
-	      	quartet_len = length(colloc_types)
-	      	combinations = quartet_combination(quartet_len)
 	      	
-	      	quartet_map = List.foldl(colloc_types, %{key_type.index - 1 => key_type}, fn(q, map_acc) ->
-				Map.put(map_acc, q.index - 1 , q)
-			end)
-			{combinations, quartet_map}
+	      	combinations = Collocation.combine_list(colloc_types, key_type)
+	      	
+			{combinations, token_map}
 	      end,
-	      fn({combinations, quartet_map}) -> 
+	      fn({combinations, token_map}) -> 
 	        case combinations do 	#return next quartet as a token binary.  {:halt, accumulator} when finished.        	
 	        	[] -> {:halt, []}
 	        	[combination | rest] ->
-	            	colloc = get_colloc(combination,  quartet_map, <<>>)
-	            	{[colloc], {rest, quartet_map}}
+	            	colloc = get_colloc(combination,  token_map, <<>>)
+	            	{[colloc], {rest, token_map}}
 	        end
 	      end,
 	      fn(empty_combination_list) -> empty_combination_list end 	#tidy up - returns the final value of the stream if there is one.
 	    )  
   	end
 
-	def get_colloc([], quartet_map, acc) do
+	def get_colloc([], token_map, acc) do
 		acc
 	end
 
-	def get_colloc([index | indices], quartet_map, colloc) do
-		tok_freq = Map.get(quartet_map, index)
+	def get_colloc([index | indices], token_map, colloc) do
+		tok_freq = Map.get(token_map, index)
 		new_colloc = << tok_freq.token_id <> colloc >>
-		get_colloc(indices, quartet_map, new_colloc)
+		get_colloc(indices, token_map, new_colloc)
 	end
 
 	def quartet_combination(3) do 
