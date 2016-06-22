@@ -177,12 +177,6 @@ defmodule Collocation do
 		_token_count = div(byte_size(sent_bin_tokens.bin_tokens), 4)
 
 		#get freqs for each token_id - map
-		bin_tok_freq_listzz = Enum.map(token_stream, fn(tok_id) ->
-			#get the wfl_info for this token
-			wfl_info = WFL.get_token_info_from_id(source_wfl_pid, tok_id)
-			%TokenFreq{token_id: tok_id, freq: wfl_info.freq, is_common: wfl_info.is_common}
-		end)
-
 		{bin_tok_freq_list, index_map, _ndx} = Enum.reduce(token_stream, {[], %{}, 0}, fn(tok_id, {list_acc, map_acc, index}) ->
 			#get the wfl_info for this token
 			wfl_info = WFL.get_token_info_from_id(source_wfl_pid, tok_id)
@@ -192,13 +186,16 @@ defmodule Collocation do
 			new_map = Map.put(map_acc, index, tok_freq)
 			{new_list_acc, new_map, index + 1}
 		end)
+
+		#IO.inspect(index_map)
+
 		#IO.inspect(bin_tok_freq_list)
 		
 		#split this list on sequences of tokens with freq > cutoff or where the gap is less than 3 ignore phrases of length 1 only
 		#changing phrases to record only offsets not tokenfreq records
 		#to revert go to commit a52d471101afcc79f63e5b614ea78cc6d03bf10d
 		phrases = get_phrases(bin_tok_freq_list, cutoff)
-		IO.inspect(phrases)
+		#IO.inspect(phrases)
 		#bin_tok_freq_list
 		sample_phrases = [[%TokenFreq{freq: 9, index: 1, is_common: false, offset: 8,  token_id: <<0, 0, 0, 42>>},
 						  %TokenFreq{freq: 4, index: 2, is_common: false, offset: 9,  token_id: <<0, 0, 0, 125>>},
@@ -228,26 +225,26 @@ sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
 		Enum.each(quartet_stream, fn({key_type, colloc_types} = quartet) -> 
 			#IO.inspect(quartet)
 			collocs_len = length(colloc_types)
-	if 1 == 2 do
-
+	
 			quartet_id = QuartetCounter.get_quartet_id()
 
 			#Quartets.new(quartet_id, {sentence_id, quartet})
 			
 			#from each colloc we want {bin_tokens, sentence_id, token_offset}
 			#store quartet
+#if 1 == 2 do
 
-			collocs = CollocStream.get_colloc_stream(quartet)
+			collocs = CollocStream.get_colloc_stream(quartet, index_map)
 
 			collocations = Enum.map(collocs, fn(colloc) ->
 				colloc
 			end)
-			#IO.inspect(collocations)
+			IO.inspect(collocations)
 
 			#{bin_tokens, sentence_id, token_offset}
 
 			#GenServer.cast(colloc_wfl_pid, {:add_collocs, collocs})
-			end ##end debug is 1 ==2 
+#			end ##end debug is 1 ==2 
 		end)
 
 
@@ -575,7 +572,7 @@ defmodule CollocStream do
 	      fn ->
 	      	{key_type, colloc_types} = quartet
 	      	
-	      	combinations = Collocation.combine_list(colloc_types, key_type)
+	      	combinations = Collocation.combine_list(colloc_types, [key_type])
 	      	
 			{combinations, token_map}
 	      end,
@@ -633,7 +630,8 @@ defmodule PhraseStream do
 	end
 
 	def get_quartets([a | bcd_etc], quartets) do
-		bcd = get_bcd(bcd_etc, [])
+		dcb = get_bcd(bcd_etc, [])
+		bcd = Enum.reverse(dcb)	#may not need to do this - we could store <<on hand other the>> instead of <<on the other hand>>
 		new_quartets = [{a, bcd} | quartets]
 		get_quartets(bcd_etc, new_quartets)
 	end
@@ -711,7 +709,8 @@ defmodule PhraseStream do
 				nilFunc = unchained(nil)
 				{nilFunc, nilFunc}
 			else
-				quartets = get_quartets(phrase)
+				r_phrase = Enum.reverse(phrase) #might be able to work backwards through the list without this reverse, but for now easier to read output if forwards
+				quartets = get_quartets(r_phrase)
 				qUnchained = unchained(quartets)					
 				nextExtractor = quartet_extractor(fNextPhraseIterator)
 				{qUnchained, nextExtractor}

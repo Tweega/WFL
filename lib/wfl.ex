@@ -1,8 +1,5 @@
 #wfl_types.ex
 #end wfl_types.ex
-defmodule CollocInfo do
-	defstruct([:bin_tokens, :sent_id, :offset])
-end
 
 defmodule WFL do	
 	@defaults %WFL_Data{}	#set default text processing module here
@@ -122,21 +119,7 @@ defmodule WFL do
 	end
 
 
-	def handle_cast({:add_collocations, collocs}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do	
-		#at the end of this process
-			#what we have is a collection of types in binary form, the sentence they are from and the offset to first token
-			#[{bin_tokens, sent_id, offset}...]  as in [{<<82, 12>>, 21, 2}...]
-
-			new_wfl_data = List.foldl(collocs, wfl_data, fn ({bin_tokens, sentence_id, token_offset}, wfl_data1) -> 
-			
-			#we want to add new type to the wfl along with instance data
-			{_token_id, wfl_data2} = process_token(bin_tokens, sentence_id, token_offset, wfl_data1)
-
-			wfl_data2
-		end)
-		
-		{:noreply, {new_wfl_data, parent_wfl_pid}}
-	end
+	
 
 defp expand_type({wfl, parent} , key) do
 
