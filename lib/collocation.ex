@@ -469,7 +469,7 @@ sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
 		new_list = Enum.reduce(with, accum, fn([h | _t] = list, accum2) ->
 			#IO.puts("h: #{h}    next: #{next}")	
 			if (next - h - 1) > cutoff do
-				[[next | list] | accum2]	#accum2
+				accum2
 			else
 				[[next | list] | accum2]
 			end		
