@@ -239,7 +239,7 @@ sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
 			collocations = Enum.map(collocs, fn(colloc) ->
 				colloc
 			end)
-			IO.inspect(collocations)
+			#IO.inspect(collocations)
 
 			#{bin_tokens, sentence_id, token_offset}
 
@@ -465,7 +465,8 @@ sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
 	end
 
 	def combine_list([next | rest], with, accum, seed) do
-		new_list = Enum.reduce(with, accum, fn(list, accum2) ->
+		new_list = Enum.reduce(with, accum, fn([h|_t] = list, accum2) ->
+			IO.puts("h: #{}    next: #{next}")
 			[[next | list] | accum2]		
 		end)
 		combine_list(rest, [seed | new_list], new_list, seed)
