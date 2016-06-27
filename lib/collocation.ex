@@ -239,7 +239,7 @@ sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
 			collocations = Enum.map(collocs, fn(colloc) ->
 				colloc
 			end)
-			#IO.inspect(collocations)
+			IO.inspect(collocations)
 
 			#{bin_tokens, sentence_id, token_offset}
 
@@ -465,10 +465,14 @@ sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
 	end
 
 	def combine_list([next | rest], with, accum, seed) do
+		cutoff = get_cutoff()
 		new_list = Enum.reduce(with, accum, fn([h | _t] = list, accum2) ->
-			IO.puts("h: #{}    next: #{next}")
-			IO.inspect(list)
-			[[next | list] | accum2]		
+			#IO.puts("h: #{h}    next: #{next}")	
+			if (next - h - 1) > cutoff do
+				[[next | list] | accum2]	#accum2
+			else
+				[[next | list] | accum2]
+			end		
 		end)
 		combine_list(rest, [seed | new_list], new_list, seed)
 	end
@@ -482,7 +486,7 @@ sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
 		remove_one(indices, t ++ [h], new_accum)
 	end
 
-#%TokenFreq{freq: 1, index: 2, is_common: false, offset: 37, token_id: <<0, 0, 0, 145>>},
+	#%TokenFreq{freq: 1, index: 2, is_common: false, offset: 37, token_id: <<0, 0, 0, 145>>},
 
 	def get_abstraction_tree(token_freq_list) do		
 		tree_sample = 
@@ -601,7 +605,7 @@ defmodule CollocStream do
 			0 ->
 				prev_offset
 			_ ->
-				prev_offset - tok_freq.offset
+				prev_offset - tok_freq.offset - 1
 		end
 		
 		#shift_new_gap = new_gap * round(:math.pow(2, 6))	 #or left shift 6 times  - use shift_new for very large corpora where we need 4th byte for colloc ids
@@ -610,10 +614,7 @@ defmodule CollocStream do
 		new_token_int = :binary.decode_unsigned(token_id) + new_gap
 		new_token_id = <<new_token_int :: integer-unit(8)-size(1)>> <> <<rest :: binary >>
 		
-		new_colloc = << new_token_id <> colloc >>
-		if tok_freq.offset > prev_offset do
-			IO.puts("offset: #{tok_freq.offset}  -  prev-offset: #{prev_offset}")
-		end
+		new_colloc = << new_token_id <> colloc >>		
 		get_colloc(indices, tok_freq.offset, token_map, new_colloc)
 	end
 
