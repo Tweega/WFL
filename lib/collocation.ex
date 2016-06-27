@@ -580,7 +580,7 @@ defmodule CollocStream do
 	        case combinations do 	#return next quartet as a token binary.  {:halt, accumulator} when finished.        	
 	        	[] -> {:halt, []}
 	        	[combination | rest] ->
-	            	colloc = get_colloc(combination,  token_map, <<>>)
+	            	colloc = get_colloc(combination,  0, token_map, <<>>)
 	            	{[colloc], {rest, token_map}}
 	        end
 	      end,
@@ -588,14 +588,31 @@ defmodule CollocStream do
 	    )  
   	end
 
-	def get_colloc([], token_map, acc) do
+
+	def get_colloc([], _prev_offset, _token_map, acc) do
 		acc
 	end
 
-	def get_colloc([index | indices], token_map, colloc) do
+	def get_colloc([index | indices], prev_offset, token_map, colloc) do
 		tok_freq = Map.get(token_map, index)
-		new_colloc = << tok_freq.token_id <> colloc >>
-		get_colloc(indices, token_map, new_colloc)
+		new_gap = case prev_offset do
+			0 ->
+				prev_offset
+			_ ->
+				prev_offset - tok_freq.offset
+		end
+		
+		#shift_new_gap = new_gap * round(:math.pow(2, 6))	 #or left shift 6 times  - use shift_new for very large corpora where we need 4th byte for colloc ids
+
+		<<token_id :: binary-size(1),  rest :: binary-size(3)>> = tok_freq.token_id
+		new_token_int = :binary.decode_unsigned(token_id) + new_gap
+		new_token_id = <<new_token_int :: integer-unit(8)-size(1)>> <> <<rest :: binary >>
+		
+		new_colloc = << new_token_id <> colloc >>
+		if tok_freq.offset > prev_offset do
+			IO.puts("offset: #{tok_freq.offset}  -  prev-offset: #{prev_offset}")
+		end
+		get_colloc(indices, tok_freq.offset, token_map, new_colloc)
 	end
 
 	def quartet_combination(3) do 
