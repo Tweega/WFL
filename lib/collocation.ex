@@ -166,15 +166,14 @@ defmodule Collocation do
 		IO.inspect(x)
 	end
 
-	def say_hello({sentence_id, %TokensBinary{} = sent_bin_tokens}, colloc_wfl_pid) do
+	def say_hello({sentence_id, %TokensBinary{bin_tokens: bin_tokens, offset_map: offset_map}}, colloc_wfl_pid) do
 		#note that this function is being called in a parallel job one for each sentence
-
 		source_wfl_pid = WFL.get_parent(colloc_wfl_pid)
 		cutoff = get_cutoff()
 
 		#get freqs for each token_id - TokenStream
-		token_stream = TokenStream.get_token_stream(sent_bin_tokens.bin_tokens)	#using a stream to hand out token_ids into 4 byte chunks
-		_token_count = div(byte_size(sent_bin_tokens.bin_tokens), 4)
+		token_stream = TokenStream.get_token_stream(bin_tokens)	#using a stream to hand out token_ids into 4 byte chunks
+		_token_count = div(byte_size(bin_tokens), 4)
 
 		#get freqs for each token_id - map
 		{bin_tok_freq_list, index_map, _ndx} = Enum.reduce(token_stream, {[], %{}, 0}, fn(tok_id, {list_acc, map_acc, index}) ->
@@ -186,6 +185,9 @@ defmodule Collocation do
 			new_map = Map.put(map_acc, index, tok_freq)
 			{new_list_acc, new_map, index + 1}
 		end)
+
+		#index_map maps token offsets with token ids
+		sample_index =  %{12 => %TokenFreq{freq: 1, index: -1, is_common: false, offset: 12, token_id: <<0, 0, 0, 52>>}}
 
 		#IO.inspect(index_map)
 
@@ -213,37 +215,56 @@ defmodule Collocation do
 		#quartets = PhraseStream.chained(phrase_stream)
 		quartet_stream = PhraseStream.stream_chained(fQuartets)
 
-sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
-  token_id: <<0, 0, 0, 30>>},
- [%TokenFreq{freq: 3, index: 4, is_common: false, offset: 6,
-   token_id: <<0, 0, 0, 27>>},
-  %TokenFreq{freq: 2, index: 3, is_common: false, offset: 5,
-   token_id: <<0, 0, 0, 28>>},
-  %TokenFreq{freq: 8, index: 2, is_common: false, offset: 4,
-   token_id: <<0, 0, 0, 29>>}]}
-		
+		sample_quartet = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3, token_id: <<0, 0, 0, 30>>},
+		 				 [%TokenFreq{freq: 3, index: 4, is_common: false, offset: 6, token_id: <<0, 0, 0, 27>>}, 
+		 				  %TokenFreq{freq: 2, index: 3, is_common: false, offset: 5, token_id: <<0, 0, 0, 28>>},
+		  				  %TokenFreq{freq: 8, index: 2, is_common: false, offset: 4, token_id: <<0, 0, 0, 29>>}]}
+			
+		phrase_id = PhraseCounter.get_phrase_id()
+		#phrase_id will be key to a tuple holding sentence_id and combinations - stored as indices which resolve to tokens via the token_map.
+		#sentence id will be the key to getting hold of the token map which maps offset to token id
+
 		Enum.each(quartet_stream, fn({key_type, colloc_types} = quartet) -> 
 			#IO.inspect(quartet)
 			collocs_len = length(colloc_types)
 	
-			quartet_id = QuartetCounter.get_quartet_id()
+			#quartet_id = QuartetCounter.get_quartet_id()
 
 			#Quartets.new(quartet_id, {sentence_id, quartet})
 			
-			#from each colloc we want {bin_tokens, sentence_id, token_offset}
+			#from each colloc we want {bin_tokens, sentence_id, token_offset} to match data structure for tokens/sentences
 			#store quartet
-#if 1 == 2 do
 
 			collocs = CollocStream.get_colloc_stream(quartet, index_map)
 
-			collocations = Enum.map(collocs, fn(colloc) ->
-				colloc
+			Enum.each(collocs, fn({first_off, last_off, colloc}) ->
+				#%TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
+				WFL.addToken(colloc_wfl_pid, %TokenInput{token: colloc, instance: %TokenInstance{sentence_id: sentence_id, offset: first_off}})  #check if first off references sentence or phrase - we should have sentence here
+				#should we add last offset in with first offset as in offset: {first, last}
+
+				# now add to this combination map
+				# the point of this map is so that when the combination frequencies have been calculated we can find which sibling phrases are
+					# continutations of the current one.
+					# so we need an iterable something that lets us go through phrase sets which have combination linked with all other permutations for that phrase in the map
+					# so i need to say for each combination, find continuation
+					# each map links to more than one combination - there is a map per phrase
+					# what does the map data look like - it is keyed on first offset and data is (an array) of combinations (see sample collcations below) - are these in index form or token_ids?  I think the latter - the former would require the token map to  hang around
+				
 			end)
-			IO.inspect(collocations)
+
+			
+			sample_collocations = [{<<"first_off">>, <<"last_off">>, <<1, 0, 0, 130, 2, 0, 0, 120, 0, 0, 0, 109>>},
+								   {nil, nil, <<2, 0, 0, 130, 1, 0, 0, 112, 0, 0, 0, 109>>},
+								   {nil, nil, <<1, 0, 0, 130, 0, 0, 0, 120, 1, 0, 0, 112, 0, 0, 0, 109>>},
+								   {nil, nil, <<1, 0, 0, 130, 0, 0, 0, 120, 0, 0, 0, 112>>}, 
+								   {nil, nil, <<2, 0, 0, 130, 0, 0, 0, 112>>},
+								   {nil, nil, <<1, 0, 0, 130, 0, 0, 0, 120>>}]
+
+#each of these collocations needs to be added to the wfl
 
 			#{bin_tokens, sentence_id, token_offset}
 
-			#GenServer.cast(colloc_wfl_pid, {:add_collocs, collocs})
+			
 #			end ##end debug is 1 ==2 
 		end)
 
@@ -304,7 +325,7 @@ sample_quart = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3,
 
 	#WORKING HERE - don't want to merge pairs only but work instead on the whole phrases - or sections of it that meet proximity rules
 	#abstractions will be derived in get_abstraction_tree
-	#so we want an array of phrases from the sentence where phrases are demarkated by frequent types not more than 2 spaces apart. 
+	#so we want an array of phrases from the sentence where phrases are demarcated by frequent types not more than 2 spaces apart. 
 
 	def merge_pairs([{%TokenFreq{} = tf_a, %TokenFreq{} = tf_b} | t], accum) do
 		
@@ -586,20 +607,24 @@ defmodule CollocStream do
 	        case combinations do 	#return next quartet as a token binary.  {:halt, accumulator} when finished.        	
 	        	[] -> {:halt, []}
 	        	[combination | rest] ->
-	            	colloc = get_colloc(combination,  0, token_map, <<>>)
+	            	colloc = get_colloc(combination, token_map)
 	            	{[colloc], {rest, token_map}}
+
 	        end
 	      end,
 	      fn(empty_combination_list) -> empty_combination_list end 	#tidy up - returns the final value of the stream if there is one.
 	    )  
   	end
 
+	def get_colloc(combination, token_map) do
+		get_colloc(combination,  0, token_map, {nil, nil, <<>>})
+	end
 
 	def get_colloc([], _prev_offset, _token_map, acc) do
 		acc
 	end
 
-	def get_colloc([index | indices], prev_offset, token_map, colloc) do
+	def get_colloc([index | indices], prev_offset, token_map, {first_offset, last_offset, colloc}) do
 		tok_freq = Map.get(token_map, index)
 		new_gap = case prev_offset do
 			0 ->
@@ -607,6 +632,21 @@ defmodule CollocStream do
 			_ ->
 				prev_offset - tok_freq.offset - 1
 		end
+
+		last_off = case colloc do
+			<<>> -> 
+				tok_freq.offset
+			_ ->
+				last_offset
+		end
+
+		first_off = case indices do
+			[] -> 
+				tok_freq.offset
+			_ ->
+				first_offset
+		end
+
 		
 		#shift_new_gap = new_gap * round(:math.pow(2, 6))	 #or left shift 6 times  - use shift_new for very large corpora where we need 4th byte for colloc ids
 
@@ -614,8 +654,11 @@ defmodule CollocStream do
 		new_token_int = :binary.decode_unsigned(token_id) + new_gap
 		new_token_id = <<new_token_int :: integer-unit(8)-size(1)>> <> <<rest :: binary >>
 		
-		new_colloc = << new_token_id <> colloc >>		
-		get_colloc(indices, tok_freq.offset, token_map, new_colloc)
+		new_colloc = << new_token_id <> colloc >>	
+
+		#{first_off, last_off, <<2, 0, 0, 130, 1, 0, 0, 112, 0, 0, 0, 109>>},
+
+		get_colloc(indices, tok_freq.offset, token_map, {first_off, last_off, new_colloc})
 	end
 
 	def quartet_combination(3) do 

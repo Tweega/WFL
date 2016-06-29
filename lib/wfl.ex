@@ -11,6 +11,10 @@ defmodule WFL do
 		:gen_server.call(pid, {:add_token, token_info })
 	end
 
+	def addColloc(pid, %TokenInput{} = token_info) do  	#defstruct([:token, :instance])		may not use this api 
+		:gen_server.call(pid, {:add_colloc, token_info })
+	end
+
 	def get_wfl(wfl_pid) do		
 		:gen_server.call(wfl_pid, :get_wfl)
 	end
@@ -89,6 +93,7 @@ defmodule WFL do
 		{:reply, :ok, {%WFL_Data{wfl | types: new_wfl_types}, parent}}
 	end
 
+	#{<<"first_off">>, <<"last_off">>, <<1, 0, 0, 130, 2, 0, 0, 120, 0, 0, 0, 109>>}
 
 	
 	def handle_cast({:add_tokens, sentences}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do	
@@ -106,12 +111,17 @@ defmodule WFL do
 
 			#save the sentence somewhere - we don't need it for a while.  We could even store only offset and length in a filename bucket
 			#this could/should be in a different process
+
+			
 			Sentences.new(sentence_id, sentence)
 			
-			{_token_offset, tokens_binary, wfl_data2} = process_tokens(tokens, sentence_id, wfl_data1)
+			{_token_offset, tokens_binary, offset_map, wfl_data2} = process_tokens(tokens, sentence_id, wfl_data1)
+			
+			_sample_offset_map = %{0 => <<0, 0, 0, 4>>, 1 => <<0, 0, 0, 188>>, 2 => <<0, 0, 0, 158>>}
+			#IO.inspect(offset_map)
 
 			#store tokens binary data - this will be the input 'text' for the next round of tokens.			
-			TokensBinary.new(sentence_id, %TokensBinary{bin_tokens: tokens_binary})
+			TokensBinary.new(sentence_id, %TokensBinary{bin_tokens: tokens_binary, offset_map: offset_map})
 			wfl_data2			
 		end)
 		
@@ -157,10 +167,11 @@ defp expand_type({wfl, parent} , key) do
 #IO.inspect(tokens)
 
 		#update / create WFL_Type for each token	
-		toke_offset = length(tokens)	# -1 if we want zero based index.  as it is the first offset is 1
-		List.foldl(tokens, {toke_offset, <<"">>, wfl_data}, fn (token, {token_offset, tokens_binary, wfl_data1}) -> 
+		toke_offset = length(tokens) -1 # remove -1 for 1 based vs 0 based index.
+		List.foldl(tokens, {toke_offset, <<"">>, %{}, wfl_data}, fn (token, {token_offset, tokens_binary, token_offset_map, wfl_data1}) -> 
 			{token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1)				
-			{token_offset - 1, << token_id <> tokens_binary >>,  wfl_data2}	#next accumulator value		
+			offset_map = Map.put(token_offset_map, token_offset, token_id)
+			{token_offset - 1, << token_id <> tokens_binary >>, offset_map, wfl_data2}	#next accumulator value		
 		end)		
 	end
 
@@ -188,6 +199,7 @@ defp expand_type({wfl, parent} , key) do
 		{type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
 	end
 
+	
 	defp fetch_token_info_from_id(wfl, token_id) do
 		token = Map.get(wfl.type_ids, token_id)
 		Map.get(wfl.types, token)

@@ -8,8 +8,9 @@ defmodule WFLScratch.Supervisor do
 	def init (stack) do
 		children = [worker(WFLScratch.Server, [stack]), 
 					worker(SentenceCounter, []),
-					worker(QuartetCounter, []),
 					worker(Sentences, []),
+					worker(PhraseCounter, []),
+					worker(Phrases, []),
 					worker(TokensBinary, []),
 					worker(TokenCounter, [])]
 		supervise children, strategy: :one_for_one	

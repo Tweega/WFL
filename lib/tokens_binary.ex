@@ -1,7 +1,8 @@
 
 defmodule TokensBinary do
   #stores a binary representation of a sentence <<11, 43, 41, 2, 83>> - keyed on sentence, where each number represents a wrod such as cat.  numbers will actually be 4 bytes
-  defstruct(bin_tokens: <<>>)
+  #also stores a map between first offset and token
+  defstruct(bin_tokens: <<>>, offset_map: %{})
 
   @name :tokens_bin 
   
@@ -17,7 +18,21 @@ defmodule TokensBinary do
     Agent.get(:tokens_bin, &Map.get(&1, sentence_id))
   end
 
+  def get_bin_tokens(sentence_id) do        
+    Agent.get(:tokens_bin, fn(state) ->
+      x = Map.get(state, sentence_id)
+      x.bin_tokens
+    end)
+  end
+
+  def get_offset_map(sentence_id) do        
+    Agent.get(:tokens_bin, fn(state) ->
+      x = Map.get(state, sentence_id)
+      x.bin_tokens
+    end)
+  end
+
   def get_map() do        
-    Agent.get(:tokens_bin, &(&1))
+    Agent.get(:tokens_bin, &(&1)) #this returns agent state.
   end
 end
