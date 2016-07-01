@@ -48,13 +48,13 @@
 
   def pjob(collection, job_list) do
     collection
-        |> Enum.map(fn(wfl_item) -> #assuming that job list is serial not parralel.
+        |> Enum.map(fn(data_item) -> #assuming that job list is serial not parralel.
           root_pid = self()
           #spawn a listener that will also kick off jobs
           listener_pid = spawn fn -> 
             listener = self()         
             spawn fn -> 
-              output = List.foldl(job_list, wfl_item, fn({module, func, params}, previous_output) ->         
+              output = List.foldl(job_list, data_item, fn({module, func, params}, previous_output) ->         
                 args = [previous_output | params]
                 apply(module, func, args)                
               end)

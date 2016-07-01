@@ -32,64 +32,6 @@ def to_4_bytes(l) do
 end
 
 
-def make1(token) do
-	#from {"s1", 2} produce [{"s1", [{<<0, 0, 4, 209, 0, 0, 0, 87>>, 2},...]}]
-
-	{tokens, token_events, sent_tokens} = new()
-
-	tokenID = Map.get(tokens, token)
-	
-
-	offsets = [-3, -2, -1, 1, 2, 3]
-	 
-	token_offs = Map.get(token_events, tokenID)
-
-	Enum.reduce(token_offs, [], fn({sent_id, token_index}, new_sent_tokens) ->
-		temp_tokes = Map.get(sent_tokens, sent_id)   #to_4_bytes([97, 21, 67, 87, 22, 33, 44])
-		Logger.debug(sent_id)
-		token_count = div(byte_size(temp_tokes), 4)
-
-		current_token_length = div(byte_size(tokenID), 4)
-
-		new_tokes = Enum.reduce(offsets, [], fn(offset, new_tokens) ->
-			zero_count = abs(offset) - 1
-			new_token = <<>>
-			new_tokes = nil
-
-			if offset < 0 do
-				index = token_index + offset
-
-				if index > -1 do					
-					ex_token = binary_part(temp_tokes, index * 4, 4) #All we will ever want is a single extra token
-					
-					if zero_count >  0 do					
-						new_token = Enum.reduce(1..zero_count, <<>>, fn(_x, acc) -> <<0 :: integer-unit(8)-size(4)>> <> <<acc :: binary>> end)
-					end
-					new_token = ex_token <> new_token <> tokenID
-					new_tokes = [{new_token, index} | new_tokens]
-				end				
-			else
-				index = token_index + current_token_length + offset - 1
-				Logger.debug(index)
-
-				if token_count > index do
-					new_token = binary_part(temp_tokes, index * 4, 4)
-					IO.inspect(new_token)
-					
-					if zero_count >  0 do
-						new_token = Enum.reduce(1..zero_count, new_token, fn(_x, acc) -> <<0 :: integer-unit(8)-size(4)>> <> <<acc :: binary>> end)
-					end
-
-					new_token = tokenID <> new_token
-					new_tokes = [{new_token, token_index} | new_tokens]
-				end
-			end
-			new_tokes || new_tokens
-		end)
-		[{sent_id, new_tokes} | new_sent_tokens]
-	end)
-end
-
 
 def mask_tokens(<<num :: binary>>, mask) do 
 	#num is concatenation of token_ids as in <<0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3>>

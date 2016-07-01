@@ -1,3 +1,12 @@
+defmodule TokenInput do
+		defstruct([:token, :instance])
+	end
+
+
+defmodule TokenInstance do
+		defstruct([:sentence_id, :offset])
+	end
+
 defmodule TokenFreq do
 	defstruct([token_id: <<>>, freq: 0, index: -1, offset: -1, is_common: false])
 end
@@ -104,69 +113,13 @@ defmodule Collocation do
 		get_sent_off_tokes(type_id, tail, [{type_id, sent_id, offset} | acc])
 	end
 
-	def get_collocs({_key, wfl_item}) do
-		#wfl_item:  %WFL_Type{freq: 2, instances: [{6, 9}, {2, 29}], type: "place", type_id: <<0, 0, 0, 9>>}
-		
-		#going to refactor so that first time round we only look at immediate pairs, then with triples to hollow out the phrase and to mark the hollow versions as possible abstractions
-		#abstractions only remain in the wfl if their frequency is sufficiently greater than any one more specific phrasing.
-
-		depth = 1	#this could derive from token_length
-		tokenID = wfl_item.type_id
-		offsets = [-3, -2, -1, 1, 2, 3]
-		
-
-		Enum.reduce(wfl_item.instances, [], fn({sent_id, token_index}, new_sent_tokens) ->
-			#get tokens for the sentence	
-			sent_bin_tokens = TokensBinary.get(sent_id).bin_tokens
-			Logger.debug(sent_id)
-			token_count = div(byte_size(sent_bin_tokens), 4)
-
-			current_token_length = div(byte_size(tokenID), 4)
-
-			new_tokes = Enum.reduce(offsets, [], fn(offset, new_tokens) ->
-				zero_count = abs(offset) - 1
-				new_token = <<>>
-				new_tokes = nil
-
-				if offset < 0 do
-					index = token_index + offset
-
-					if index > 0 do					
-						ex_token = binary_part(sent_bin_tokens, (index - 1) * 4, 4) #All we will ever want is a single extra token
-						
-						if zero_count >  0 do					
-							new_token = Enum.reduce(1..zero_count, <<>>, fn(_x, acc) -> <<0 :: integer-unit(8)-size(4)>> <> <<acc :: binary>> end)
-						end
-						new_token = ex_token <> new_token <> tokenID
-						new_tokes = [{new_token, index} | new_tokens]
-					end				
-				else
-					index = token_index + current_token_length + offset - 2
-					
-					if token_count > index do
-						new_token = binary_part(sent_bin_tokens, index * 4, 4)
-						#IO.inspect(new_token)
-						
-						if zero_count >  0 do
-							new_token = Enum.reduce(1..zero_count, new_token, fn(_x, acc) -> <<0 :: integer-unit(8)-size(4)>> <> <<acc :: binary>> end)
-						end
-
-						new_token = tokenID <> new_token
-						new_tokes = [{new_token, token_index} | new_tokens]
-					end
-				end
-				new_tokes || new_tokens
-			end)
-			[{sent_id, new_tokes} | new_sent_tokens]
-		end)
-	end
-
+	
 	def check_wfl(wfl_pid) do
 		x = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)
 		IO.inspect(x)
 	end
 
-	def say_hello({sentence_id, %TokensBinary{bin_tokens: bin_tokens, offset_map: offset_map}}, colloc_wfl_pid) do
+	def say_hello({sentence_id, %TokensBinary{bin_tokens: bin_tokens}}, colloc_wfl_pid) do
 		#note that this function is being called in a parallel job one for each sentence
 		source_wfl_pid = WFL.get_parent(colloc_wfl_pid)
 		cutoff = get_cutoff()
@@ -220,12 +173,13 @@ defmodule Collocation do
 		 				  %TokenFreq{freq: 2, index: 3, is_common: false, offset: 5, token_id: <<0, 0, 0, 28>>},
 		  				  %TokenFreq{freq: 8, index: 2, is_common: false, offset: 4, token_id: <<0, 0, 0, 29>>}]}
 			
-		phrase_id = PhraseCounter.get_phrase_id()
+		
 		#phrase_id will be key to a tuple holding sentence_id and combinations - stored as indices which resolve to tokens via the token_map.
 		#sentence id will be the key to getting hold of the token map which maps offset to token id
 
 		Enum.each(quartet_stream, fn({key_type, colloc_types} = quartet) -> 
-			#IO.inspect(quartet)
+			IO.inspect(quartet)
+			#{23, [25, 26, 28]} - I want to store this now along with token_map - here 23 would be key and [25, 26, 28] would be the data.
 			collocs_len = length(colloc_types)
 	
 			#quartet_id = QuartetCounter.get_quartet_id()
@@ -237,7 +191,7 @@ defmodule Collocation do
 
 			collocs = CollocStream.get_colloc_stream(quartet, index_map)
 
-			Enum.each(collocs, fn({first_off, last_off, colloc}) ->
+			Enum.each(collocs, fn({first_off, _last_off, colloc} = phrase) ->	#use a struct?
 				#%TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
 				WFL.addToken(colloc_wfl_pid, %TokenInput{token: colloc, instance: %TokenInstance{sentence_id: sentence_id, offset: first_off}})  #check if first off references sentence or phrase - we should have sentence here
 				#should we add last offset in with first offset as in offset: {first, last}
@@ -249,6 +203,10 @@ defmodule Collocation do
 					# so i need to say for each combination, find continuation
 					# each map links to more than one combination - there is a map per phrase
 					# what does the map data look like - it is keyed on first offset and data is (an array) of combinations (see sample collcations below) - are these in index form or token_ids?  I think the latter - the former would require the token map to  hang around
+#IO.inspect(phrase)
+# phrase example = {23, 25, <<1, 0, 0, 11, 0, 0, 0, 12>>}
+					phrase_id = PhraseCounter.get_phrase_id()
+					Phrases.new(phrase_id, {sentence_id, phrase})
 				
 			end)
 
@@ -260,16 +218,10 @@ defmodule Collocation do
 								   {nil, nil, <<2, 0, 0, 130, 0, 0, 0, 112>>},
 								   {nil, nil, <<1, 0, 0, 130, 0, 0, 0, 120>>}]
 
-#each of these collocations needs to be added to the wfl
-
-			#{bin_tokens, sentence_id, token_offset}
-
-			
-#			end ##end debug is 1 ==2 
 		end)
 
+IO.puts("done colloc")
 
-   
 #	%TokenFreq{freq: 5, index: 2, token_id: <<0, 0, 0, 2>>},
 
 		#IO.inspect(quartets)
@@ -283,6 +235,22 @@ defmodule Collocation do
 
 	end
 
+	def do_phrase(x,  colloc_wfl_pid) do 
+		#{phrase_id, {sentence_id, {first_offset, last_offset, <<phrase token ids>>}}}
+		#{234, {14, {2, 4, <<0, 0, 0, 125, 0, 0, 0, 30, 0, 0, 0, 29>>}}}	- use a struct so we can see what is going on?
+		IO.inspect(x)
+		# - objective is to see if there are any other sub-phrases that come from the same stable as this one that might adjoin and so make larger phrases
+		#so we need to get hold of all other items with the same combination id - which we don't have - what we do have is token map keyed on offset
+		#which is stored in TokenBinary keyed on sentence_id.  but that is not a combination list - is it a token map or a combination map - we need the latter.
+		# one combination looks like this : {23, [25, 26, 28]}  {Sent_n, Off_a, Off_b, Off_c}
+		# when we get x - a combination instance - we need to get other combination instances that start with Off_c + 1 or Off_c + 2 (here 29 or 30)
+		# so given an offset number we need to retrive a combination for that and to then check if any of those instances occur frequently enough.
+		# so offset plus sentence id yieds a quartet.
+		# the token_map is keyed on offset and stored with tokenBinary - itself keyed on sentence - so that would be an appropriate place to store quartet also
+		# only we dont know quartet at the time that we create the token map - still, we can update that map.
+
+:ok
+	end
 
 	def get_phrases(bin_tok_freq_list, cutoff) do		
 		get_phrases(bin_tok_freq_list, cutoff, 0, [], [])
@@ -322,10 +290,6 @@ defmodule Collocation do
 	def merge_pairs([], accum) do
 		accum
 	end
-
-	#WORKING HERE - don't want to merge pairs only but work instead on the whole phrases - or sections of it that meet proximity rules
-	#abstractions will be derived in get_abstraction_tree
-	#so we want an array of phrases from the sentence where phrases are demarcated by frequent types not more than 2 spaces apart. 
 
 	def merge_pairs([{%TokenFreq{} = tf_a, %TokenFreq{} = tf_b} | t], accum) do
 		

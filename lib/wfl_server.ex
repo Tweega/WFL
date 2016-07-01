@@ -165,8 +165,11 @@ defmodule WFLScratch.Server do
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
 		#this iterates each binary representation of sentence - but not by going to sentence list as it probably should - it goes straight to the store
 		#we need to get passed in a list of sentences and iterate that - or have a different tokens_binary for phrases.
-		s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)	
-		Parallel.pjob(s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
+		tb_s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)
+		Parallel.pjob(tb_s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
+		p_s = Stream.map(Phrases.get_map(), fn(phrase) -> phrase end)	#note - this part iterates so we need to call a holding function.
+		Parallel.pjob(p_s, [{Collocation, :do_phrase, [colloc_wfl_pid]}])
+
 
 	end
 

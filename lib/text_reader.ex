@@ -1,5 +1,24 @@
 #wfl_types.ex
-	
+	defmodule WFL_Type do
+		defstruct([:type, :type_id, :freq, is_common: false, instances: [], concretisations: MapSet.new()])	#concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat
+	end
+
+	defmodule WFL_Data do
+		defstruct([depth: 0, types: %{}, type_ids: %{}])	#both types and type_ids map into the same WFL_Type collections
+	end
+
+defmodule SentenceInfo do	
+		#this struct is used when reading text file initially
+		defstruct([tokens: [], sentence: <<>>])
+	end
+
+	defmodule TokenInfo do
+		defstruct([token: "" , token_count: 0, char_type: :none, defs: [], period_count: 0, punct_len: 0])
+	end
+
+defmodule ReaderInfo do
+		defstruct([token_info: %TokenInfo{}, sentence_info: %SentenceInfo{}, sentences: []])  #sentences is an array of %SentenceInfo
+	end	
 #end wfl_types.ex
 
 defmodule TextReader do
@@ -102,20 +121,20 @@ def handleToken(%ReaderInfo{token_info: %TokenInfo{token: token, token_count: to
 	#defs will normally have a whitespace at the end which is carried over to cx_new_token/3 along with any additional punctuation after the token
 
 	toke = get_token(token, defs, period_count)		#if we want to canonicalise tokens we need to return an indicator that this has happened so we don't compare token length with def length.
-
 	toke_len = String.length(toke)
-	new_tokens = nil
 
-	if toke_len > 0 do
-		new_tokens = [toke | tokens]
-		token_count = token_count + 1				
-	end
+	{new_tokens, new_token_count} = 
+		if toke_len > 0 do
+			{[toke | tokens], token_count + 1}
+		else
+			{nil, token_count}
+		end
 
 	post_def_len = length(defs) - toke_len
 
 	post_defs = Enum.take(defs, post_def_len)
 	post_chars = String.slice(sentence, 0, post_def_len)
-	new_token_info = %TokenInfo{token: post_chars, token_count: token_count, defs: post_defs, period_count: period_count}
+	new_token_info = %TokenInfo{token: post_chars, token_count: new_token_count, defs: post_defs, period_count: period_count}
 	new_sentence_info = %SentenceInfo{tokens: new_tokens||tokens, sentence: sentence}
 
 	%TextReader{reader_info: %ReaderInfo{token_info: new_token_info, sentence_info: new_sentence_info, sentences: sentence_infos}, handler: &TextReader.cx_new_token/3} 	#new_defs has the extra whitespace while token does not

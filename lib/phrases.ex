@@ -18,4 +18,8 @@ defmodule Phrases do
     Agent.get(:phrases, &Map.get(&1, phrase_id))
   end
 
+  def get_map() do        
+    Agent.get(:phrases, &(&1)) #this returns agent state.
+  end
+  
 end
