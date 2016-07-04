@@ -1,4 +1,7 @@
 #wfl_types.ex
+defmodule OffsetMaps do
+  defstruct([token_map: %{}, combination_map: %{}])
+end
 #end wfl_types.ex
 
 defmodule WFL do	
@@ -121,7 +124,7 @@ defmodule WFL do
 			#IO.inspect(offset_map)
 
 			#store tokens binary data - this will be the input 'text' for the next round of tokens.			
-			TokensBinary.new(sentence_id, %TokensBinary{bin_tokens: tokens_binary, offset_map: offset_map})
+			TokensBinary.new(sentence_id, %TokensBinary{bin_tokens: tokens_binary, offset_maps: %OffsetMaps{token_map: offset_map}})
 			wfl_data2			
 		end)
 		

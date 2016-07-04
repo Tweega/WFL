@@ -119,7 +119,7 @@ defmodule Collocation do
 		IO.inspect(x)
 	end
 
-	def say_hello({sentence_id, %TokensBinary{bin_tokens: bin_tokens}}, colloc_wfl_pid) do
+	def say_hello({sentence_id, %TokensBinary{bin_tokens: bin_tokens} = tb}, colloc_wfl_pid) do
 		#note that this function is being called in a parallel job one for each sentence
 		source_wfl_pid = WFL.get_parent(colloc_wfl_pid)
 		cutoff = get_cutoff()
@@ -180,6 +180,14 @@ defmodule Collocation do
 		Enum.each(quartet_stream, fn({key_type, colloc_types} = quartet) -> 
 			IO.inspect(quartet)
 			#{23, [25, 26, 28]} - I want to store this now along with token_map - here 23 would be key and [25, 26, 28] would be the data.
+
+			new_tokens_binary = update_in(tb.offset_maps.combination_map, fn(_q) -> quartet end)
+
+			#we now need to save new_tokens_binary in tokensbinary agent
+
+			#new_tokens_binary = %TokensBinary{tb | offset_maps: {map1, map2}}
+			
+
 			collocs_len = length(colloc_types)
 	
 			#quartet_id = QuartetCounter.get_quartet_id()
