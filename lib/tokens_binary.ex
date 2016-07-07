@@ -1,11 +1,11 @@
-defmodule OffsetMap do
+defmodule OffsetMaps do
   defstruct([token_map: %{}, combination_map: %{}])
 end
 
 defmodule TokensBinary do
   #stores a binary representation of a sentence <<11, 43, 41, 2, 83>> - keyed on sentence, where each number represents a wrod such as cat.  numbers will actually be 4 bytes
   #also stores a map between first offset and token
-  defstruct(bin_tokens: <<>>, offset_maps: %OffsetMap{})
+  defstruct(bin_tokens: <<>>, offset_maps: %OffsetMaps{})
 
   @name :tokens_bin 
   
@@ -15,6 +15,11 @@ defmodule TokensBinary do
 
   def new(sentence_id, %TokensBinary{} = tokens_bin) do 
     Agent.update(:tokens_bin, &Map.put(&1, sentence_id, tokens_bin))  #include sentence_id in with tokens_bin data in tuple?
+  end
+
+  def update(sentence_id, %TokensBinary{} = tokens_bin) do 
+    #IO.puts("updating for: #{sentence_id}")
+    Agent.update(:tokens_bin, &Map.update!(&1, sentence_id, fn(_x) -> tokens_bin end))
   end
 
   def set_offset_maps(sentence_id, toke_bin, token_map, combination_map) do 
@@ -33,10 +38,10 @@ defmodule TokensBinary do
     end)
   end
 
-  def get_offset_map(sentence_id) do        
+  def get_offset_maps(sentence_id) do        
     Agent.get(:tokens_bin, fn(state) ->
       x = Map.get(state, sentence_id)
-      x.bin_tokens
+      x.offset_maps
     end)
   end
 
