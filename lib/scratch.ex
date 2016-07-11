@@ -81,7 +81,7 @@ def maskbits(<<int :: binary-size(1), bits_rest :: binary>>, [mask | mask_rest],
 	maskbits(bits_rest, mask_rest, acc2)
 
 end
-
+	
 
 def rev_bin(<< t :: binary >>) do
 	rev_bin(t, <<>>)
@@ -100,5 +100,67 @@ def rev_bin(<< h :: binary-size(1),  t :: binary >>, store) do
 
 end
 
+
+
+def combine_list(list) do
+	combine_list(list, [[]])		
+end
+
+
+def combine_list([], acc) do
+	acc
+end
+
+
+def combine_list([h | t], acc) do
+	new_acc = Enum.reduce(acc, acc, fn(item, accum) ->
+		[[h | item] | accum]
+	end)
+	combine_list(t, new_acc)
+end
+
+def choose_n(list, n) do
+	choose_n(list, {[[]], []}, n - 1)		
+end
+
+def choose_n([], {_acc, result}, _n) do
+	result
+end
+
+def choose_n([h | t], {acc, _result} = xx, n) do
+	new_acc  = Enum.reduce(acc, xx, fn(item, {accum, res}) ->	
+		ac = if length(item) < n do	
+			[[h | item] | accum]
+		else 
+			accum
+		end
+
+		rs = if length(item) == n do	
+			[[h | item] | res]
+		else 
+			res
+		end
+		{ac, rs}
+	end)
+	choose_n(t, new_acc, n)
+end
+
+
+
+
+def lose_one(list) do
+	lose_one(list, [], [])
+
+
+end
+
+def lose_one([], _list2, acc) do
+	acc
+end
+
+def lose_one([h | t], list2, acc) do
+	new_acc = [t ++ list2 | acc]
+	lose_one(t, [h | list2], new_acc)
+end
 
 end
