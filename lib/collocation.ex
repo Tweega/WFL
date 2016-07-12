@@ -304,7 +304,7 @@ defmodule Collocation do
 
 				if ! is_nil(continuations) do
 					if sent_id == 12 do
-						IO.inspect(continuations)
+						#IO.inspect(continuations)
 						#right now continuation looks like this:  [<<1, 0, 0, 129, 0, 0, 0, 29>>] 	(combinations which we don't have at the moment, but could looks like [[5, 4], [7, 4], [7, 5, 4]])
 						phrase_candidates = List.foldl(continuations, [], fn(continuation, accum) -> 
 							
@@ -314,7 +314,7 @@ defmodule Collocation do
 						end)
 
 						Enum.each(phrase_candidates, fn(x) ->
-							#IO.inspect(x)
+							IO.inspect(x)
 							#add to wfl
 							#make sure we can re-iterate over extended phrases.  this means having access to the same continuations map
 							#and having this token in the tokens map with its last_offset set correctly.  this will be the last offset of the continuation
