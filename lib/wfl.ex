@@ -10,6 +10,10 @@ defmodule WFL do
 	use GenServer
 	
 	#API	
+	def getFrequentTypes(pid, cutoff) do
+		:gen_server.call(pid, {:frequent_types, cutoff })
+	end
+
 	def addToken(pid, %TokenInput{} = token_info) do
 		:gen_server.call(pid, {:add_token, token_info })
 	end
@@ -96,6 +100,11 @@ defmodule WFL do
 		{:reply, :ok, {%WFL_Data{wfl | types: new_wfl_types}, parent}}
 	end
 
+
+	def handle_call(:frequent_types, _from, {wfl, _parent} = state) do
+		{:reply, wfl, state}
+	end
+
 	#{<<"first_off">>, <<"last_off">>, <<1, 0, 0, 130, 2, 0, 0, 120, 0, 0, 0, 109>>}
 
 	
@@ -179,7 +188,16 @@ defp expand_type({wfl, parent} , key) do
 	end
 
 	defp process_token(token, sentence_id, offset, %WFL_Data{types: types, type_ids: type_ids}) do
-		new_instance = {sentence_id,  offset}
+
+		offsets = case offset do
+			{first_off, last_off} ->
+				{first_off, last_off}
+				
+			first_off ->
+				{first_off, first_off}
+		end
+		
+		new_instance = {sentence_id,  offsets}
 
 		#see if we already have this token in wfl
 		{type_id, new_types} = Map.get_and_update(types, token, fn type_info -> 			

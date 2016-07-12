@@ -151,7 +151,7 @@ defmodule WFLScratch.Server do
       	filtered_list = Enum.take_while(sorted_wfl, fn({_key, item}) -> item.freq >= cutoff end)
 
 		#given list of things to do things on - ie wfl_items
-		#create a list of listeners and wait for the mall to reply
+		#create a list of listeners and wait for them all to reply
 		#IO.inspect(filtered_list)
 
 		#we need bin_tokens and a wfl
@@ -167,7 +167,9 @@ defmodule WFLScratch.Server do
 		#we need to get passed in a list of sentences and iterate that - or have a different tokens_binary for phrases.
 		tb_s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)
 		Parallel.pjob(tb_s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
-		p_s = Stream.map(Phrases.get_map(), fn(phrase) -> phrase end)	#note - this part iterates so we need to call a holding function.
+
+		p_s_t = WFL.get_wfl(colloc_wfl_pid).types		
+		p_s = Stream.map(p_s_t, fn(wfl_type) -> wfl_type end)	#note - this part iterates so we need to call a holding function.
 		Parallel.pjob(p_s, [{Collocation, :do_phrase, [colloc_wfl_pid]}])
 
 
