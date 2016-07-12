@@ -260,12 +260,16 @@ defmodule Collocation do
 
 	end
 
-	def do_phrase(wfl_type,  colloc_wfl_pid) do 
+	def do_phrase({_key, wfl_type},  colloc_wfl_pid) do 
 		#{phrase_id, {sentence_id, {first_offset, last_offset, <<phrase token ids>>}}}
 		#{234, {14, {2, 4, <<0, 0, 0, 125, 0, 0, 0, 30, 0, 0, 0, 29>>}}}	- use a struct so we can see what is going on?
 		#{234, {20, {0, 1, <<0, 0, 0, 167, 0, 0, 0, 93>>}}}
 		#IO.inspect(x)
-		
+		_sample_p_s = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+ %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
+  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+  type_id: <<0, 0, 1, 42>>}}
+
 		if wfl_type.freq > 1 do
 			#occurrences for this wfl_type are listed in wfl_type.instances
 			

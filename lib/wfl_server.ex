@@ -170,6 +170,13 @@ defmodule WFLScratch.Server do
 
 		p_s_t = WFL.get_wfl(colloc_wfl_pid).types		
 		p_s = Stream.map(p_s_t, fn(wfl_type) -> wfl_type end)	#note - this part iterates so we need to call a holding function.
+
+		_sample_p_s = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+ %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
+  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+  type_id: <<0, 0, 1, 42>>}}
+
+  
 		Parallel.pjob(p_s, [{Collocation, :do_phrase, [colloc_wfl_pid]}])
 
 
