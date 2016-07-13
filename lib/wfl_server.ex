@@ -134,32 +134,11 @@ defmodule WFLScratch.Server do
 	end
 
 	defp process_collocations(source_wfl_pid) do
-		#one wfl for all collocs or once for each level?
-		#create a listener (genserver?) that will listen out for completed wfls that need merging in to main wfl.
-		#why merge?
-		#for a given type i want a list of all its collocs so catsat is in list for cat and sat - is this stored in main wfl
-		#we get all the collocs, then break them down and update the lists for each token we have a list of paired-types
-		#there is a paired-type wfl and one for each level, three-some, 4-some etc.
-		#this is an iterative process - we process while there are items left in the current wfl
 		cutoff = 2	#this will have to be in config or similar.
-		#create wfl for colloc results
-		{:ok, current_wfl_pid} = WFL.start_link()
-		Process.register current_wfl_pid, :colloc_wfl
-
+		
 		# get the list of wfl_items 		
 		sorted_wfl = get_sorted_wfl(source_wfl_pid, :freq, :desc)
       	filtered_list = Enum.take_while(sorted_wfl, fn({_key, item}) -> item.freq >= cutoff end)
-
-		#given list of things to do things on - ie wfl_items
-		#create a list of listeners and wait for them all to reply
-		#IO.inspect(filtered_list)
-
-		#we need bin_tokens and a wfl
-		#Parallel.pjob(filtered_list, [{Collocation, :get_collocs, []}, {Collocation, :add_collocs_to_wfl, [current_wfl_pid]}, {Collocation, :check_wfl, []}])
-		#Parallel.pjob(filtered_list, [{Collocation, :get_pairs, [current_wfl_pid]}])
-		#get list of sentences and update each of the tokens so that we have their frequency - or at least a function that can get the frequency
-		#function that can get the frequency is - perhaps not necessary? we will have the wfl_item - no we have the token from the sentence
-		#provide a stream?
 
 		#for the moment use the parent_wfl_pid to store source.  this may not end up as method of choice
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
@@ -167,19 +146,34 @@ defmodule WFLScratch.Server do
 		#we need to get passed in a list of sentences and iterate that - or have a different tokens_binary for phrases.
 		tb_s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)
 		Parallel.pjob(tb_s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
+		process_collocs(colloc_wfl_pid)
+	end
 
-		p_s_t = WFL.get_wfl(colloc_wfl_pid).types		
-		p_s = Stream.map(p_s_t, fn(wfl_type) -> wfl_type end)	#note - this part iterates so we need to call a holding function.
-
-		_sample_p_s = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
- %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
-  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
-  type_id: <<0, 0, 1, 42>>}}
-
-  
-		Parallel.pjob(p_s, [{Collocation, :do_phrase, [colloc_wfl_pid]}])
+	def process_collocs(source_wfl_pid) do
+		cutoff = 1	#get from config
+		p_s_t = WFL.get_wfl(source_wfl_pid).types		
+		p_s = Enum.filter(p_s_t, fn({_,  wfl_type}) -> 
+			_sample_p_s = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+					 %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
+					  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+					  type_id: <<0, 0, 1, 42>>}}
 
 
+			#IO.inspect({11, wfl_type}) 
+			wfl_type >= cutoff 
+		end)	#note - this part iterates so we need to call a holding function.
+
+		case p_s do
+			[_h | _t] = p_s ->
+				#we have at least one frequent colloc so process it
+				{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
+		  
+				Parallel.pjob(p_s, [{Collocation, :do_phrase, [colloc_wfl_pid]}])
+				IO.inspect("whoheee")
+				process_collocs(colloc_wfl_pid)
+			_ ->
+				nil	
+		end
 	end
 
 	defp merge_wfls(_a, accum) do

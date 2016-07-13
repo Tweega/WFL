@@ -261,6 +261,7 @@ defmodule Collocation do
 	end
 
 	def do_phrase({_key, wfl_type},  colloc_wfl_pid) do 
+
 		#{phrase_id, {sentence_id, {first_offset, last_offset, <<phrase token ids>>}}}
 		#{234, {14, {2, 4, <<0, 0, 0, 125, 0, 0, 0, 30, 0, 0, 0, 29>>}}}	- use a struct so we can see what is going on?
 		#{234, {20, {0, 1, <<0, 0, 0, 167, 0, 0, 0, 93>>}}}
@@ -289,7 +290,7 @@ defmodule Collocation do
 	
 				_sample_continuations = [[5, 4], [7, 4], [7, 5, 4]]  #no
 			
-				#IO.inspect({last_offset, continuation})
+				IO.inspect(continuations)
 				_sample_index_map = %{11 => <<0, 0, 0, 7>>, 26 => <<0, 0, 0, 11>>, 15 => <<0, 0, 0, 20>>,
 									  20 => <<0, 0, 0, 7>>, 17 => <<0, 0, 0, 18>>, 25 => <<0, 0, 0, 12>>,
 									  13 => <<0, 0, 0, 22>>, 0 => <<0, 0, 0, 32>>, 8 => <<0, 0, 0, 25>>,
@@ -303,23 +304,18 @@ defmodule Collocation do
 									  16 => <<0, 0, 0, 19>>, 4 => <<0, 0, 0, 29>>, 12 => <<0, 0, 0, 23>>}
 
 				if ! is_nil(continuations) do
-					if sent_id == 12 do
-						#IO.inspect(continuations)
-						#right now continuation looks like this:  [<<1, 0, 0, 129, 0, 0, 0, 29>>] 	(combinations which we don't have at the moment, but could looks like [[5, 4], [7, 4], [7, 5, 4]])
-						phrase_candidates = List.foldl(continuations, [], fn(continuation, accum) -> 
-							
-							<< _overlap :: binary-size(4), phrase_extension :: binary >> = continuation
-							phrase_candidate = wfl_type.type_id <> phrase_extension
-							[phrase_candidate | accum]
-						end)
+					#IO.inspect(continuations)
+					#right now continuation looks like this:  [<<1, 0, 0, 129, 0, 0, 0, 29>>] 	(combinations which we don't have at the moment, but could, looks like [[5, 4], [7, 4], [7, 5, 4]])
+					phrase_candidates = List.foldl(continuations, [], fn(continuation, accum) ->							
+						<< _overlap :: binary-size(4), phrase_extension :: binary >> = continuation
+						phrase_candidate = wfl_type.type_id <> phrase_extension
+						last_off = get_last_offset(phrase_extension, last_offset)
+						WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {first_offset, last_off}}})
+						[phrase_candidate | accum]
+					end)
 
-						Enum.each(phrase_candidates, fn(x) ->
-							IO.inspect(x)
-							#add to wfl
-							#make sure we can re-iterate over extended phrases.  this means having access to the same continuations map
-							#and having this token in the tokens map with its last_offset set correctly.  this will be the last offset of the continuation
-							#when we iterate again we will need a specific list of phrases to iterate through
-						end)
+					if sent_id == 12 do
+					
 
 					end
 					#IO.inspect(phrase_freq)
@@ -328,6 +324,18 @@ defmodule Collocation do
 			end) ###??here?
 		end
 		:ok
+	end
+
+	def get_last_offset(phrase_extension, len) do
+		colloc_length(phrase_extension, len)
+	end
+
+	def colloc_length(<<>>, len) do
+		len
+	end
+
+	def colloc_length(<< gap_count :: integer-unit(8)-size(1), _token_id :: binary-size(3), rest :: binary >>, len) do
+		colloc_length(rest, len + gap_count + 1)
 	end
 
 	def get_phrases(bin_tok_freq_list, cutoff) do		
@@ -669,7 +677,7 @@ defmodule CollocStream do
 	end
 
 	def get_colloc([index | indices], prev_offset, token_map, {first_offset, last_offset, colloc}) do
-		IO.puts("index: #{index}")
+		
 		tok_freq = Map.get(token_map, index)
 
 		new_gap = case prev_offset do
