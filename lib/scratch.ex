@@ -150,8 +150,6 @@ end
 
 def lose_one(list) do
 	lose_one(list, [], [])
-
-
 end
 
 def lose_one([], _list2, acc) do

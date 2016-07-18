@@ -290,7 +290,7 @@ defmodule Collocation do
 	
 				_sample_continuations = [[5, 4], [7, 4], [7, 5, 4]]  #no
 			
-				IO.inspect(continuations)
+				#IO.inspect(continuations)
 				_sample_index_map = %{11 => <<0, 0, 0, 7>>, 26 => <<0, 0, 0, 11>>, 15 => <<0, 0, 0, 20>>,
 									  20 => <<0, 0, 0, 7>>, 17 => <<0, 0, 0, 18>>, 25 => <<0, 0, 0, 12>>,
 									  13 => <<0, 0, 0, 22>>, 0 => <<0, 0, 0, 32>>, 8 => <<0, 0, 0, 25>>,

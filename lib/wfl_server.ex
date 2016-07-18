@@ -146,10 +146,12 @@ defmodule WFLScratch.Server do
 		#we need to get passed in a list of sentences and iterate that - or have a different tokens_binary for phrases.
 		tb_s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)
 		Parallel.pjob(tb_s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
-		process_collocs(colloc_wfl_pid)
+		last_wfl_pid = process_collocs(colloc_wfl_pid)
+		IO.inspect(last_wfl_pid)
 	end
 
 	def process_collocs(source_wfl_pid) do
+		# i think p_s_t is phrase something type
 		cutoff = 1	#get from config
 		p_s_t = WFL.get_wfl(source_wfl_pid).types		
 		p_s = Enum.filter(p_s_t, fn({_,  wfl_type}) -> 
@@ -163,17 +165,18 @@ defmodule WFLScratch.Server do
 			wfl_type >= cutoff 
 		end)	#note - this part iterates so we need to call a holding function.
 
-		case p_s do
+		wfl_pid = case p_s do
 			[_h | _t] = p_s ->
 				#we have at least one frequent colloc so process it
 				{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
 		  
 				Parallel.pjob(p_s, [{Collocation, :do_phrase, [colloc_wfl_pid]}])
 				IO.inspect("whoheee")
-				process_collocs(colloc_wfl_pid)
+				process_collocs(colloc_wfl_pid)	#make this tail recursive - assign colloc_wfl_pid to variable alpng with nil
 			_ ->
-				nil	
+				source_wfl_pid	
 		end
+		wfl_pid
 	end
 
 	defp merge_wfls(_a, accum) do
