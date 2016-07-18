@@ -326,6 +326,11 @@ defmodule Collocation do
 		:ok
 	end
 
+
+	def do_concretisation(wfl_type, source_wfl_pid, last_wfl_pid, deadend_wfl_pid) do
+		IO.inspect(wfl_type)
+	end
+
 	def get_last_offset(phrase_extension, len) do
 		colloc_length(phrase_extension, len)
 	end

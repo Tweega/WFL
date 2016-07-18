@@ -148,6 +148,9 @@ defmodule WFLScratch.Server do
 		Parallel.pjob(tb_s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
 		last_wfl_pid = process_collocs(colloc_wfl_pid)
 		IO.inspect(last_wfl_pid)
+		#copy frequent phrases into main wfl expanding as we go - filter out infrequent types from main wfl also?
+		{:ok, deadend_wfl_pid} = WFL.start_link()
+		do_phrase_wfls(last_wfl_pid, source_wfl_pid, deadend_wfl_pid)
 	end
 
 	def process_collocs(source_wfl_pid) do
@@ -165,18 +168,33 @@ defmodule WFLScratch.Server do
 			wfl_type >= cutoff 
 		end)	#note - this part iterates so we need to call a holding function.
 
-		wfl_pid = case p_s do
+		case p_s do
 			[_h | _t] = p_s ->
 				#we have at least one frequent colloc so process it
 				{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
 		  
-				Parallel.pjob(p_s, [{Collocation, :do_phrase, [colloc_wfl_pid]}])
-				IO.inspect("whoheee")
-				process_collocs(colloc_wfl_pid)	#make this tail recursive - assign colloc_wfl_pid to variable alpng with nil
+				Parallel.pjob(p_s, [{Collocation, :do_phrase, [colloc_wfl_pid]}])				
+				process_collocs(colloc_wfl_pid)	#Is this this tail recursive? perhaps the catch all clause also needs to call the same function
 			_ ->
 				source_wfl_pid	
+		end		
+	end
+
+
+	def do_phrase_wfls(nil, _source_wfl_pid, _deadend_wfl_pid) do
+		:ok
+	end
+
+	def do_phrase_wfls(wfl_pid, source_wfl_pid, deadend_wfl_pid) do
+		
+		parent_wfl_pid = WFL.get_parent(wfl_pid)
+		
+		if parent_wfl_pid != nil do
+			p_t = WFL.get_wfl(wfl_pid).types
+			Parallel.pjob(p_t, [{Collocation, :do_concretisation, [wfl_pid, source_wfl_pid, deadend_wfl_pid]}])		
 		end
-		wfl_pid
+
+		do_phrase_wfls(parent_wfl_pid, source_wfl_pid, deadend_wfl_pid)
 	end
 
 	defp merge_wfls(_a, accum) do
