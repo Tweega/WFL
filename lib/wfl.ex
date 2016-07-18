@@ -65,13 +65,11 @@ defmodule WFL do
 		{:reply, parent, state}
 	end
 
-
-	def handle_call({:expand_type, type_id}, _from, state) do
-		parent = 12333
-		{:reply, parent, state}
+	def handle_call({:expand_type, type_id}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
+		x = expand_token_type(type_id, wfl_data, parent_wfl_pid)
+		{:reply, x, state}
 	end
 
-	
 	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
 		
 		{token_id, new_wfl} = process_token(token, sentence_id, offset, wfl_data)				
@@ -140,31 +138,25 @@ defmodule WFL do
 		{:noreply, {new_wfl_data, parent_wfl_pid}}
 	end
 
+	#defp expand_token_id(key, _wfl_data, nil) do
+	#	key
+	#end	
 
-	
+	defp expand_token_type(key, wfl_data, nil) do
+		#wfl has no parent - this is the root wfl - if key is not here then something has gone wrong.
+		#key should still be a token_id and there should only be one of them - not a phrase. At this point we should be returning text token.
 
-defp expand_type({wfl, parent} , key) do
+		fetch_token_info_from_id(wfl_data, key)
+	end	
 
-		#we may have token id <<0,0,0,3,  0,0,0,4>> in which case we have two lookups - we may also have a  space in the middle WORKING HERE
+	defp expand_token_type(key, wfl_data, parent_wfl_pid) do
+
+			#we may have token id <<0,0,0,3,  0,0,0,4>> in which case we have two lookups - we may also have a  space in the middle WORKING HERE
 		#how to know if we have a binary or a string?
 		#if we call this function we have to assume that we are being passed an actual key, in which case the existence of a parent will indicate the level
 		#assuming that actual tokens are only used as keys for the root wfl
 
-		token = if is_nil (parent) do
-			fetch_token_info(wfl, key)
-		else
-			fetch_token_info_from_id(wfl, key)			
-		end
 		
-		x = case token do
-			%WFL_Type{} ->
-				case parent do
-					nil -> token
-					_ -> WFL.expand_type(parent, token)
-				end
-
-			_ -> nil
-		end
 
 	end
 	

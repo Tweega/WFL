@@ -327,8 +327,15 @@ defmodule Collocation do
 	end
 
 
-	def do_concretisation(wfl_type, source_wfl_pid, last_wfl_pid, deadend_wfl_pid) do
-		IO.inspect(wfl_type)
+	def do_concretisation({_key, wfl_type}, source_wfl_pid, last_wfl_pid, deadend_wfl_pid) do
+		
+		#if this is a frequent phrase, then addd to wfl source.  Note that we don't know how far down the phrase chain we are which may affect cutoff
+		_cutoff = get_cutoff()
+		if wfl_type.freq > 1 do
+			IO.inspect(wfl_type)
+			IO.puts("freqy phrase: #{wfl_type.freq}")
+		end
+
 	end
 
 	def get_last_offset(phrase_extension, len) do

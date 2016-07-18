@@ -190,4 +190,23 @@ def go_wide([h|t] = j, acc) do
 end
 
 
+def chew_bytes(<<bytes :: binary>>) do
+	chew_bytes(bytes, [])
+end
+
+def chew_bytes(<<>>, acc) do
+	acc
+end
+
+
+def chew_bytes(<<byte4 :: binary-size(4), rest :: binary>>, acc) do
+	chew_bytes(rest, [:a | acc])
+end
+
+def chew_bytes(<<byte4 :: binary-size(4), rest :: binary>>, acc) do
+	chew_bytes(rest, [:a | acc])
+end
+
+
+
 end
