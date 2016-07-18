@@ -158,9 +158,38 @@ def lose_one([], _list2, acc) do
 	acc
 end
 
+
 def lose_one([h | t], list2, acc) do
-	new_acc = [t ++ list2 | acc]
+	new_acc = [Enum.reverse(list2) ++ t | acc]
 	lose_one(t, [h | list2], new_acc)
 end
+
+def go_wide(list) do
+	go_wide([list], [])
+end
+
+
+def go_wide([], acc) do
+	IO.inspect(acc)
+	acc
+end
+
+def go_wide([[] | t], acc) do
+	go_wide(t, acc)
+end
+
+
+def go_wide([h|t] = j, acc) do
+	x = lose_one(h, [], [])
+	{new_list, new_acc} = case x do
+		[[]] ->
+			{t, acc}
+		_ ->
+			{x ++ t, [x | acc]}
+	end
+	
+	go_wide(new_list, new_acc)
+end
+
 
 end
