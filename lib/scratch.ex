@@ -81,25 +81,6 @@ def maskbits(<<int :: binary-size(1), bits_rest :: binary>>, [mask | mask_rest],
 	maskbits(bits_rest, mask_rest, acc2)
 
 end
-	
-
-def rev_bin(<< t :: binary >>) do
-	rev_bin(t, <<>>)
-end
-
-def rev_bin(<<>>, store) do
-	store
-end
-
-def rev_bin(<< h :: binary-size(1),  t :: binary >>, store) do
-	#to convert number into binary :binary.encode_unsigned gives you smallest number of bytes for number
-	#while <<256 :: size(16)>> gives you <<1, 0>>
-	#and <<k :: integer-size(16) , rest :: binary>> = <<256 :: size(16)>> puts 256 into k 
-
-	rev_bin(t, <<h <> store>>)
-
-end
-
 
 
 def combine_list(list) do
@@ -145,8 +126,37 @@ def choose_n([h | t], {acc, _result} = xx, n) do
 	choose_n(t, new_acc, n)
 end
 
+def rev_bin4(bin) do
+	rev_bin4(bin, <<>>)
+end
+
+def rev_bin4(<<>>, acc) do
+	acc
+end
+
+def rev_bin4(<<byte4 :: binary-size(4), rest :: binary>>, acc) do
+	new_acc = << <<byte4 :: binary>>, <<acc :: binary>> >>
+	rev_bin4(rest, new_acc)
+end
 
 
+
+def rev_bin(<< t :: binary >>) do
+	rev_bin(t, <<>>)
+end
+
+def rev_bin(<<>>, store) do
+	store
+end
+
+def rev_bin(<< h :: binary-size(1),  t :: binary >>, store) do
+	#to convert number into binary :binary.encode_unsigned gives you smallest number of bytes for number
+	#while <<256 :: size(16)>> gives you <<1, 0>>
+	#and <<k :: integer-size(16) , rest :: binary>> = <<256 :: size(16)>> puts 256 into k 
+
+	rev_bin(t, <<h <> store>>)
+
+end
 
 def lose_one(list) do
 	lose_one(list, [], [])
@@ -162,7 +172,26 @@ def lose_one([h | t], list2, acc) do
 	lose_one(t, [h | list2], new_acc)
 end
 
+def lose_one_bin(bin4) do
+	#returns a list of binaries each one token shorter than the initial input binary	
+	lose_one_bin(bin4, <<>>, [])
+end
+
+def lose_one_bin(<<>>, _bin2, acc) do
+	acc
+end
+
+
+def lose_one_bin(<<byte4 :: binary-size(4), rest :: binary>>, bin2, acc) do
+	rev_b = rev_bin4(bin2)
+	new_acc = [<< rev_b :: binary, <<rest :: binary>> >> | acc]
+	lose_one_bin(rest, << byte4 :: binary, <<bin2 :: binary>> >>, new_acc)
+end
+
 def go_wide(list) do
+	#not sure what this was for or what wide refers to
+	#FROM [1,2,3]
+	#returns [[[2], [3]], [[1], [3]], [[1], [2]], [[1, 2], [1, 3], [2, 3]]]
 	go_wide([list], [])
 end
 
@@ -177,7 +206,7 @@ def go_wide([[] | t], acc) do
 end
 
 
-def go_wide([h|t] = j, acc) do
+def go_wide([h|t], acc) do
 	x = lose_one(h, [], [])
 	{new_list, new_acc} = case x do
 		[[]] ->
@@ -199,13 +228,30 @@ def chew_bytes(<<>>, acc) do
 end
 
 
-def chew_bytes(<<byte4 :: binary-size(4), rest :: binary>>, acc) do
+def chew_bytes(<<_byte4 :: binary-size(4), rest :: binary>>, acc) do
 	chew_bytes(rest, [:a | acc])
 end
 
-def chew_bytes(<<byte4 :: binary-size(4), rest :: binary>>, acc) do
-	chew_bytes(rest, [:a | acc])
+
+def deep_lookup(lookup) do
+	deep_lookup(lookup, [])
 end
+
+def deep_lookup([], acc) do
+	acc
+end
+
+def deep_lookup([h | t], acc) do
+	case h do
+		1 -> 
+			deep_lookup(t, [h | acc])
+		_ -> 
+			x = deep_lookup([h - 1 | [1 | t]], acc)
+			deep_lookup(t, x ++ acc)
+	end
+end
+
+
 
 
 

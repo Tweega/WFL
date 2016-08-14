@@ -87,7 +87,10 @@ defmodule WFLScratch.Server do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
 		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
 		WFL.mark_common(wfl_pid, ["the", "a"])
-		process_collocations(wfl_pid)				
+		process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 
+		##new_state = Map.put(state, "last_wfl_pid", last_wfl_pid)
+		##IO.inspect(new_state)			
+		##{:noreply, new_state}
 		{:noreply, state}
 	end
 
@@ -146,17 +149,20 @@ defmodule WFLScratch.Server do
 		#we need to get passed in a list of sentences and iterate that - or have a different tokens_binary for phrases.
 		tb_s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)
 		Parallel.pjob(tb_s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
-		last_wfl_pid = process_collocs(colloc_wfl_pid)
-		IO.inspect(last_wfl_pid)
+		last_wfl_pid = get_colloc_continuations(colloc_wfl_pid)
+		###IO.inspect(last_wfl_pid)
+		debug_wfl = WFL.get_wfl(last_wfl_pid)
+		###IO.inspect(debug_wfl)
 		#copy frequent phrases into main wfl expanding as we go - filter out infrequent types from main wfl also?
 		{:ok, deadend_wfl_pid} = WFL.start_link()
 		do_phrase_wfls(last_wfl_pid, source_wfl_pid, deadend_wfl_pid)
+		last_wfl_pid
 	end
 
-	def process_collocs(source_wfl_pid) do
+	def get_colloc_continuations(colloc_wfl_pid) do
 		# i think p_s_t is phrase something type
 		cutoff = 1	#get from config
-		p_s_t = WFL.get_wfl(source_wfl_pid).types		
+		p_s_t = WFL.get_wfl(colloc_wfl_pid).types		
 		p_s = Enum.filter(p_s_t, fn({_,  wfl_type}) -> 
 			_sample_p_s = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
 					 %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
@@ -171,12 +177,12 @@ defmodule WFLScratch.Server do
 		case p_s do
 			[_h | _t] = p_s ->
 				#we have at least one frequent colloc so process it
-				{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
-		  
-				Parallel.pjob(p_s, [{Collocation, :do_phrase, [colloc_wfl_pid]}])				
-				process_collocs(colloc_wfl_pid)	#Is this this tail recursive? perhaps the catch all clause also needs to call the same function
+				{:ok, new_colloc_wfl_pid} = WFL.start_link(colloc_wfl_pid)
+IO.inspect(new_colloc_wfl_pid)
+				Parallel.pjob(p_s, [{Collocation, :do_phrase, [new_colloc_wfl_pid]}])				
+				get_colloc_continuations(new_colloc_wfl_pid)	#Is this this tail recursive? perhaps the catch all clause also needs to call the same function
 			_ ->
-				source_wfl_pid	
+				colloc_wfl_pid	
 		end		
 	end
 
@@ -185,16 +191,20 @@ defmodule WFLScratch.Server do
 		:ok
 	end
 
-	def do_phrase_wfls(wfl_pid, source_wfl_pid, deadend_wfl_pid) do
-		
-		parent_wfl_pid = WFL.get_parent(wfl_pid)
-		
-		if parent_wfl_pid != nil do
-			p_t = WFL.get_wfl(wfl_pid).types
-			Parallel.pjob(p_t, [{Collocation, :do_concretisation, [wfl_pid, source_wfl_pid, deadend_wfl_pid]}])		
-		end
+	def do_phrase_wfls(wfl_pid, wfl_pid, _deadend_wfl_pid) do
+		##if we have reached the root wfl, then no more to do
+		:ok
+	end
 
-		do_phrase_wfls(parent_wfl_pid, source_wfl_pid, deadend_wfl_pid)
+	def do_phrase_wfls(phrase_wfl_pid, root_wfl_pid, deadend_wfl_pid) do
+		## each phrase is concretisation of the set of phrases that is itself minus one token cat sat on -> {cat, [saton, _on sat]}
+
+		{phrase_wfl, parent_wfl_pid} = WFL.get_wfl(phrase_wfl_pid)
+		
+		phrase_types = WFL.get_wfl(phrase_wfl).types
+		Parallel.pjob(phrase_types, [{Collocation, :do_concretisation, [phrase_wfl, root_wfl_pid, deadend_wfl_pid]}])		
+	
+		do_phrase_wfls(parent_wfl_pid, root_wfl_pid, deadend_wfl_pid)
 	end
 
 	defp merge_wfls(_a, accum) do

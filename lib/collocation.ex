@@ -267,9 +267,9 @@ defmodule Collocation do
 		#{234, {20, {0, 1, <<0, 0, 0, 167, 0, 0, 0, 93>>}}}
 		#IO.inspect(x)
 		_sample_p_s = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
- %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
-  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
-  type_id: <<0, 0, 1, 42>>}}
+			 %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
+			  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+			  type_id: <<0, 0, 1, 42>>}}
 
 		if wfl_type.freq > 1 do
 			#occurrences for this wfl_type are listed in wfl_type.instances
@@ -327,16 +327,46 @@ defmodule Collocation do
 	end
 
 
-	def do_concretisation({_key, wfl_type}, source_wfl_pid, last_wfl_pid, deadend_wfl_pid) do
+	def do_concretisation({_key, wfl_type}, root_wfl_pid, last_wfl_pid, deadend_wfl_pid) do
 		
-		#if this is a frequent phrase, then addd to wfl source.  Note that we don't know how far down the phrase chain we are which may affect cutoff
+		#if this is a frequent phrase, then addd to root wfl.  Note that we don't know how far down the phrase chain we are which may affect cutoff TK
 		_cutoff = get_cutoff()
 		if wfl_type.freq > 1 do
-			IO.inspect(wfl_type)
-			IO.puts("freqy phrase: #{wfl_type.freq}")
+			## each phrase is concretisation of the set of phrases that is itself minus one token cat sat on -> {cat, [saton, _on sat]}
+			#get a stream of this phrase minus one token - what form do we have the phrase in - presumably token ids
+			expansion = 1
+			abstractions = lose_one_bin(wfl_type)
+			
+			#for each abstraction - check deadend
+
+			#then check freq in wfl - need to be able to search up the wfl tree
+			#if over c/o add to concretisations in wfl - otherwise add to dead_end
+			#IO.inspect(wfl_type)
+			#IO.puts("freqy phrase: #{wfl_type.freq}")
+			 
+		#else
+			#otherwise we can delete the node - though possibly that does not matter as we will let go of the whole wfl.
 		end
 
 	end
+
+
+	def lose_one_bin(bin4) do
+		#returns a list of binaries each one token shorter than the initial input binary	
+		lose_one_bin(bin4, <<>>, [])
+	end
+
+	def lose_one_bin(<<>>, _bin2, acc) do
+		acc
+	end
+
+
+	def lose_one_bin(<<byte4 :: binary-size(4), rest :: binary>>, bin2, acc) do
+		rev_b = rev_bin4(bin2)
+		new_acc = [<< rev_b :: binary, <<rest :: binary>> >> | acc]
+		lose_one_bin(rest, << byte4 :: binary, <<bin2 :: binary>> >>, new_acc)
+	end
+
 
 	def get_last_offset(phrase_extension, len) do
 		colloc_length(phrase_extension, len)

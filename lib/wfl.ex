@@ -26,6 +26,10 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, :get_wfl)
 	end
 
+	def get_wfl_state(wfl_pid) do		
+		:gen_server.call(wfl_pid, :get_state)
+	end
+
 	def get_token_info(wfl_pid, token) do
 		:gen_server.call(wfl_pid, {:get_token_info, token})
 	end
@@ -34,12 +38,17 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, {:get_token_info_from_id, token_id})
 	end
 
+	def get_token_from_id(wfl_pid, token_id) do 	#can't distinguish between binary and string so have to make a different api call
+		:gen_server.call(wfl_pid, {:get_token_from_id, wfl_pid, token_id})
+	end
+	
+
 	def get_parent(wfl_pid) do		
 		:gen_server.call(wfl_pid, :get_parent)
 	end
 
-	def expand_type_id(wfl_pid, type_id) do		
-		:gen_server.call(wfl_pid, {:expand_type_id, type_id})
+	def expand_type_id(wfl_pid, type_id, include_root \\ true) do		
+		:gen_server.call(wfl_pid, {:expand_type_id, type_id, include_root})
 	end
 
 	def mark_common(wfl_pid, type_list) do		
@@ -57,6 +66,10 @@ defmodule WFL do
 		{:ok, state}
 	end
 
+	def handle_call(:get_state, _from, state) do
+		{:reply, state, state}
+	end
+
 	def handle_call(:get_wfl, _from, {wfl, _parent} = state) do
 		{:reply, wfl, state}
 	end
@@ -65,8 +78,8 @@ defmodule WFL do
 		{:reply, parent, state}
 	end
 
-	def handle_call({:expand_type, type_id}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
-		x = expand_token_type(type_id, wfl_data, parent_wfl_pid)
+	def handle_call({:expand_type_id, type_id, include_root}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
+		x = expand_token(type_id, wfl_data, include_root, parent_wfl_pid,  <<>>)
 		{:reply, x, state}
 	end
 
@@ -85,6 +98,11 @@ defmodule WFL do
 	def handle_call({:get_token_info_from_id, token_id}, _client, {%WFL_Data{} = wfl_data, _parent_wfl_pid} = state) do
 		wfl_item = fetch_token_info_from_id(wfl_data, token_id)
 		{:reply, wfl_item, state}
+	end
+
+	def handle_call({:get_token_from_id, wfl_pid, token_id}, _client, state) do
+		token = fetch_token_from_id(state, wfl_pid, token_id)
+		{:reply, token, state}
 	end
 
 	def handle_call({:mark_common, common_list}, _from, {wfl, parent}) do
@@ -142,24 +160,30 @@ defmodule WFL do
 	#	key
 	#end	
 
-	defp expand_token_type(key, wfl_data, nil) do
-		#wfl has no parent - this is the root wfl - if key is not here then something has gone wrong.
+	defp expand_token(key, wfl_data, include_root, nil, phrase) do
+		#wfl has no parent - this is the root wfl - in which case include root should be true
 		#key should still be a token_id and there should only be one of them - not a phrase. At this point we should be returning text token.
 
-		fetch_token_info_from_id(wfl_data, key)
+		token = fetch_token_info_from_id(wfl_data, key)
+		[token | phrase]
 	end	
 
-	defp expand_token_type(key, wfl_data, parent_wfl_pid) do
+	defp expand_token(key, wfl_data, include_root, parent_wfl_pid, phrase) do
 
-			#we may have token id <<0,0,0,3,  0,0,0,4>> in which case we have two lookups - we may also have a  space in the middle WORKING HERE
+			#we may have token id <<0,0,0,3,  0,0,0,4>> in which case we have two lookups - we may also have a  space in the middle
 		#how to know if we have a binary or a string?
 		#if we call this function we have to assume that we are being passed an actual key, in which case the existence of a parent will indicate the level
 		#assuming that actual tokens are only used as keys for the root wfl
-
-		
-
+		phrase = expand_phrase(key)
 	end
-	
+
+	defp expand_phrase(key, wfl_data, include_root, parent_wfl_pid) do
+
+		#key may be <<0,0,0,3,  0,0,0,4>> in which case we have two lookups - note that we have to drop the left most 4byte as that indicates a space count
+		#how will the space count be handled?.  Note that the space count is part of the token_id so leave on to retrieve -just a presentation thing.
+		#need to find a way to manage the place holders cat * on the mat
+		phrase = expand_phrase(key)
+	end
 
 	defp process_tokens(tokens, sentence_id, %WFL_Data{} = wfl_data) do
 		
@@ -212,7 +236,33 @@ defmodule WFL do
 		{type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
 	end
 
+	defp fetch_token_from_id(_, _, nil) do
+		IO.puts("error: nil search term token id")
+	end
+
+	defp fetch_token_from_id(nil, where_found, search_token) do
+		{where_found, search_token}	#where_found is a wfl pid
+	end
 	
+	defp fetch_token_from_id({%WFL_Data{} = wfl_data, parent_wfl_pid} = state, wfl_pid, token_id) do
+		#fetch_token_info_from_id - deep version of fetch_token_info_from_id - searches parent wfl if not found locally
+		
+		search_result = Map.fetch(wfl_data.type_ids, token_id)
+
+		{where_to_continue, where_found, search_token} = case search_result do
+			{:ok, res} ->
+				{nil, wfl_pid, res}	#why do we need the pid of wfl where found? -so that we can continue to expand token.
+
+			{:error, _res} ->
+				#this wfl doesn't have the token - try parent wfl
+				parent_state = WFL.get_state(parent_wfl_pid)				
+				{parent_state, parent_wfl_pid, token_id}
+		end
+
+		fetch_token_from_id(where_to_continue, where_found, search_token)
+	end
+
+
 	defp fetch_token_info_from_id(wfl, token_id) do
 		token = Map.get(wfl.type_ids, token_id)
 		Map.get(wfl.types, token)
