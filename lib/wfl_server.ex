@@ -199,7 +199,7 @@ IO.inspect(new_colloc_wfl_pid)
 	def do_phrase_wfls(phrase_wfl_pid, root_wfl_pid, deadend_wfl_pid) do
 		## each phrase is concretisation of the set of phrases that is itself minus one token cat sat on -> {cat, [saton, _on sat]}
 
-		{phrase_wfl, parent_wfl_pid} = WFL.get_wfl(phrase_wfl_pid)
+		{phrase_wfl, parent_wfl_pid} = WFL.get_state(phrase_wfl_pid)
 		
 		phrase_types = WFL.get_wfl(phrase_wfl).types
 		Parallel.pjob(phrase_types, [{Collocation, :do_concretisation, [phrase_wfl, root_wfl_pid, deadend_wfl_pid]}])		
@@ -210,7 +210,82 @@ IO.inspect(new_colloc_wfl_pid)
 	defp merge_wfls(_a, accum) do
 		accum
 	end
-	
+
+
+
+	def expand_token(<<>>, [wfl_pid | _rest], phrase, to_text) when to_text == 1 do 
+		#terminal case where all token_ids have been 'translated' BUT we still have to translate token_ids into text equivalents
+		expand_token_text(wfl_pid, phrase)
+		
+	end
+
+	def expand_token(<<>>, [wfl_pid | _rest], phrase, to_text) do 
+		#terminal case where all token_ids have been 'translated'
+		rev_bin(phrase)	
+	end
+
+	def expand_token(<<token_id :: binary-size(4), rest :: binary>>, [wfl_pid | pids], phrase, to_text) when to_text == 1 do 
+		#main expand function
+		
+		{result, parent_wfl_pid} = expand_tokens_bin(token_id, wfl_pid)
+		
+		{new_phrase, new_token_stack, new_wfl_stack} =
+			if is_nil(parent_wfl_pid) do
+				#this is a terminating condition - token_id found at first colloc level.
+
+				{result <> phrase, rest, pids}
+			else
+				result_len = round(byte_size(result) / 4)
+				new_pids = List.duplicate(wfl_pid, result_len)
+				new_wfl_stack = result <> rest
+				{phrase, new_token_stack, new_wfl_stack}
+			end
+		expand_token(new_token_stack, new_wfl_stack, phrase)
+		
+	end
+
+
+	def expand_tokens_bin(token_id, wfl_pid) do
+		#this function takes a token id plus wfl pid and returns token_info for the token_id plus the pid of the parent wfl
+		#should this be on wfl?
+		{wfl_data, parent_wfl_pid} = WFL.get_state(wfl_pid)		
+		tokens = Map.get(wfl_data.types, token_id)	#check that we don't need to call get token from id
+		working here
+		{tokens, parent_wfl_pid}
+	end
+
+
+	def rev_bin4(bin) do
+		rev_bin4(bin, <<>>)
+	end
+
+	def rev_bin4(<<>>, acc) do
+		acc
+	end
+
+	def rev_bin4(<<byte4 :: binary-size(4), rest :: binary>>, acc) do
+		new_acc = << <<byte4 :: binary>>, <<acc :: binary>> >>
+		rev_bin4(rest, new_acc)
+	end
+
+
+
+	def rev_bin(<< t :: binary >>) do
+		rev_bin(t, <<>>)
+	end
+
+	def rev_bin(<<>>, store) do
+		store
+	end
+
+	def rev_bin(<< h :: binary-size(1),  t :: binary >>, store) do
+		#to convert number into binary :binary.encode_unsigned gives you smallest number of bytes for number
+		#while <<256 :: size(16)>> gives you <<1, 0>>
+		#and <<k :: integer-size(16) , rest :: binary>> = <<256 :: size(16)>> puts 256 into k 
+
+		rev_bin(t, <<h <> store>>)
+
+	end
 
 	
 end

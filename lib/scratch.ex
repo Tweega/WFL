@@ -242,12 +242,14 @@ def deep_lookup([], acc) do
 end
 
 def deep_lookup([h | t], acc) do
+	
 	case h do
-		1 -> 
+		1 -> 			
+			IO.inspect(t)
+	
 			deep_lookup(t, [h | acc])
-		_ -> 
-			x = deep_lookup([h - 1 | [1 | t]], acc)
-			deep_lookup(t, x ++ acc)
+		_ -> 			
+			deep_lookup([h - 1 | [1 | t]], acc)			
 	end
 end
 

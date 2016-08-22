@@ -38,7 +38,7 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, {:get_token_info_from_id, token_id})
 	end
 
-	def get_token_from_id(wfl_pid, token_id) do 	#can't distinguish between binary and string so have to make a different api call
+	def get_token_from_id(wfl_pid, token_id) do 	#this returns {token, state} unlike get_token_info - may need to rename this.
 		:gen_server.call(wfl_pid, {:get_token_from_id, wfl_pid, token_id})
 	end
 	
@@ -156,25 +156,26 @@ defmodule WFL do
 		{:noreply, {new_wfl_data, parent_wfl_pid}}
 	end
 
-	#defp expand_token_id(key, _wfl_data, nil) do
-	#	key
-	#end	
 
-	defp expand_token(key, wfl_data, include_root, nil, phrase) do
-		#wfl has no parent - this is the root wfl - in which case include root should be true
-		#key should still be a token_id and there should only be one of them - not a phrase. At this point we should be returning text token.
+	def deep_lookup(lookup) do
+		deep_lookup(lookup, [])
+	end
 
-		token = fetch_token_info_from_id(wfl_data, key)
-		[token | phrase]
-	end	
+	def deep_lookup([], acc) do
+		#stop search when (include_root is true AND parent_wfl is null) OR grandparent_wfl is null - any other way to tell this?
+		acc
+	end
 
-	defp expand_token(key, wfl_data, include_root, parent_wfl_pid, phrase) do
-
-			#we may have token id <<0,0,0,3,  0,0,0,4>> in which case we have two lookups - we may also have a  space in the middle
-		#how to know if we have a binary or a string?
-		#if we call this function we have to assume that we are being passed an actual key, in which case the existence of a parent will indicate the level
-		#assuming that actual tokens are only used as keys for the root wfl
-		phrase = expand_phrase(key)
+	def deep_lookup([h | t], acc) do
+		
+		case h do
+			1 -> 			
+				IO.inspect(t)
+		
+				deep_lookup(t, [h | acc])
+			_ -> 			
+				deep_lookup([h - 1 | [1 | t]], acc)			
+		end
 	end
 
 	defp expand_phrase(key, wfl_data, include_root, parent_wfl_pid) do
