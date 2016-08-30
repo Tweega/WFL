@@ -82,7 +82,7 @@ defmodule Collocation do
 		# get the list of wfl_items 		
 		cutoff = get_cutoff()
 		sorted_wfl = WFLScratch.Server.get_sorted_wfl(pair_pid, :freq, :desc)
-      	filtered_list = Enum.take_while(sorted_wfl, fn({_key, item}) -> item.freq >= cutoff end)
+      	_filtered_list = Enum.take_while(sorted_wfl, fn({_key, item}) -> item.freq >= cutoff end)
 
       
 
@@ -165,7 +165,7 @@ defmodule Collocation do
 		#quartets = PhraseStream.chained(phrase_stream)
 		quartet_stream = PhraseStream.stream_chained(fQuartets)
 
-		sample_quartet = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3, token_id: <<0, 0, 0, 30>>},
+		_sample_quartet = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3, token_id: <<0, 0, 0, 30>>},
 		 				 [%TokenFreq{freq: 3, index: 4, is_common: false, offset: 6, token_id: <<0, 0, 0, 27>>}, 
 		 				  %TokenFreq{freq: 2, index: 3, is_common: false, offset: 5, token_id: <<0, 0, 0, 28>>},
 		  				  %TokenFreq{freq: 8, index: 2, is_common: false, offset: 4, token_id: <<0, 0, 0, 29>>}]}
@@ -178,11 +178,11 @@ defmodule Collocation do
 ##this section could be re-usable in iterations.
 
 
-		new_combination_map = Enum.reduce(quartet_stream, %{}, fn({key_type, colloc_types} = quartet, comb_map) ->			
+		new_combination_map = Enum.reduce(quartet_stream, %{}, fn(quartet, comb_map) ->			
 			#IO.inspect(quartet)
 			
 			#IO.puts("Sentence_id: #{sentence_id}")
-			collocs_len = length(colloc_types)
+			###collocs_len = length(colloc_types)
 	
 			#quartet_id = QuartetCounter.get_quartet_id()
 
@@ -195,7 +195,7 @@ defmodule Collocation do
 
 			collocs = CollocStream.get_colloc_stream(quartet, index_map)
 
-			offset_combinations_map = Enum.reduce(collocs, comb_map, fn({first_off, last_off, colloc} = phrase, offset_combinations_map_accum) ->
+			offset_combinations_map = Enum.reduce(collocs, comb_map, fn({first_off, last_off, colloc}, offset_combinations_map_accum) ->
 				#%TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
 				WFL.addToken(colloc_wfl_pid, %TokenInput{token: colloc, instance: %TokenInstance{sentence_id: sentence_id, offset: {first_off, last_off}}})  #check if first off references sentence or phrase - we should have sentence here
 				#should we add last offset in with first offset as in offset: {first, last}
@@ -223,7 +223,7 @@ defmodule Collocation do
 			end)
 
 			
-			sample_collocations = [{<<"first_off">>, <<"last_off">>, <<1, 0, 0, 130, 2, 0, 0, 120, 0, 0, 0, 109>>},
+			_sample_collocations = [{<<"first_off">>, <<"last_off">>, <<1, 0, 0, 130, 2, 0, 0, 120, 0, 0, 0, 109>>},
 								   {nil, nil, <<2, 0, 0, 130, 1, 0, 0, 112, 0, 0, 0, 109>>},
 								   {nil, nil, <<1, 0, 0, 130, 0, 0, 0, 120, 1, 0, 0, 112, 0, 0, 0, 109>>},
 								   {nil, nil, <<1, 0, 0, 130, 0, 0, 0, 120, 0, 0, 0, 112>>}, 
@@ -284,7 +284,7 @@ defmodule Collocation do
 			instances = wfl_type.instances
 			Enum.each(instances, fn({sent_id, {first_offset, last_offset}}) ->
 				#look up the continuations for sent/offset
-				%TokensBinary{offset_maps: %OffsetMaps{token_map: index_map,  combination_map: combination_map}} = TokensBinary.get(sent_id)
+				%TokensBinary{offset_maps: %OffsetMaps{token_map: _index_map,  combination_map: combination_map}} = TokensBinary.get(sent_id)
 
 				continuations = Map.get(combination_map, last_offset)
 	
@@ -327,7 +327,7 @@ defmodule Collocation do
 	end
 
 
-	def do_concretisation({_key, wfl_type}, root_wfl_pid, last_wfl_pid, deadend_wfl_pid) do
+	def do_concretisation({_key, wfl_type}, _root_wfl_pid, _last_wfl_pid, _deadend_wfl_pid) do
 		
 		#if this is a frequent phrase, then addd to root wfl.  Note that we don't know how far down the phrase chain we are which may affect cutoff TK
 		_cutoff = get_cutoff()
@@ -362,7 +362,7 @@ defmodule Collocation do
 
 
 	def lose_one_bin(<<byte4 :: binary-size(4), rest :: binary>>, bin2, acc) do
-		rev_b = rev_bin4(bin2)
+		rev_b = Utils.rev_bin4(bin2)
 		new_acc = [<< rev_b :: binary, <<rest :: binary>> >> | acc]
 		lose_one_bin(rest, << byte4 :: binary, <<bin2 :: binary>> >>, new_acc)
 	end
@@ -421,7 +421,7 @@ defmodule Collocation do
 
 	def merge_pairs([{%TokenFreq{} = tf_a, %TokenFreq{} = tf_b} | t], accum) do
 		
-		sample = {
+		_sample = {
 			%TokenFreq{freq: 5, index: 2, token_id: <<0, 0, 0, 2>>},
 	  		%TokenFreq{freq: 2, index: 3, token_id: <<0, 0, 0, 1>>}
   		}
@@ -429,7 +429,7 @@ defmodule Collocation do
   		a_ndx = tf_a.index
   		a_len = round(byte_size(tf_a.token_id) / 4)
   		b_ndx = tf_b.index
-  		b_len = round(byte_size(tf_b.token_id) / 4)
+  		###b_len = round(byte_size(tf_b.token_id) / 4)
 
   		overlap = a_ndx + a_len - b_ndx
 
@@ -531,7 +531,7 @@ defmodule Collocation do
 
 
 	def get_abstractions(merged_token) do
-		combinations = get_set_bits(merged_token, 0, [])
+		_combinations = get_set_bits(merged_token, 0, [])
 			|> get_abstraction_tree()
 	end
 
@@ -590,19 +590,10 @@ defmodule Collocation do
 		combine_list(rest, [seed | new_list], new_list, seed)
 	end
 
-	def remove_one([], _carousel, accum) do
-		accum
-	end
-
-	def remove_one([index | indices], [h | t], accum) do		
-		new_accum = [t | accum]		
-		remove_one(indices, t ++ [h], new_accum)
-	end
-
 	#%TokenFreq{freq: 1, index: 2, is_common: false, offset: 37, token_id: <<0, 0, 0, 145>>},
 
 	def get_abstraction_tree(token_freq_list) do		
-		tree_sample = 
+		_tree_sample = 
 		[
 			{
 				[1, 2, 3],
@@ -654,6 +645,16 @@ defmodule Collocation do
 
 		remove_one_by_one(t, new_accum)		
 	end
+
+	def remove_one([], _carousel, accum) do
+		accum
+	end
+
+	def remove_one([_index | indices], [h | t], accum) do		
+		new_accum = [t | accum]		
+		remove_one(indices, t ++ [h], new_accum)
+	end
+
 
 	def get_cutoff do
 		2

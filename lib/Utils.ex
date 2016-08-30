@@ -68,4 +68,37 @@ defmodule Utils do
     end
 
 
+
+def rev_bin4(bin) do
+    rev_bin4(bin, <<>>)
+  end
+
+  def rev_bin4(<<>>, acc) do
+    acc
+  end
+
+  def rev_bin4(<<byte4 :: binary-size(4), rest :: binary>>, acc) do
+    new_acc = << <<byte4 :: binary>>, <<acc :: binary>> >>
+    rev_bin4(rest, new_acc)
+  end
+
+
+
+  def rev_bin(<< t :: binary >>) do
+    rev_bin(t, <<>>)
+  end
+
+  def rev_bin(<<>>, store) do
+    store
+  end
+
+  def rev_bin(<< h :: binary-size(1),  t :: binary >>, store) do
+    #to convert number into binary :binary.encode_unsigned gives you smallest number of bytes for number
+    #while <<256 :: size(16)>> gives you <<1, 0>>
+    #and <<k :: integer-size(16) , rest :: binary>> = <<256 :: size(16)>> puts 256 into k 
+
+    rev_bin(t, <<h <> store>>)
+
+  end
+
 end 

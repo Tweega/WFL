@@ -39,7 +39,7 @@ defmodule WFL do
 	end
 
 	def get_token_from_id(wfl_pid, token_id) do 	#this returns {token, state} unlike get_token_info - may need to rename this.
-		:gen_server.call(wfl_pid, {:get_token_from_id, wfl_pid, token_id})
+		:gen_server.call(wfl_pid, {:get_token_from_id, token_id})
 	end
 	
 
@@ -78,12 +78,13 @@ defmodule WFL do
 		{:reply, parent, state}
 	end
 
-	def handle_call({:expand_type_id, type_id, include_root}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
-		x = expand_token(type_id, wfl_data, include_root, parent_wfl_pid,  <<>>)
+	def handle_call({:expand_type_id, type_id, include_root}, _from, state) do
+		wfl_pid = self()
+		x = expand_token(type_id, [wfl_pid], <<>>, include_root)
 		{:reply, x, state}
 	end
 
-	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
+	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
 		
 		{token_id, new_wfl} = process_token(token, sentence_id, offset, wfl_data)				
 
@@ -100,9 +101,9 @@ defmodule WFL do
 		{:reply, wfl_item, state}
 	end
 
-	def handle_call({:get_token_from_id, wfl_pid, token_id}, _client, state) do
-		token = fetch_token_from_id(state, wfl_pid, token_id)
-		{:reply, token, state}
+	def handle_call({:get_token_from_id, token_id}, _client, state) do
+		token_parent = fetch_token_from_id(state, token_id)
+		{:reply, token_parent, state}
 	end
 
 	def handle_call({:mark_common, common_list}, _from, {wfl, parent}) do
@@ -178,6 +179,36 @@ defmodule WFL do
 		end
 	end
 
+	defp deep_lookup({%WFL_Data{} = wfl_data, parent_wfl_pid} = state, wfl_pid, token_id) do
+		#this is here only by way of a backup in case we implement deep_search at some point.
+		#fetch_token_info_from_id - deep version of fetch_token_info_from_id - searches parent wfl if not found locally
+		
+		search_result = Map.fetch(wfl_data.type_ids, token_id)
+		
+		{where_to_continue, where_found, search_token} = case search_result do
+			{:ok, res} ->
+				{nil, wfl_pid, res}	#why do we need the pid of wfl where found? -so that we can continue to expand token.
+
+			{:error, _res} ->
+				#this wfl doesn't have the token - try parent wfl
+				parent_state = WFL.get_wfl_state(parent_wfl_pid)				
+				{parent_state, parent_wfl_pid, token_id}
+		end
+
+		deep_lookup(where_to_continue, where_found, search_token)
+	end
+
+	defp deep_lookup(_, _, nil) do
+		#ditto above
+		IO.puts("error: nil search term token id")
+	end
+
+	defp deep_lookup(nil, where_found, search_token) do
+		#ditto above
+		{nil, where_found, search_token}	#where_found is a wfl pid - has this been found, though?
+	end
+
+
 	defp expand_phrase(key, wfl_data, include_root, parent_wfl_pid) do
 
 		#key may be <<0,0,0,3,  0,0,0,4>> in which case we have two lookups - note that we have to drop the left most 4byte as that indicates a space count
@@ -237,30 +268,63 @@ defmodule WFL do
 		{type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
 	end
 
-	defp fetch_token_from_id(_, _, nil) do
-		IO.puts("error: nil search term token id")
+	def expand_token(<<>>, [wfl_pid | _rest], phrase, to_text) when to_text == 1 do 
+		#terminal case where all token_ids have been 'translated' BUT we still have to translate token_ids into text equivalents
+		expand_token_text(wfl_pid, phrase)
+		
 	end
 
-	defp fetch_token_from_id(nil, where_found, search_token) do
-		{where_found, search_token}	#where_found is a wfl pid
+	def expand_token(<<>>, [_wfl_pid | _rest], phrase, _to_text) do 
+		#terminal case where all token_ids have been 'translated'
+		Utils.rev_bin(phrase)	
+	end
+
+	def expand_token(<<token_id :: binary-size(4), rest :: binary>>, [wfl_pid | pids], phrase, to_text) when to_text == 1 do 
+		#main expand function
+		
+		{result, parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, token_id)
+		
+		{new_phrase, new_token_stack, new_wfl_stack} =
+			if is_nil(parent_wfl_pid) do
+				#this is a terminating condition - token_id found at root colloc level.
+				{result <> phrase, rest, pids}
+			else
+				result_len = round(byte_size(result) / 4)
+				new_pids = List.duplicate(wfl_pid, result_len)
+				token_stack = result <> rest
+				wfl_stack = new_pids ++ pids
+				{phrase, token_stack, wfl_stack}
+			end
+		expand_token(new_token_stack, new_wfl_stack, new_phrase, to_text)
+		
+	end
+
+	def expand_token_text(wfl_pid, tokens) do
+		#for each token_id in phrase - look up the token
+		wfl_type_ids = WFL.get_wfl(wfl_pid).type_ids
+		expand_token_text(wfl_type_ids, tokens, [])
+
+	end
+
+	def expand_token_text(_wfl_type_ids, <<>>, acc) do
+		acc
+	end
+
+	def expand_token_text(wfl_type_ids, <<token_id :: binary-size(4), rest :: binary>>, acc) do
+		#for each token_id in phrase - look up the token id
+		token = Map.get(wfl_type_ids, token_id)
+		expand_token_text(wfl_type_ids, rest, [token | acc])
 	end
 	
-	defp fetch_token_from_id({%WFL_Data{} = wfl_data, parent_wfl_pid} = state, wfl_pid, token_id) do
-		#fetch_token_info_from_id - deep version of fetch_token_info_from_id - searches parent wfl if not found locally
+	defp fetch_token_from_id({%WFL_Data{} = wfl_data, parent_wfl_pid}, token_id) do
+		#returns the type denoted by a token id eg 123 -> cat, 234 -> sat, 222 -> [123, 234] or "cat sat".
 		
-		search_result = Map.fetch(wfl_data.type_ids, token_id)
+		# we used to try searching up the tree in the event of not finding an item.
+		#may need to end up doing this - but for now assuming that only need to search one level
 
-		{where_to_continue, where_found, search_token} = case search_result do
-			{:ok, res} ->
-				{nil, wfl_pid, res}	#why do we need the pid of wfl where found? -so that we can continue to expand token.
-
-			{:error, _res} ->
-				#this wfl doesn't have the token - try parent wfl
-				parent_state = WFL.get_state(parent_wfl_pid)				
-				{parent_state, parent_wfl_pid, token_id}
-		end
-
-		fetch_token_from_id(where_to_continue, where_found, search_token)
+		res = Map.get(wfl_data.type_ids, token_id)
+		#do i always join things from the same wfl? - i think so - then we don't need deep search..
+		{res, parent_wfl_pid}
 	end
 
 
