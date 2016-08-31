@@ -87,11 +87,9 @@ defmodule WFLScratch.Server do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
 		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
 		WFL.mark_common(wfl_pid, ["the", "a"])
-		process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 
-		##new_state = Map.put(state, "last_wfl_pid", last_wfl_pid)
-		##IO.inspect(new_state)			
-		##{:noreply, new_state}
-		{:noreply, state}
+		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 
+		new_state = Map.put_new(state, "last_wfl_pid", last_wfl_pid)
+		{:noreply, new_state}
 	end
 
 	def handle_info( {:file_error, _filePath}, state) do
@@ -178,7 +176,6 @@ defmodule WFLScratch.Server do
 			[_h | _t] = p_s ->
 				#we have at least one frequent colloc so process it
 				{:ok, new_colloc_wfl_pid} = WFL.start_link(colloc_wfl_pid)
-IO.inspect(new_colloc_wfl_pid)
 				Parallel.pjob(p_s, [{Collocation, :do_phrase, [new_colloc_wfl_pid]}])				
 				get_colloc_continuations(new_colloc_wfl_pid)	#Is this this tail recursive? perhaps the catch all clause also needs to call the same function
 			_ ->

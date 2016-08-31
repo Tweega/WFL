@@ -21,14 +21,6 @@ defmodule Collocation do
 
 	defstruct([token_ids: <<>>, concretisations: []])	#anything that further defines a pattern is a concretisation - though a shorter word would be nice.  ab is concretisation of a and b as is a_b.  acb is concretisation of a_b
 
-	def test({_key, wfl_item}) do
-		wfl_item
-	end
-
-	def test2(wfl_item) do
-		IO.inspect(wfl_item)
-	end
-
 	def add_collocs_to_wfl(collocs, wfl_pid) do
 		#[{2, [{<<0, 0, 0, 6, 0, 0, 0, 5>>, 32}, {<<0, 0, 0, 7, 0, 0, 0, 6>>, 31},...]},
 		#for each sentence
@@ -42,7 +34,7 @@ defmodule Collocation do
 			toke_inputs ++ token_inputs_accum	#better to recurse?
 		end)
 		#add each input to the supplied wfl
-		#IO.inspect(inputs)
+		
 		Enum.each(inputs, fn(input) -> 			
 			WFL.addToken(wfl_pid, input)	
 		end)
@@ -73,7 +65,7 @@ defmodule Collocation do
 		Enum.each(inputs, fn(input) -> 			
 			{:ok, _token_id} = WFL.addToken(wfl_pid, input)	
 		end)
-		#IO.inspect(inputs)
+		
 		wfl_pid		
 	end
 
@@ -132,7 +124,7 @@ defmodule Collocation do
 			#get the wfl_info for this token
 			wfl_info = WFL.get_token_info_from_id(source_wfl_pid, tok_id)
 			tok_freq = %TokenFreq{token_id: tok_id, freq: wfl_info.freq, is_common: wfl_info.is_common, offset: index}
-			#IO.inspect(tok_freq)
+			
 			new_list_acc = [tok_freq | list_acc]
 			new_map = Map.put(map_acc, index, tok_freq)
 			{new_list_acc, new_map, index + 1}
@@ -141,15 +133,10 @@ defmodule Collocation do
 		#index_map maps token offsets with token ids
 		_sample_index =  %{12 => %TokenFreq{freq: 1, index: -1, is_common: false, offset: 12, token_id: <<0, 0, 0, 52>>}}
 
-		#IO.inspect(index_map)
-
-		#IO.inspect(bin_tok_freq_list)
-		
 		#split this list on sequences of tokens with freq > cutoff or where the gap is less than 3 ignore phrases of length 1 only
 		#changing phrases to record only offsets not tokenfreq records
 		#to revert go to commit a52d471101afcc79f63e5b614ea78cc6d03bf10d
 		phrases = get_phrases(bin_tok_freq_list, cutoff)
-		#IO.inspect(phrases)
 		#bin_tok_freq_list
 		_sample_phrases = [[12, 11, 9, 7, 5, 4, 3, 1, 0], [32, 31, 30, 28, 27, 25]] 	#strings of proximate tokens with freq > c/o
 
@@ -179,9 +166,6 @@ defmodule Collocation do
 
 
 		new_combination_map = Enum.reduce(quartet_stream, %{}, fn(quartet, comb_map) ->			
-			#IO.inspect(quartet)
-			
-			#IO.puts("Sentence_id: #{sentence_id}")
 			###collocs_len = length(colloc_types)
 	
 			#quartet_id = QuartetCounter.get_quartet_id()
@@ -190,8 +174,6 @@ defmodule Collocation do
 			
 			#from each colloc we want {bin_tokens, sentence_id, token_offset} to match data structure for tokens/sentences
 			#store quartet
-
-			#IO.inspect(index_map)
 
 			collocs = CollocStream.get_colloc_stream(quartet, index_map)
 
@@ -208,8 +190,6 @@ defmodule Collocation do
 					# each map links to more than one combination - there is a map per phrase
 					# what does the map data look like - it is keyed on first offset and data is (an array) of combinations (see sample collcations below) - are these in index form or token_ids?  I think the latter - the former would require the token map to  hang around
 
-					#IO.inspect(phrase)
-					
 					# phrase example = {23, 25, <<1, 0, 0, 11, 0, 0, 0, 12>>}
 					###?phrase_id = PhraseCounter.get_phrase_id()
 					###?Phrases.new(phrase_id, {sentence_id, phrase})
@@ -241,15 +221,11 @@ defmodule Collocation do
 			new_combination_map
 		end)
 
-		#IO.inspect({sentence_id, new_combination_map})
-
 		#we now need to save new_tokens_binary in tokensbinary agent
 		TokensBinary.update(sentence_id, new_tokens_binary)
 
 
 #	%TokenFreq{freq: 5, index: 2, token_id: <<0, 0, 0, 2>>},
-
-		#IO.inspect(quartets)
 
 		#WE STILL NEED to expand quartets as they are in {a, [b,c,d]} form at the moment.
 
@@ -265,13 +241,13 @@ defmodule Collocation do
 		#{phrase_id, {sentence_id, {first_offset, last_offset, <<phrase token ids>>}}}
 		#{234, {14, {2, 4, <<0, 0, 0, 125, 0, 0, 0, 30, 0, 0, 0, 29>>}}}	- use a struct so we can see what is going on?
 		#{234, {20, {0, 1, <<0, 0, 0, 167, 0, 0, 0, 93>>}}}
-		#IO.inspect(x)
+		
 		_sample_p_s = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
 			 %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
 			  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
 			  type_id: <<0, 0, 1, 42>>}}
 
-		if wfl_type.freq > 1 do
+		if wfl_type.freq > 1 do 	# is this check redundant?
 			#occurrences for this wfl_type are listed in wfl_type.instances
 			
 			#for each instance of this wfl_type
@@ -287,10 +263,15 @@ defmodule Collocation do
 				%TokensBinary{offset_maps: %OffsetMaps{token_map: _index_map,  combination_map: combination_map}} = TokensBinary.get(sent_id)
 
 				continuations = Map.get(combination_map, last_offset)
-	
-				_sample_continuations = [[5, 4], [7, 4], [7, 5, 4]]  #no
 			
-				#IO.inspect(continuations)
+				_sample_continuations = [<<0, 0, 0, 129, 0, 0, 0, 130>>, <<1, 0, 0, 129, 0, 0, 0, 129>>,
+										 <<0, 0, 0, 129, 0, 0, 0, 130, 0, 0, 0, 129>>, <<2, 0, 0, 129, 0, 0, 0, 2>>,
+										 <<0, 0, 0, 129, 0, 0, 0, 130, 0, 0, 0, 129, 0, 0, 0, 2>>,
+										 <<1, 0, 0, 129, 0, 0, 0, 129, 0, 0, 0, 2>>,
+										 <<0, 0, 0, 129, 1, 0, 0, 130, 0, 0, 0, 2>>]
+
+			
+				
 				_sample_index_map = %{11 => <<0, 0, 0, 7>>, 26 => <<0, 0, 0, 11>>, 15 => <<0, 0, 0, 20>>,
 									  20 => <<0, 0, 0, 7>>, 17 => <<0, 0, 0, 18>>, 25 => <<0, 0, 0, 12>>,
 									  13 => <<0, 0, 0, 22>>, 0 => <<0, 0, 0, 32>>, 8 => <<0, 0, 0, 25>>,
@@ -303,12 +284,18 @@ defmodule Collocation do
 									  30 => <<0, 0, 0, 7>>, 23 => <<0, 0, 0, 11>>, 28 => <<0, 0, 0, 9>>,
 									  16 => <<0, 0, 0, 19>>, 4 => <<0, 0, 0, 29>>, 12 => <<0, 0, 0, 23>>}
 
-				if ! is_nil(continuations) do
-					#IO.inspect(continuations)
+				if ! is_nil(continuations) do					
 					#right now continuation looks like this:  [<<1, 0, 0, 129, 0, 0, 0, 29>>] 	(combinations which we don't have at the moment, but could, looks like [[5, 4], [7, 4], [7, 5, 4]])
-					phrase_candidates = List.foldl(continuations, [], fn(continuation, accum) ->							
-						<< _overlap :: binary-size(4), phrase_extension :: binary >> = continuation
-						phrase_candidate = wfl_type.type_id <> phrase_extension
+					phrase_candidates = List.foldl(continuations, [], fn(continuation, accum) ->
+						#gap between the existing phrase and continuation must be the same as gap between first of continuation and rest of continuation
+						# cat sat ON   <->  on _ mat   => cat sat on _ mat.  ON here does not have the gap info to  next token, so we can't use that.
+						#store the gap in token_id - and replace the gap value when expanding later.						
+						<<offset_byte :: binary-size(1), rest_token_id :: binary>> = wfl_type.type_id
+						<<overlap :: binary-size(4), phrase_extension :: binary >> = continuation  # we want to keep all of continuation as that has the gap to next token in the continuation
+						<<offset_byte_x :: binary-size(1), _rest_x :: binary >> = overlap
+						phrase_candidate = <<offset_byte_x :: binary, rest_token_id :: binary, phrase_extension :: binary>>
+						IO.inspect({wfl_type.type_id, phrase_candidate})						
+						###phrase_candidate = wfl_type.type_id <> phrase_extension #i think we need to reset any gap on wfl_type.type_id
 						last_off = get_last_offset(phrase_extension, last_offset)
 						WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {first_offset, last_off}}})
 						[phrase_candidate | accum]
@@ -318,7 +305,7 @@ defmodule Collocation do
 					
 
 					end
-					#IO.inspect(phrase_freq)
+					
 					_sample_phrase_freq = %WFL_Type{concretisations: %MapSet{}, freq: 2, instances: [{17, 2}, {12, 2}], is_common: false, type: <<0, 0, 0, 130, 0, 0, 0, 129>>, type_id: <<0, 0, 0, 249>>}
 				end
 			end) ###??here?
@@ -335,14 +322,12 @@ defmodule Collocation do
 			## each phrase is concretisation of the set of phrases that is itself minus one token cat sat on -> {cat, [saton, _on sat]}
 			#get a stream of this phrase minus one token - what form do we have the phrase in - presumably token ids
 			expansion = 1
-			abstractions = lose_one_bin(wfl_type)
+			###abstractions = lose_one_bin(wfl_type)
 			
 			#for each abstraction - check deadend
 
 			#then check freq in wfl - need to be able to search up the wfl tree
 			#if over c/o add to concretisations in wfl - otherwise add to dead_end
-			#IO.inspect(wfl_type)
-			#IO.puts("freqy phrase: #{wfl_type.freq}")
 			 
 		#else
 			#otherwise we can delete the node - though possibly that does not matter as we will let go of the whole wfl.
@@ -513,7 +498,7 @@ defmodule Collocation do
 				%TokenFreq{tf_a | index: new_index }
 			end
 
-		#IO.inspect(tf_a)
+		
 		get_pair({new_tf_a, nil}, new_list, new_index, cutoff)
 	end
 
@@ -709,9 +694,7 @@ defmodule CollocStream do
 	    )  
   	end
 
-	def get_colloc(combination, token_map) do
-		#IO.inspect(combination)
-		#IO.inspect(token_map)
+	def get_colloc(combination, token_map) do	
 		get_colloc(combination,  0, token_map, {nil, nil, <<>>})
 	end
 
@@ -720,12 +703,14 @@ defmodule CollocStream do
 	end
 
 	def get_colloc([index | indices], prev_offset, token_map, {first_offset, last_offset, colloc}) do
-		
+		#this gets a colloc from a list of sentence offsets - eg [0, 2, 3] - here we have a gap from 0 to 2 (except i think we process colloc backwards [3, 2, 0]
 		tok_freq = Map.get(token_map, index)
+		_sample_tok_freq = %TokenFreq{freq: 6, index: -1, is_common: false, offset: 3,  token_id: <<0, 0, 0, 30>>} # 'that'	index always seems to be -1 tk
+		_sample_tok_frek = %TokenFreq{freq: 2, index: -1, is_common: false, offset: 28, token_id: <<0, 0, 0, 9>>} #  'might'  (offset is from start of sentence - first = 0)
 
 		new_gap = case prev_offset do
 			0 ->
-				prev_offset
+				 prev_offset
 			_ ->
 				prev_offset - tok_freq.offset - 1
 		end
@@ -748,7 +733,7 @@ defmodule CollocStream do
 		#shift_new_gap = new_gap * round(:math.pow(2, 6))	 #or left shift 6 times  - use shift_new for very large corpora where we need 4th byte for colloc ids
 
 		<<token_id :: binary-size(1),  rest :: binary-size(3)>> = tok_freq.token_id
-		new_token_int = :binary.decode_unsigned(token_id) + new_gap
+		new_token_int = :binary.decode_unsigned(token_id) + new_gap 	#need to update this so that new_gap is two most sig bits of integer - this only works if token_id = 0
 		new_token_id = <<new_token_int :: integer-unit(8)-size(1)>> <> <<rest :: binary >>
 		
 		new_colloc = << new_token_id <> colloc >>	
