@@ -179,7 +179,8 @@ defmodule Collocation do
 
 			offset_combinations_map = Enum.reduce(collocs, comb_map, fn({first_off, last_off, colloc}, offset_combinations_map_accum) ->
 				#%TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
-				WFL.addToken(colloc_wfl_pid, %TokenInput{token: colloc, instance: %TokenInstance{sentence_id: sentence_id, offset: {first_off, last_off}}})  #check if first off references sentence or phrase - we should have sentence here
+				#{:ok, colloc_id} = IF we want to store the colloc_id in combinations map instead of the root level ids - it would save 4 - 8 bytes per extended phrase
+				WFL.addToken(colloc_wfl_pid, %TokenInput{token: colloc, instance: %TokenInstance{sentence_id: sentence_id, offset: {first_off, last_off}}})  #check if first off references sentence or phrase - we should have sentence here tk
 				#should we add last offset in with first offset as in offset: {first, last}
 
 				# now add to this combination map
@@ -198,7 +199,7 @@ defmodule Collocation do
 					# get the existing value for first_off in offset_combinations_map_accum
 
 					offset_combinations = Map.get(offset_combinations_map_accum, first_off, [])
-					new_offset_combinations = [colloc | offset_combinations]					
+					new_offset_combinations = [colloc | offset_combinations]					 #could use colloc_id here (see above)
 					Map.put(offset_combinations_map_accum, first_off, new_offset_combinations)					
 			end)
 
@@ -263,7 +264,7 @@ defmodule Collocation do
 				%TokensBinary{offset_maps: %OffsetMaps{token_map: _index_map,  combination_map: combination_map}} = TokensBinary.get(sent_id)
 
 				continuations = Map.get(combination_map, last_offset)
-			
+				#could store continuations by their token_id tk
 				_sample_continuations = [<<0, 0, 0, 129, 0, 0, 0, 130>>, <<1, 0, 0, 129, 0, 0, 0, 129>>,
 										 <<0, 0, 0, 129, 0, 0, 0, 130, 0, 0, 0, 129>>, <<2, 0, 0, 129, 0, 0, 0, 2>>,
 										 <<0, 0, 0, 129, 0, 0, 0, 130, 0, 0, 0, 129, 0, 0, 0, 2>>,
@@ -289,14 +290,16 @@ defmodule Collocation do
 					phrase_candidates = List.foldl(continuations, [], fn(continuation, accum) ->
 						#gap between the existing phrase and continuation must be the same as gap between first of continuation and rest of continuation
 						# cat sat ON   <->  on _ mat   => cat sat on _ mat.  ON here does not have the gap info to  next token, so we can't use that.
-						#store the gap in token_id - and replace the gap value when expanding later.						
+						#store the gap in token_id - and replace the gap value when expanding later.
+						#bytes = round(byte_size(continuation) / 4)
+						#IO.puts("continuation length: #{bytes}")
 						<<offset_byte :: binary-size(1), rest_token_id :: binary>> = wfl_type.type_id
 						<<overlap :: binary-size(4), phrase_extension :: binary >> = continuation  # we want to keep all of continuation as that has the gap to next token in the continuation
 						<<offset_byte_x :: binary-size(1), _rest_x :: binary >> = overlap
+
 						phrase_candidate = <<offset_byte_x :: binary, rest_token_id :: binary, phrase_extension :: binary>>
-						IO.inspect({wfl_type.type_id, phrase_candidate})						
-						###phrase_candidate = wfl_type.type_id <> phrase_extension #i think we need to reset any gap on wfl_type.type_id
 						last_off = get_last_offset(phrase_extension, last_offset)
+						
 						WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {first_offset, last_off}}})
 						[phrase_candidate | accum]
 					end)
