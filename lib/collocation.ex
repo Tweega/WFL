@@ -179,7 +179,7 @@ defmodule Collocation do
 
 			offset_combinations_map = Enum.reduce(collocs, comb_map, fn({first_off, last_off, colloc}, offset_combinations_map_accum) ->
 				#%TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
-				WFL.addToken(colloc_wfl_pid, %TokenInput{token: colloc, instance: %TokenInstance{sentence_id: sentence_id, offset: {first_off, last_off}}})  #check if first off references sentence or phrase - we should have sentence here
+				{:ok, colloc_id} = WFL.addToken(colloc_wfl_pid, %TokenInput{token: colloc, instance: %TokenInstance{sentence_id: sentence_id, offset: {first_off, last_off}}})  #check if first off references sentence or phrase - we should have sentence here
 				#should we add last offset in with first offset as in offset: {first, last}
 
 				# now add to this combination map
@@ -198,7 +198,7 @@ defmodule Collocation do
 					# get the existing value for first_off in offset_combinations_map_accum
 
 					offset_combinations = Map.get(offset_combinations_map_accum, first_off, [])
-					new_offset_combinations = [colloc | offset_combinations]					
+					new_offset_combinations = [colloc_id | offset_combinations]					
 					Map.put(offset_combinations_map_accum, first_off, new_offset_combinations)					
 			end)
 
@@ -236,7 +236,7 @@ defmodule Collocation do
 
 	end
 
-	def do_phrase({_key, wfl_type},  colloc_wfl_pid) do 
+	def do_phrase({_key, wfl_type},  colloc_wfl_pid, continuation_map) do 
 
 		#{phrase_id, {sentence_id, {first_offset, last_offset, <<phrase token ids>>}}}
 		#{234, {14, {2, 4, <<0, 0, 0, 125, 0, 0, 0, 30, 0, 0, 0, 29>>}}}	- use a struct so we can see what is going on?
@@ -283,23 +283,25 @@ defmodule Collocation do
 									  21 => <<0, 0, 0, 15>>, 27 => <<0, 0, 0, 10>>, 24 => <<0, 0, 0, 13>>,
 									  30 => <<0, 0, 0, 7>>, 23 => <<0, 0, 0, 11>>, 28 => <<0, 0, 0, 9>>,
 									  16 => <<0, 0, 0, 19>>, 4 => <<0, 0, 0, 29>>, 12 => <<0, 0, 0, 23>>}
+									
+				if ! is_nil(continuations) do										
+					phrase_candidates = List.foldl(continuations, [], fn(continuation_id, accum) ->		
+					#IO.inspect(continuation_id)				
+						continuation_token = Map.get(continuation_map, continuation_id)
 
-				if ! is_nil(continuations) do					
-					#right now continuation looks like this:  [<<1, 0, 0, 129, 0, 0, 0, 29>>] 	(combinations which we don't have at the moment, but could, looks like [[5, 4], [7, 4], [7, 5, 4]])
-					phrase_candidates = List.foldl(continuations, [], fn(continuation, accum) ->
-						#gap between the existing phrase and continuation must be the same as gap between first of continuation and rest of continuation
-						# cat sat ON   <->  on _ mat   => cat sat on _ mat.  ON here does not have the gap info to  next token, so we can't use that.
-						#store the gap in token_id - and replace the gap value when expanding later.						
-						<<offset_byte :: binary-size(1), rest_token_id :: binary>> = wfl_type.type_id
-						<<overlap :: binary-size(4), phrase_extension :: binary >> = continuation  # we want to keep all of continuation as that has the gap to next token in the continuation
-						<<offset_byte_x :: binary-size(1), _rest_x :: binary >> = overlap
-						phrase_candidate = <<offset_byte_x :: binary, rest_token_id :: binary, phrase_extension :: binary>>
-						IO.inspect({wfl_type.type_id, phrase_candidate})						
-						###phrase_candidate = wfl_type.type_id <> phrase_extension #i think we need to reset any gap on wfl_type.type_id
-						last_off = get_last_offset(phrase_extension, last_offset)
+						if is_nil(continuation_token) do
+							#IO.inspect(continuation_id)
+						else
+							#IO.puts("hell0 there")
+							#IO.inspect(continuation_id)
+						end
+
+						phrase_candidate = wfl_type.type_id <> continuation_id
+						last_off = get_last_offset(continuation_token, last_offset)
 						WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {first_offset, last_off}}})
 						[phrase_candidate | accum]
 					end)
+
 
 					if sent_id == 12 do
 					
