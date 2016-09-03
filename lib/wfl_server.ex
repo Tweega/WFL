@@ -147,7 +147,7 @@ defmodule WFLScratch.Server do
 		#we need to get passed in a list of sentences and iterate that - or have a different tokens_binary for phrases.
 		tb_s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)
 		Parallel.pjob(tb_s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
-		last_wfl_pid = get_colloc_continuations(colloc_wfl_pid)
+		last_wfl_pid = get_colloc_continuations(colloc_wfl_pid, colloc_wfl_pid)
 		###IO.inspect(last_wfl_pid)
 		debug_wfl = WFL.get_wfl(last_wfl_pid)
 		###IO.inspect(debug_wfl)
@@ -157,7 +157,7 @@ defmodule WFLScratch.Server do
 		last_wfl_pid
 	end
 
-	def get_colloc_continuations(colloc_wfl_pid) do
+	def get_colloc_continuations(colloc_wfl_pid, continuation_wfl_pid) do
 		# i think p_s_t is phrase something type
 		cutoff = 1	#get from config
 		p_s_t = WFL.get_wfl(colloc_wfl_pid).types		
@@ -176,8 +176,8 @@ defmodule WFLScratch.Server do
 			[_h | _t] = p_s ->
 				#we have at least one frequent colloc so process it
 				{:ok, new_colloc_wfl_pid} = WFL.start_link(colloc_wfl_pid)
-				Parallel.pjob(p_s, [{Collocation, :do_phrase, [new_colloc_wfl_pid]}])				
-				get_colloc_continuations(new_colloc_wfl_pid)	#Is this this tail recursive? perhaps the catch all clause also needs to call the same function
+				Parallel.pjob(p_s, [{Collocation, :do_phrase, [new_colloc_wfl_pid, continuation_wfl_pid]}])				
+				get_colloc_continuations(new_colloc_wfl_pid, continuation_wfl_pid)	#Is this this tail recursive? perhaps the catch all clause also needs to call the same function
 			_ ->
 				colloc_wfl_pid	
 		end		
