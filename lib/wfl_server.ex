@@ -88,10 +88,8 @@ defmodule WFLScratch.Server do
 		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
 		WFL.mark_common(wfl_pid, ["the", "a"])
 		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 
-		new_state = Map.put(state, "last_wfl_pid", last_wfl_pid)
-		##IO.inspect(new_state)			
+		new_state = Map.put_new(state, "last_wfl_pid", last_wfl_pid)
 		{:noreply, new_state}
-		#{:noreply, state}
 	end
 
 	def handle_info( {:file_error, _filePath}, state) do
@@ -149,12 +147,7 @@ defmodule WFLScratch.Server do
 		#we need to get passed in a list of sentences and iterate that - or have a different tokens_binary for phrases.
 		tb_s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)
 		Parallel.pjob(tb_s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
-<<<<<<< HEAD
 		last_wfl_pid = get_colloc_continuations(colloc_wfl_pid, colloc_wfl_pid)
-=======
-		continuation_map = WFL.get_wfl(colloc_wfl_pid).type_ids
-		last_wfl_pid = get_colloc_continuations(colloc_wfl_pid, continuation_map)
->>>>>>> 149df3d79c25a4cc840161f29ac4a9f777cb4342
 		###IO.inspect(last_wfl_pid)
 		debug_wfl = WFL.get_wfl(last_wfl_pid)
 		###IO.inspect(debug_wfl)
@@ -164,18 +157,14 @@ defmodule WFLScratch.Server do
 		last_wfl_pid
 	end
 
-<<<<<<< HEAD
 	def get_colloc_continuations(colloc_wfl_pid, continuation_wfl_pid) do
-=======
-	def get_colloc_continuations(colloc_wfl_pid, continuation_map) do
->>>>>>> 149df3d79c25a4cc840161f29ac4a9f777cb4342
 		# i think p_s_t is phrase something type
 		cutoff = 1	#get from config
-		
-		frequent_collocs = Enum.filter(WFL.get_wfl(colloc_wfl_pid).types, fn({_,  wfl_type}) -> 
+		p_s_t = WFL.get_wfl(colloc_wfl_pid).types		
+		p_s = Enum.filter(p_s_t, fn({_,  wfl_type}) -> 
 			_sample_p_s = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
 					 %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
-					  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,  	#do we need to have type when value = key?
+					  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
 					  type_id: <<0, 0, 1, 42>>}}
 
 
@@ -183,21 +172,12 @@ defmodule WFLScratch.Server do
 			wfl_type >= cutoff 
 		end)	#note - this part iterates so we need to call a holding function.
 
-		case frequent_collocs do
-			[_h | _t] = frequent_collocs ->
-				#z = Map.get(colloc_wfl.type_ids, <<0, 0, 0, 211>>)
-				#IO.inspect(z)
-
+		case p_s do
+			[_h | _t] = p_s ->
 				#we have at least one frequent colloc so process it
 				{:ok, new_colloc_wfl_pid} = WFL.start_link(colloc_wfl_pid)
-<<<<<<< HEAD
 				Parallel.pjob(p_s, [{Collocation, :do_phrase, [new_colloc_wfl_pid, continuation_wfl_pid]}])				
 				get_colloc_continuations(new_colloc_wfl_pid, continuation_wfl_pid)	#Is this this tail recursive? perhaps the catch all clause also needs to call the same function
-=======
-#IO.inspect(new_colloc_wfl_pid)
-				Parallel.pjob(frequent_collocs, [{Collocation, :do_phrase, [new_colloc_wfl_pid, continuation_map]}])
-				get_colloc_continuations(new_colloc_wfl_pid, continuation_map)	#Is this this tail recursive? perhaps the catch all clause also needs to call the same function
->>>>>>> 149df3d79c25a4cc840161f29ac4a9f777cb4342
 			_ ->
 				colloc_wfl_pid	
 		end		

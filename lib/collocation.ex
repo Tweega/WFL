@@ -184,10 +184,7 @@ defmodule Collocation do
 			offset_combinations_map = Enum.reduce(collocs, comb_map, fn({first_off, last_off, colloc}, offset_combinations_map_accum) ->
 				#%TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
 				{:ok, colloc_id} = WFL.addToken(colloc_wfl_pid, %TokenInput{token: colloc, instance: %TokenInstance{sentence_id: sentence_id, offset: {first_off, last_off}}})  #check if first off references sentence or phrase - we should have sentence here
-<<<<<<< HEAD
 				
-=======
->>>>>>> 149df3d79c25a4cc840161f29ac4a9f777cb4342
 				#should we add last offset in with first offset as in offset: {first, last}
 
 				# now add to this combination map
@@ -205,17 +202,11 @@ defmodule Collocation do
 					# here put the accumulator for offset_combinations_accum - which is the offset version of the phrase combination keyed on the first offset
 					# get the existing value for first_off in offset_combinations_map_accum
 
-<<<<<<< HEAD
 					{max_off, offset_combinations} = Map.get(offset_combinations_map_accum, first_off, {max_offset, []})
 					colloc_len = get_last_offset(colloc, 0)
 						
 					new_offset_combinations = [{colloc_id, colloc_len} | offset_combinations]					
 					Map.put(offset_combinations_map_accum, first_off, {max_off, new_offset_combinations})					
-=======
-					offset_combinations = Map.get(offset_combinations_map_accum, first_off, [])
-					new_offset_combinations = [colloc_id | offset_combinations]					
-					Map.put(offset_combinations_map_accum, first_off, new_offset_combinations)					
->>>>>>> 149df3d79c25a4cc840161f29ac4a9f777cb4342
 			end)
 
 			
@@ -252,7 +243,6 @@ defmodule Collocation do
 
 	end
 
-<<<<<<< HEAD
 	def get_max_off_temp([last_offset | []]) do
 		#temporary function
 
@@ -276,9 +266,6 @@ defmodule Collocation do
 
 
 	def do_phrase({_key, wfl_type},  colloc_wfl_pid, continuation_wfl_pid) do 
-=======
-	def do_phrase({_key, wfl_type},  colloc_wfl_pid, continuation_map) do 
->>>>>>> 149df3d79c25a4cc840161f29ac4a9f777cb4342
 
 		#{phrase_id, {sentence_id, {first_offset, last_offset, <<phrase token ids>>}}}
 		#{234, {14, {2, 4, <<0, 0, 0, 125, 0, 0, 0, 30, 0, 0, 0, 29>>}}}	- use a struct so we can see what is going on?
@@ -330,7 +317,6 @@ IO.inspect(wfl_type)
 									  21 => <<0, 0, 0, 15>>, 27 => <<0, 0, 0, 10>>, 24 => <<0, 0, 0, 13>>,
 									  30 => <<0, 0, 0, 7>>, 23 => <<0, 0, 0, 11>>, 28 => <<0, 0, 0, 9>>,
 									  16 => <<0, 0, 0, 19>>, 4 => <<0, 0, 0, 29>>, 12 => <<0, 0, 0, 23>>}
-<<<<<<< HEAD
 
 				if ! is_nil(follow_ons) do		
 					{max_offset, continuations} = follow_ons
@@ -354,27 +340,9 @@ IO.inspect(wfl_type)
 						last_off = get_last_offset(continuation, max_offset - 1)
 						#IO.inspect({:last_off, last_off, last_offset})
 						
-=======
-									
-				if ! is_nil(continuations) do										
-					phrase_candidates = List.foldl(continuations, [], fn(continuation_id, accum) ->		
-					#IO.inspect(continuation_id)				
-						continuation_token = Map.get(continuation_map, continuation_id)
-
-						if is_nil(continuation_token) do
-							#IO.inspect(continuation_id)
-						else
-							#IO.puts("hell0 there")
-							#IO.inspect(continuation_id)
-						end
-
-						phrase_candidate = wfl_type.type_id <> continuation_id
-						last_off = get_last_offset(continuation_token, last_offset)
->>>>>>> 149df3d79c25a4cc840161f29ac4a9f777cb4342
 						WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {first_offset, last_off}}})
 						[phrase_candidate | accum] 	#don't make use of this return value. tk may have been for debug purposes.
 					end)
-
 
 					if sent_id == 12 do
 					
