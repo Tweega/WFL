@@ -168,6 +168,10 @@ defmodule Collocation do
 		new_combination_map = Enum.reduce(quartet_stream, %{}, fn(quartet, comb_map) ->			
 			###collocs_len = length(colloc_types)
 	
+			{_key_type, colloc_types} = quartet
+			max_offset = get_max_off_temp(colloc_types) # temp function - should be able to get max_offset from quartet extractor
+			#IO.inspect({colloc_types, max_offset})
+			#we need to gt the maximum offset in a quartet - this could be retrieved within the streamer - but for now, do it the long way.
 			#quartet_id = QuartetCounter.get_quartet_id()
 
 			#Quartets.new(quartet_id, {sentence_id, quartet})
@@ -198,11 +202,11 @@ defmodule Collocation do
 					# here put the accumulator for offset_combinations_accum - which is the offset version of the phrase combination keyed on the first offset
 					# get the existing value for first_off in offset_combinations_map_accum
 
-					offset_combinations = Map.get(offset_combinations_map_accum, first_off, [])
+					{max_off, offset_combinations} = Map.get(offset_combinations_map_accum, first_off, {max_offset, []})
 					colloc_len = get_last_offset(colloc, 0)
 						
 					new_offset_combinations = [{colloc_id, colloc_len} | offset_combinations]					
-					Map.put(offset_combinations_map_accum, first_off, new_offset_combinations)					
+					Map.put(offset_combinations_map_accum, first_off, {max_off, new_offset_combinations})					
 			end)
 
 			
@@ -239,6 +243,28 @@ defmodule Collocation do
 
 	end
 
+	def get_max_off_temp([last_offset | []]) do
+		#temporary function
+
+		last_offset
+	end
+
+
+	def get_max_off_temp([_h | t]) do
+		#temporary function
+
+		get_max_off_temp(t)
+
+	end
+
+	def get_max_off_temp([]) do
+		#temporary function
+		# should not get here
+		-1
+
+	end
+
+
 	def do_phrase({_key, wfl_type},  colloc_wfl_pid, continuation_wfl_pid) do 
 
 		#{phrase_id, {sentence_id, {first_offset, last_offset, <<phrase token ids>>}}}
@@ -257,7 +283,10 @@ defmodule Collocation do
 				#get {Si, Oj}
 				#look up the continuations for that sent/offset
 				#add them to the wfl.
-
+				if wfl_type.type_id == <<0, 0, 1, 156>> do 	
+					IO.puts("hello there 156") #- we want to know what continuations are available for 156 - which is something like "on the other hand" because we don't seem to get any
+				end
+IO.inspect(wfl_type)
 
 			#for each instance of this wfl_type
 			instances = wfl_type.instances
@@ -265,9 +294,11 @@ defmodule Collocation do
 				#look up the continuations for sent/offset
 				%TokensBinary{offset_maps: %OffsetMaps{token_map: _index_map,  combination_map: combination_map}} = TokensBinary.get(sent_id)
 
-				continuations = Map.get(combination_map, last_offset)
+#IO.inspect({sent_id, {first_offset, last_offset}})			
+
+				follow_ons = Map.get(combination_map, last_offset)
 			
-				_sample_continuations = [<<0, 0, 0, 129, 0, 0, 0, 130>>, <<1, 0, 0, 129, 0, 0, 0, 129>>,
+				_sample_follow_ons = [<<0, 0, 0, 129, 0, 0, 0, 130>>, <<1, 0, 0, 129, 0, 0, 0, 129>>,
 										 <<0, 0, 0, 129, 0, 0, 0, 130, 0, 0, 0, 129>>, <<2, 0, 0, 129, 0, 0, 0, 2>>,
 										 <<0, 0, 0, 129, 0, 0, 0, 130, 0, 0, 0, 129, 0, 0, 0, 2>>,
 										 <<1, 0, 0, 129, 0, 0, 0, 129, 0, 0, 0, 2>>,
@@ -287,28 +318,30 @@ defmodule Collocation do
 									  30 => <<0, 0, 0, 7>>, 23 => <<0, 0, 0, 11>>, 28 => <<0, 0, 0, 9>>,
 									  16 => <<0, 0, 0, 19>>, 4 => <<0, 0, 0, 29>>, 12 => <<0, 0, 0, 23>>}
 
-				if ! is_nil(continuations) do		
-				IO.inspect(continuations)			
+				if ! is_nil(follow_ons) do		
+					{max_offset, continuations} = follow_ons
+				#IO.inspect(follow_ons)			
 					#right now continuation looks like this:  [<<1, 0, 0, 129, 0, 0, 0, 29>>] 	(combinations which we don't have at the moment, but could, looks like [[5, 4], [7, 4], [7, 5, 4]])
 					#we don't do anything with phrase_candidates - we just have the side effect of adding phrase_candidate to wfl
 					phrase_candidates = List.foldl(continuations, [], fn({continuation_id, continuation_len}, accum) ->
-						continuation = WFL.get_token_from_id(continuation_wfl_pid, continuation_id)
+						{continuation, _parent_wfl_pid} = WFL.get_token_from_id(continuation_wfl_pid, continuation_id)
 						#IO.inspect(continuation)
 
-						#here we have to check if this is a valid continuation
-						#gap between the existing phrase and continuation must be the same as gap between first of continuation and rest of continuation
-						# cat sat ON   <->  on _ mat   => cat sat on _ mat.  ON here does not have the gap info to  next token, so we can't use that.
-						#store the gap in token_id - and replace the gap value when expanding later.						
+
+						#when joining two combination chunks - stick the two token ids together with space gap added to the first.
+						#here we join wfl_type.type_id (LHS) with
+						#LHS needs its space gap replacing with whatever its last_offset is subtracted from max_offset
 						<<offset_byte :: binary-size(1), rest_token_id :: binary>> = wfl_type.type_id
-						<<overlap :: binary-size(4), phrase_extension :: binary >> = continuation  # we want to keep all of continuation as that has the gap to next token in the continuation
-						<<offset_byte_x :: binary-size(1), _rest_x :: binary >> = overlap
-						phrase_candidate = <<offset_byte_x :: binary, rest_token_id :: binary, phrase_extension :: binary>>
+						gap = max_offset - last_offset
+						phrase_candidate = <<gap>> <> rest_token_id <> continuation_id
+
 						#IO.inspect({wfl_type.type_id, phrase_candidate})						
 						###phrase_candidate = wfl_type.type_id <> phrase_extension #i think we need to reset any gap on wfl_type.type_id
-						last_off = get_last_offset(phrase_extension, last_offset)
+						last_off = get_last_offset(continuation, max_offset - 1)
+						#IO.inspect({:last_off, last_off, last_offset})
 						
 						WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {first_offset, last_off}}})
-						[phrase_candidate | accum] 	#don't use this. tk
+						[phrase_candidate | accum] 	#don't make use of this return value. tk may have been for debug purposes.
 					end)
 
 					if sent_id == 12 do
@@ -686,9 +719,13 @@ defmodule CollocStream do
 	    Stream.resource(
 	      fn ->
 	      	{key_type, colloc_types} = quartet
+	      	#this quartet results in a sequence of combinations
+	      	#for a, [b, c, d] - if we end up only with a, b, c because d is too far away there could not be a continuation.
+	      	#for there to be a continuation then d must be in range  if I have ab__ then e must be in range of b - certainly d
+	      	#if such a combination were to have a follow-up / continuation
 	      	
 	      	combinations = Collocation.combine_list(colloc_types, [key_type])
-	      	
+
 			{combinations, token_map}
 	      end,
 	      fn({combinations, token_map}) -> 
@@ -770,7 +807,7 @@ end
 defmodule PhraseStream do
   
   def get_quartets([]) do  #doubt we come here
-		#quartets are rolling sequences of 4 - Enum.chunk does something simiar but does not do the tail where the chunk length tapers to 1
+		#quartets are rolling sequences of 4 - Enum.chunk does something similar but does not do the tail where the chunk length tapers to 1
 		#a quartet may not have four members  it has up to 4 members and at least 2
 		[]
 	end
@@ -863,7 +900,7 @@ defmodule PhraseStream do
 			if is_nil(phrase) do
 				nilFunc = unchained(nil)
 				{nilFunc, nilFunc}
-			else
+			else				
 				r_phrase = Enum.reverse(phrase) #might be able to work backwards through the list without this reverse, but for now easier to read output if forwards
 				quartets = get_quartets(r_phrase)
 				qUnchained = unchained(quartets)					
