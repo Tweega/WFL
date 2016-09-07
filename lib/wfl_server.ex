@@ -176,6 +176,8 @@ defmodule WFLScratch.Server do
 			[_h | _t] = p_s ->
 				#we have at least one frequent colloc so process it
 				{:ok, new_colloc_wfl_pid} = WFL.start_link(colloc_wfl_pid)
+				
+				Parallel.pjob(p_s, [{Collocation, :set_continuations, []}])				
 				Parallel.pjob(p_s, [{Collocation, :do_phrase, [new_colloc_wfl_pid, continuation_wfl_pid]}])				
 				get_colloc_continuations(new_colloc_wfl_pid, continuation_wfl_pid)	#Is this this tail recursive? perhaps the catch all clause also needs to call the same function
 			_ ->

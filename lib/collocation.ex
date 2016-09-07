@@ -341,7 +341,7 @@ IO.inspect(wfl_type)
 						#IO.inspect({:last_off, last_off, last_offset})
 						
 						WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {first_offset, last_off}}})
-						[phrase_candidate | accum] 	#don't make use of this return value. tk may have been for debug purposes.
+						[phrase_candidate | accum] 	#don't make use of this return value (phrase_candidates). tk may have been for debug purposes.
 					end)
 
 					if sent_id == 12 do
@@ -356,6 +356,55 @@ IO.inspect(wfl_type)
 		:ok
 	end
 
+	#for each sentence, for each continuation list - extend the continutaion list and recurse until no more continuations.
+
+	def extend_phrases(lhs, combination_map, max_offset, colloc_wfl_pid) do
+		#token_ids is a list of ids of phrases that are to be extended
+
+		{next_continuation, continuation_list} = Map.fetch(combination_map, continuation_offset)
+		List.foldl(lhs, [], fn({lhs_id, lhs_len}, phrase_acc) ->
+			List.foldl(continuation_list, phrase_acc, fn({rhs_id, rhs_len}, xtn_acc) ->
+				#add continuation to token_id and add to wfl. ... what about the gap between them? we would need to know last offset of first and length of second
+				colloc = <<lhs_id :: binary, rhs_id :: binary>>
+				colloc_id = addToken(colloc, colloc_wfl_pid)
+				colloc_len = lhs_len + rhs_len
+				[{colloc_id, colloc_len} | xtn_acc]
+			end)
+		end)
+	end
+
+	def set_continuations({_key, wfl_type}) do 
+
+
+		#this function adds continuation instances to the map of continuations stored for each sentence, indexed on offset
+		#it takes in a wfl type and checks for frequency - if over cutoff then adds each instance to the respective combination maps.		
+		_sample_p_s = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+			 %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
+			  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+			  type_id: <<0, 0, 1, 42>>}}
+
+		if wfl_type.freq > 1 do 	# is this check redundant?
+			#occurrences for this wfl_type are listed in wfl_type.instances
+			
+			#for each instance of this wfl_type
+				#get {Si, Oj}, add to list of continuations for that sent/offset
+				
+			instances = wfl_type.instances
+			Enum.each(instances, fn({sent_id, {first_offset, last_offset}}) ->
+				#get existing continuations for sent/offset
+				%TokensBinary{offset_maps: %OffsetMaps{token_map: _index_map,  combination_map: combination_map}} = TokensBinary.get(sent_id)
+
+				{max_off, offset_combinations} = Map.get(combination_map, first_offset)
+				#colloc_len = get_last_offset(wfl_type.type, 0)	# how would this not be last_offset - first_offset + 1? may want to do a test for this
+				colloc_len = last_offset - first_offset + 1
+					
+				new_offset_combinations = [{wfl_type.type_id, colloc_len} | offset_combinations]					
+				Map.put(offset_combinations_map_accum, first_off, {max_off, new_offset_combinations})					
+
+			end) 
+		end
+		:ok
+	end
 
 	def do_concretisation({_key, wfl_type}, _root_wfl_pid, _last_wfl_pid, _deadend_wfl_pid) do
 		

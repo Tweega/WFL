@@ -101,4 +101,13 @@ def rev_bin4(bin) do
 
   end
 
+  def dump_wfl(wfl_pid) do
+
+    types = WFL.get_wfl(wfl_pid).types
+
+    Enum.each(types, fn(t) ->
+      IO.inspect(t)
+    end)
+
+  end
 end 
