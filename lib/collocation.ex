@@ -206,7 +206,7 @@ defmodule Collocation do
 					colloc_len = get_last_offset(colloc, 0)
 						
 					new_offset_combinations = [{colloc_id, colloc_len} | offset_combinations]					
-					Map.put(offset_combinations_map_accum, first_off, {max_off, new_offset_combinations})					
+					Map.put(offset_combinations_map_accum, first_off, {max_off, new_offset_combinations})
 			end)
 
 			
@@ -356,17 +356,58 @@ IO.inspect(wfl_type)
 		:ok
 	end
 
-	#for each sentence, for each continuation list - extend the continutaion list and recurse until no more continuations.
+	#for each sentence, for each continuation list - extend the continuation list and recurse until no more continuations.
 
-	def extend_phrases(lhs, combination_map, max_offset, colloc_wfl_pid) do
-		#token_ids is a list of ids of phrases that are to be extended
+	def process_sent_map(sent_map, continuation_wfl_pid, parent_wfl_pid, sent_x_fun) do 	#sent_x_fun needed because initial sentence map will be different to subsequent ones - need to ratioalise tokensbinary
+
+		sents = Stream.map(sent_map, fn({sentence_id, _}) -> sentence_id end)
+		{:ok, colloc_wfl_pid} = WFL.start_link(parent_wfl_pid)
+		Parallel.pjob(sents, [{Collocation, :x_phrases, [sent_map, colloc_wfl_pid, sent_x_fun]}])
+		
+	end
+
+	def temp_get_x(_sentence_map, sent_id) do
+		IO.inspect({:sent_id, sent_id})
+		%TokensBinary{offset_maps: %OffsetMaps{token_map: _index_map,  combination_map: combination_map}} = TokensBinary.get(sent_id)
+
+		combination_map
+	end
+
+	def x_phrases(sentence_id, sentence_map, colloc_wfl_pid, sent_x_fun) do
+
+		combination_map = sent_x_fun.(sentence_map, sentence_id)
+		
+		#from the combination map get the continuation list for each offset - it should not matter what order we do this in
+		#might want a map_reduce here
+#first_off, {max_off, new_offset_combinations})
+
+		Enum.each(combination_map, fn({lhs_offset, {next_continuation, lhs_continuation_list}}) ->
+			#get the RHS continuation map
+			{:ok, {rhs_next_continuation, rhs_continuation_list}} = Map.fetch(combination_map, next_continuation) 
+
+			#for each lhs combination
+			Enum.each(lhs_continuation_list, fn(lhs_colloc_id) -> 
+
+				#for each continuation, append to LHS and add to wfl
+				Enum.each(rhs_continuation_list, fn(rhs_colloc_id) -> 
+					colloc = <<lhs_colloc_id, rhs_colloc_id>>
+					#{:ok, colloc_id} = WFL.addToken(colloc_wfl_pid, %TokenInput{token: colloc, instance: %TokenInstance{sentence_id: sentence_id, offset: {first_off, last_off}}}) 
+
+				end)
+			end)
+			IO.inspect({sentence_id, rhs_next_continuation, rhs_continuation_list})
+		end)
+	end
+
+	def extend_phrases(lhs, combination_map, continuation_offset, colloc_wfl_pid) do
+		#lhs is a list of ids of phrases that are to be extended
 
 		{next_continuation, continuation_list} = Map.fetch(combination_map, continuation_offset)
 		List.foldl(lhs, [], fn({lhs_id, lhs_len}, phrase_acc) ->
 			List.foldl(continuation_list, phrase_acc, fn({rhs_id, rhs_len}, xtn_acc) ->
 				#add continuation to token_id and add to wfl. ... what about the gap between them? we would need to know last offset of first and length of second
 				colloc = <<lhs_id :: binary, rhs_id :: binary>>
-				colloc_id = addToken(colloc, colloc_wfl_pid)
+				colloc_id = 123 #addToken(colloc, colloc_wfl_pid)
 				colloc_len = lhs_len + rhs_len
 				[{colloc_id, colloc_len} | xtn_acc]
 			end)
@@ -399,7 +440,7 @@ IO.inspect(wfl_type)
 				colloc_len = last_offset - first_offset + 1
 					
 				new_offset_combinations = [{wfl_type.type_id, colloc_len} | offset_combinations]					
-				Map.put(offset_combinations_map_accum, first_off, {max_off, new_offset_combinations})					
+				Map.put(combination_map, first_offset, {max_off, new_offset_combinations})					
 
 			end) 
 		end

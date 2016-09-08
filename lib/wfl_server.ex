@@ -149,20 +149,21 @@ defmodule WFLScratch.Server do
 		Parallel.pjob(tb_s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
 		last_wfl_pid = get_colloc_continuations(colloc_wfl_pid, colloc_wfl_pid)
 		###IO.inspect(last_wfl_pid)
-		debug_wfl = WFL.get_wfl(last_wfl_pid)
+		###-debug_wfl = WFL.get_wfl(last_wfl_pid)
 		###IO.inspect(debug_wfl)
 		#copy frequent phrases into main wfl expanding as we go - filter out infrequent types from main wfl also?
-		{:ok, deadend_wfl_pid} = WFL.start_link()
-		do_phrase_wfls(last_wfl_pid, source_wfl_pid, deadend_wfl_pid)
+		###-{:ok, deadend_wfl_pid} = WFL.start_link()
+		###-do_phrase_wfls(last_wfl_pid, source_wfl_pid, deadend_wfl_pid)
 		last_wfl_pid
 	end
+
 
 	def get_colloc_continuations(colloc_wfl_pid, continuation_wfl_pid) do
 		# i think p_s_t is phrase something type
 		cutoff = 1	#get from config
-		p_s_t = WFL.get_wfl(colloc_wfl_pid).types		
-		p_s = Enum.filter(p_s_t, fn({_,  wfl_type}) -> 
-			_sample_p_s = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+		colloc_types = WFL.get_wfl(colloc_wfl_pid).types		
+		frequent_collocs = Enum.filter(colloc_types, fn({_,  wfl_type}) -> 
+			_sample_colloc = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
 					 %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
 					  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
 					  type_id: <<0, 0, 1, 42>>}}
@@ -172,14 +173,21 @@ defmodule WFLScratch.Server do
 			wfl_type >= cutoff 
 		end)	#note - this part iterates so we need to call a holding function.
 
-		case p_s do
-			[_h | _t] = p_s ->
+		case frequent_collocs do
+			[_h | _t] = frequent_collocs ->
 				#we have at least one frequent colloc so process it
-				{:ok, new_colloc_wfl_pid} = WFL.start_link(colloc_wfl_pid)
+				###-{:ok, new_colloc_wfl_pid} = WFL.start_link(colloc_wfl_pid)
+
+				Parallel.pjob(frequent_collocs, [{Collocation, :set_continuations, []}])
+				##-sents = Stream.map(TokensBinary.get_map(), fn({sentence_id, _}) -> sentence_id end)
+				###Parallel.pjob(sents, [{Collocation, :combine_phrases, [colloc_wfl_pid]}])
+				###-Parallel.pjob(sents, [{Collocation, :x_phrases, [colloc_wfl_pid]}])
+				##Parallel.pjob(sents, [{Collocation, :process_sent_map, [continuation_wfl_pid, colloc_wfl_pid, fn(s) -> Collocation.get_temp_x(s) end]}])
+				m = TokensBinary.get_map()
+			Collocation.process_sent_map(m, continuation_wfl_pid, colloc_wfl_pid, fn(sent_map, sent_id) -> Collocation.temp_get_x(sent_map, sent_id) end)
 				
-				Parallel.pjob(p_s, [{Collocation, :set_continuations, []}])				
-				Parallel.pjob(p_s, [{Collocation, :do_phrase, [new_colloc_wfl_pid, continuation_wfl_pid]}])				
-				get_colloc_continuations(new_colloc_wfl_pid, continuation_wfl_pid)	#Is this this tail recursive? perhaps the catch all clause also needs to call the same function
+				###Parallel.pjob(frequent_collocs, [{Collocation, :do_phrase, [new_colloc_wfl_pid, continuation_wfl_pid]}])				
+				###get_colloc_continuations(new_colloc_wfl_pid, continuation_wfl_pid)	#Is this this tail recursive? perhaps the catch all clause also needs to call the same function
 			_ ->
 				colloc_wfl_pid	
 		end		
