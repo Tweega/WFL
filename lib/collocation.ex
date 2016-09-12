@@ -374,28 +374,37 @@ IO.inspect(wfl_type)
 	end
 
 	def x_phrases(sentence_id, sentence_map, colloc_wfl_pid, sent_x_fun) do
-
+		#do a checkout from master to get back oringinal code
 		combination_map = sent_x_fun.(sentence_map, sentence_id)
 		
 		#from the combination map get the continuation list for each offset - it should not matter what order we do this in
 		#might want a map_reduce here
-#first_off, {max_off, new_offset_combinations})
+		#first_off, {max_off, {[<<token_id>>, length} ...] = new_offset_combinations})
 
-		Enum.each(combination_map, fn({lhs_offset, {next_continuation, lhs_continuation_list}}) ->
-			#get the RHS continuation map
-			{:ok, {rhs_next_continuation, rhs_continuation_list}} = Map.fetch(combination_map, next_continuation) 
+		Enum.each(combination_map, fn({lhs_offset, {lhs_max_offset, lhs_combinations}}) ->
 
-			#for each lhs combination
-			Enum.each(lhs_continuation_list, fn(lhs_colloc_id) -> 
+			
+				
+				#get the RHS continuation map
+				case Map.fetch(combination_map, lhs_max_offset) do
+					#there will not be rhs continuations for all lhs combinations so rhs_combination_map may be nil
+					{:ok, {rhs_max_offset, rhs_continuations}} -> 
+						#for each lhs combination
+						Enum.each(lhs_combinations, fn({lhs_token_id, lhs_token_length}) ->
+							Enum.each(rhs_continuations, fn({rhs_token_id, rhs_token_length}) ->
+								last_offset = lhs_max_offset + rhs_token_length
+								phrase_candidate = lhs_token_id <> rhs_token_id
+								IO.inspect({lhs_token_id, rhs_token_id})
+								IO.inspect({:phrase, phrase_candidate, :instance, {sentence_id, :offset, {lhs_offset, last_offset}}})
 
-				#for each continuation, append to LHS and add to wfl
-				Enum.each(rhs_continuation_list, fn(rhs_colloc_id) -> 
-					colloc = <<lhs_colloc_id, rhs_colloc_id>>
-					#{:ok, colloc_id} = WFL.addToken(colloc_wfl_pid, %TokenInput{token: colloc, instance: %TokenInstance{sentence_id: sentence_id, offset: {first_off, last_off}}}) 
-
-				end)
-			end)
-			IO.inspect({sentence_id, rhs_next_continuation, rhs_continuation_list})
+								#WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sentence_id, offset: {lhs_offset, last_offset}}})
+							end)
+						end)
+							
+					_ -> 
+						#no continuation exists for this combination
+						IO.puts("no continuation for offset: #{lhs_max_offset}")
+				end
 		end)
 	end
 
