@@ -372,35 +372,14 @@ IO.inspect(wfl_type)
 		##new_sent_x_fun = fn(x) -> x end
 
 		##process_sent_map(sent_map, continuation_wfl_pid, colloc_wfl_pid, sent_x_fun)
+		IO.inspect(new_sent_map)
 	end
 
 	def create_sent_map_from_wfl(wfl_pid) do
 		types = WFL.get_wfl(wfl_pid).types
 		cutoff = get_cutoff()
-		IO.inspect(types)
 		Enum.reduce(types, %{}, fn({token_id, %WFL_Type{} = wfl_type}, sent_map) ->
-			if wfl_type.freq > 1 do
-				#sent_map is our accumulator - starts off as %{}
-				#wfl_type.instances	#instances: [{6, {9, 18}}]
-				#%WFL_Type{concretisations: #MapSet<[]>, freq: 1,
-    			#instances: [{6, {9, 18}}], is_common: false,
-    			#type: <<0, 0, 2, 28, 0, 0, 1, 147>>, type_id: <<0, 2, 241, 169>>}
-
-    			#first_off, {max_off, {[<<token_id>>, length} ...] = new_offset_combinations})	- length or last offset - check tk - use struct
-
-    			#somewhere we should have some code that creates this new map
-
-
-    			### for each instance we have a sentence id and a first and last offset
-    			### from the sentence map keyed on sentence id has a map keyed on first offset which has the continuations.
-    			### so from our sentence map we extract the offset map, then the continuations list
-
-    			#as we go through our instances - we will add to parts of the map that we are in the process of creating
-
-    			#the base collection for this instance will be the collection of instances for this sent/offset
-    			#from our sent_map we get the collection keyed on first offset
-
-    			
+			if wfl_type.freq > 1 do				
 				Enum.reduce(wfl_type.instances, sent_map, fn({sent_id, {first_offset, last_offset}}, sent_map_acc) ->
 					Map.update(sent_map_acc, sent_id, %{first_offset => {last_offset, []}}, fn(offset_map) -> 
 	    				#this offset map needs updating now with a new continuation item
