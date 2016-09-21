@@ -148,7 +148,7 @@ defmodule WFLScratch.Server do
 		tb_s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)
 		Parallel.pjob(tb_s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
 		last_wfl_pid = get_colloc_continuations(colloc_wfl_pid, colloc_wfl_pid)
-		###IO.inspect(last_wfl_pid)
+		#IO.inspect(last_wfl_pid)
 		###-debug_wfl = WFL.get_wfl(last_wfl_pid)
 		###IO.inspect(debug_wfl)
 		#copy frequent phrases into main wfl expanding as we go - filter out infrequent types from main wfl also?

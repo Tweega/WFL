@@ -286,7 +286,7 @@ defmodule Collocation do
 				if wfl_type.type_id == <<0, 0, 1, 156>> do 	
 					IO.puts("hello there 156") #- we want to know what continuations are available for 156 - which is something like "on the other hand" because we don't seem to get any
 				end
-IO.inspect(wfl_type)
+#IO.inspect(wfl_type)
 
 			#for each instance of this wfl_type
 			instances = wfl_type.instances
@@ -360,6 +360,7 @@ IO.inspect(wfl_type)
 
 	def process_sent_map(sent_map, continuation_wfl_pid, parent_wfl_pid, sent_x_fun) do 	#sent_x_fun needed because initial sentence map will be different to subsequent ones - need to ratioalise tokensbinary
 		#don't think we need the continuation_wfl_pid
+		#IO.inspect(sent_map)
 		sents = Stream.map(sent_map, fn({sentence_id, _}) -> sentence_id end)
 		{:ok, colloc_wfl_pid} = WFL.start_link(parent_wfl_pid)
 		Parallel.pjob(sents, [{Collocation, :x_phrases, [sent_map, colloc_wfl_pid, sent_x_fun]}]) ##could we not use sent_map instead of sents? tk
@@ -372,17 +373,18 @@ IO.inspect(wfl_type)
 		##new_sent_x_fun = fn(x) -> x end
 
 		##process_sent_map(sent_map, continuation_wfl_pid, colloc_wfl_pid, sent_x_fun)
-		IO.inspect(new_sent_map)
+		##IO.inspect(new_sent_map)
 	end
 
 	def create_sent_map_from_wfl(wfl_pid) do
-		types = WFL.get_wfl(wfl_pid).types
+		types = WFL.get_wfl(wfl_pid).types		
 		cutoff = get_cutoff()
-		Enum.reduce(types, %{}, fn({token_id, %WFL_Type{} = wfl_type}, sent_map) ->
+		Enum.reduce(types, %{}, fn({token_id, %WFL_Type{} = wfl_type}, sent_map) ->		
 			if wfl_type.freq > 1 do				
+				#IO.inspect(wfl_type.instances)
 				Enum.reduce(wfl_type.instances, sent_map, fn({sent_id, {first_offset, last_offset}}, sent_map_acc) ->
 					Map.update(sent_map_acc, sent_id, %{first_offset => {last_offset, []}}, fn(offset_map) -> 
-	    				#this offset map needs updating now with a new continuation item
+	    				#this offset map needs updating now with a new continuation item - these will be used for lhs only not continuations despite the name.
 	    				Map.update!(offset_map, first_offset, fn({last_off, continuations}) ->	    					
 	    					{last_off, [{token_id, last_offset} | continuations]}
 	    				end)
@@ -396,7 +398,7 @@ IO.inspect(wfl_type)
 
 
 	def temp_get_x(_sentence_map, sent_id) do
-		IO.inspect({:sent_id, sent_id})
+		#IO.inspect({:sent_id, sent_id})
 		%TokensBinary{offset_maps: %OffsetMaps{token_map: _index_map,  combination_map: combination_map}} = TokensBinary.get(sent_id)
 
 		combination_map
@@ -432,7 +434,7 @@ IO.inspect(wfl_type)
 							
 					_ -> 
 						#no continuation exists for this combination
-						IO.puts("no continuation for offset: #{lhs_max_offset}")
+						#IO.puts("no continuation for offset: #{lhs_max_offset}")
 				end
 		end)
 	end

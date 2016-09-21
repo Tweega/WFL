@@ -10,8 +10,8 @@ defmodule WFL do
 	use GenServer
 	
 	#API	
-	def getFrequentTypes(pid, cutoff) do
-		:gen_server.call(pid, {:frequent_types, cutoff })
+	def list_types(pid, min_freq \\ 0) do
+		:gen_server.call(pid, {:list_types, min_freq})
 	end
 
 	def addToken(pid, %TokenInput{} = token_info) do
@@ -118,8 +118,14 @@ defmodule WFL do
 	end
 
 
-	def handle_call(:frequent_types, _from, {wfl, _parent} = state) do
-		{:reply, wfl, state}
+	def handle_call({:list_types, cut_off}, _from, {wfl, parent_pid} = state) do
+
+		Enum.each(wfl.types, fn({key, info})  -> 
+			wfl_pid = self()
+			tok = xp_token({wfl_pid, parent_pid}, key)
+			IO.inspect({tok, info.freq, info.instances})
+		end)
+		{:reply, :ok, state}
 	end
 
 	#{<<"first_off">>, <<"last_off">>, <<1, 0, 0, 130, 2, 0, 0, 120, 0, 0, 0, 109>>}
@@ -266,6 +272,15 @@ defmodule WFL do
 		new_type_ids = Map.put_new(type_ids, type_id, token)
 
 		{type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
+	end
+
+	def xp_token({wfl_pid, parent_pid}, token) when is_nil(parent_pid) do
+		token
+	end
+
+
+	def xp_token({wfl_pid, parent_pid}, token) when is_nil(parent_pid) do
+		"hello"
 	end
 
 	def expand_token(<<>>, [wfl_pid | _rest], phrase, to_text) when to_text == 1 do 
