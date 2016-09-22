@@ -47,10 +47,6 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, :get_parent)
 	end
 
-	def expand_type_id(wfl_pid, type_id, include_root \\ true) do		
-		:gen_server.call(wfl_pid, {:expand_type_id, type_id, include_root})
-	end
-
 	def mark_common(wfl_pid, type_list) do		
 		:gen_server.call(wfl_pid, {:mark_common, type_list})
 	end
@@ -76,12 +72,6 @@ defmodule WFL do
 
 	def handle_call(:get_parent, _from, {_wfl, parent} = state) do
 		{:reply, parent, state}
-	end
-
-	def handle_call({:expand_type_id, type_id, include_root}, _from, state) do
-		wfl_pid = self()
-		x = expand_token(type_id, [wfl_pid], <<>>, include_root)
-		{:reply, x, state}
 	end
 
 	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
@@ -122,7 +112,7 @@ defmodule WFL do
 
 		Enum.each(wfl.types, fn({key, info})  -> 
 			wfl_pid = self()
-			tok = xp_token({wfl_pid, parent_pid}, key)
+			tok = xp_token({wfl_pid, parent_pid}, key, 1)
 			IO.inspect({tok, info.freq, info.instances})
 		end)
 		{:reply, :ok, state}
@@ -274,62 +264,6 @@ defmodule WFL do
 		{type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
 	end
 
-	def xp_token({wfl_pid, parent_pid}, token) when is_nil(parent_pid) do
-		token
-	end
-
-
-	def xp_token({wfl_pid, parent_pid}, token) when is_nil(parent_pid) do
-		"hello"
-	end
-
-	def expand_token(<<>>, [wfl_pid | _rest], phrase, to_text) when to_text == 1 do 
-		#terminal case where all token_ids have been 'translated' BUT we still have to translate token_ids into text equivalents
-		expand_token_text(wfl_pid, phrase)
-		
-	end
-
-	def expand_token(<<>>, [_wfl_pid | _rest], phrase, _to_text) do 
-		#terminal case where all token_ids have been 'translated'
-		Utils.rev_bin(phrase)	
-	end
-
-	def expand_token(<<token_id :: binary-size(4), rest :: binary>>, [wfl_pid | pids], phrase, to_text) when to_text == 1 do 
-		#main expand function
-		
-		{result, parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, token_id)
-		
-		{new_phrase, new_token_stack, new_wfl_stack} =
-			if is_nil(parent_wfl_pid) do
-				#this is a terminating condition - token_id found at root colloc level.
-				{result <> phrase, rest, pids}
-			else
-				result_len = round(byte_size(result) / 4)
-				new_pids = List.duplicate(wfl_pid, result_len)
-				token_stack = result <> rest
-				wfl_stack = new_pids ++ pids
-				{phrase, token_stack, wfl_stack}
-			end
-		expand_token(new_token_stack, new_wfl_stack, new_phrase, to_text)
-		
-	end
-
-	def expand_token_text(wfl_pid, tokens) do
-		#for each token_id in phrase - look up the token
-		wfl_type_ids = WFL.get_wfl(wfl_pid).type_ids
-		expand_token_text(wfl_type_ids, tokens, [])
-
-	end
-
-	def expand_token_text(_wfl_type_ids, <<>>, acc) do
-		acc
-	end
-
-	def expand_token_text(wfl_type_ids, <<token_id :: binary-size(4), rest :: binary>>, acc) do
-		#for each token_id in phrase - look up the token id
-		token = Map.get(wfl_type_ids, token_id)
-		expand_token_text(wfl_type_ids, rest, [token | acc])
-	end
 	
 	defp fetch_token_from_id({%WFL_Data{} = wfl_data, parent_wfl_pid}, token_id) do
 		#returns the type denoted by a token id eg 123 -> cat, 234 -> sat, 222 -> [123, 234] or "cat sat".

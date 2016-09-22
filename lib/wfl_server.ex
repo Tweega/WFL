@@ -31,6 +31,10 @@ defmodule WFLScratch.Server do
 		:gen_server.call(:WFL, {:get_wfl_pid, key})		
 	end
 
+	def expand_type_id(wfl_pid, type_id, to_text \\ true) do		
+		:gen_server.call(:WFL, {:expand_type_id, wfl_pid, type_id, to_text})
+	end
+
 	def start_link(_x) do 	#we could initialise with an existing wfl or lemma file? if so we could spawn the process that reads those in.
 		:gen_server.start_link({:local, @name}, __MODULE__, %{}, [])
 	end
@@ -83,13 +87,24 @@ defmodule WFLScratch.Server do
 			
 		{:reply, sorted_wfl, state}
 	end
+
+	def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, state) do
+		parent_wfl_pid = WFL.get_parent(wfl_pid)
+		continuation_wfl_pid = Map.get(state, "colloc_wfl_pid")
+WORKING here
+		x = expand_token({token_id, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], <<>>, to_text) #we don't have the combination_wfl - how do we get that?
+		{:reply, x, state}
+	end
+
+
 	def handle_info( {:file_complete, wfl_pid}, state) do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
 		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
 		WFL.mark_common(wfl_pid, ["the", "a"])
-		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 
-		new_state = Map.put_new(state, "last_wfl_pid", last_wfl_pid)
-		{:noreply, new_state}
+		{colloc_wfl_pid, last_wfl_pid} = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 
+		new_state = Map.put_new(state, "colloc_wfl_pid", colloc_wfl_pid)
+		new_state2 = Map.put_new(new_state, "last_wfl_pid", last_wfl_pid)
+		{:noreply, new_state2}
 	end
 
 	def handle_info( {:file_error, _filePath}, state) do
@@ -154,7 +169,7 @@ defmodule WFLScratch.Server do
 		#copy frequent phrases into main wfl expanding as we go - filter out infrequent types from main wfl also?
 		###-{:ok, deadend_wfl_pid} = WFL.start_link()
 		###-do_phrase_wfls(last_wfl_pid, source_wfl_pid, deadend_wfl_pid)
-		last_wfl_pid
+		{colloc_wfl_pid, last_wfl_pid}
 	end
 
 
@@ -216,6 +231,89 @@ defmodule WFLScratch.Server do
 	defp merge_wfls(_a, accum) do
 		accum
 	end
+
+def expand_token({<<>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], phrase, to_text) when is_nil(parent_wfl_pid) do 
+		#we're finished if there are no more tokens to process for this chunk, and there are no remaining chunks left
+		if to_text == 1 do
+			translate_token_ids(wfl_pid, phrase)
+		else
+			Utils.rev_bin(phrase)
+		end
+	end
+
+
+	def expand_token({<<>>, _wfl_pid, _parent_wfl_pid}, continuation_wfl_pid, [next_chunk | rest_chunks], phrase, to_text) do 
+		# we have processed a token chunk or phrase section - but there are more chunks to do. 
+		expand_token(next_chunk, continuation_wfl_pid, rest_chunks, phrase, to_text)
+	end
+
+
+	def expand_token({<<>>, _wfl_pid, _parent_wfl_pid}, continuation_wfl_pid, [next_chunk | rest_chunks], phrase, to_text) do 
+		# we have processed a token chunk or phrase section - but there are more chunks to do. 
+		expand_token(next_chunk, continuation_wfl_pid, rest_chunks, phrase, to_text)
+	end
+
+	def expand_token({<<token_ids :: binary>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, next_chunks, phrase, to_text) when is_nil(parent_wfl_pid) do
+		# this chunk cannot be expanded further so copy over to phrase - expecting this to originate from combinations wfl only and wfl_pid will now be as per root wfl.
+		new_phrase = Utils.rev_bin4(token_ids, phrase) #prepended in reverse order onto phrase		
+		expand_token(next_chunk, continuation_wfl_pid, rest_chunks, new_phrase, to_text)
+	end
+
+	def expand_token({<<lhs_token_id :: binary-size(4), rhs_token_id :: binary-size(4)>>, continuation_wfl_pid, parent_wfl_pid}, continuation_wfl_pid, next_chunks, phrase, to_text) do
+		#here the current_wfl_pid is the continuation_wfl_pid which may be several tokens long (at least two) and which are all defined in rooot_wfl.		
+		#token_id is lhs and rest is rhs and both are found in continuation_pid
+		{lhs, lhs_parent_wfl_pid} = WFL.get_token_from_id(continuation_wfl_pid, lhs_token_id)
+		
+		{rhs, rhs_parent_wfl_pid} = WFL.get_token_from_id(continuation_wfl_pid, rhs_token_id)
+		
+		rhs_grandparent_wfl_pid = WFL.get_parent(rhs_parent_wfl_pid)
+
+		# the rhs has to go onto the stack yet to be processed
+		new_chunk_stack = [{rhs.token_id, rhs_parent_wfl_pid, rhs_grandparent_wfl_pid} | next_chunks]
+
+		# the lhs can already go onto the current chunk		
+		expand_token({lhs.token_id, lhs_parent_wfl_pid, lhs_grandparent_wfl_pid}, new_chunk_stack, phrase, to_text)
+		
+	end
+
+
+	def expand_token({<<lhs_token_id :: binary-size(4), rhs_token_id :: binary-size(4)>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, next_chunks, phrase, to_text) do
+		# token id here should now come from a wfl composed of lhs, rhs where rhs is from continuation_wfl and lhs is from a descendant of the combination_wfl
+		
+		{lhs, lhs_parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, lhs_token_id)
+		
+		{rhs, rhs_parent_wfl_pid} = WFL.get_token_from_id(continuation_wfl_pid, rhs_token_id)
+		
+		rhs_grandparent_wfl_pid = WFL.get_parent(rhs_parent_wfl_pid)
+
+		# the rhs has to go onto the stack yet to be processed
+		new_chunk_stack = [{rhs.token_id, rhs_parent_wfl_pid, rhs_grandparent_wfl_pid} | next_chunks]
+
+		# the lhs can already go onto the current chunk		
+		expand_token({lhs.token_id, lhs_parent_wfl_pid, lhs_grandparent_wfl_pid}, new_chunk_stack, phrase, to_text)
+		
+	end
+
+	def expand_token(<<token_id :: binary-size(4)>>, wfl_pid, parent_wfl_pid, continuation_wfl_pid, next_chunks, phrase, to_text) do
+		#we have a single lookup token - place token_id in current chunk and process - not sure that we would actually come here - check the api call
+	end
+
+	def expand_token_text(wfl_pid, tokens) do
+		#for each token_id in phrase - look up the token
+		wfl_type_ids = WFL.get_wfl(wfl_pid).type_ids
+		expand_token_text(wfl_type_ids, tokens, [])
+	end
+
+	def expand_token_text(_wfl_type_ids, <<>>, acc) do
+		acc
+	end
+
+	def expand_token_text(wfl_type_ids, <<token_id :: binary-size(4), rest :: binary>>, acc) do
+		#for each token_id in phrase - look up the token id
+		token = Map.get(wfl_type_ids, token_id)
+		expand_token_text(wfl_type_ids, rest, [token | acc])
+	end
+	
 
 
 end
