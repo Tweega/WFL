@@ -107,8 +107,8 @@ defmodule WFL do
 		{:reply, :ok, {%WFL_Data{wfl | types: new_wfl_types}, parent}}
 	end
 
-	def handle_call({:translate_phrase, phrase}, _client, state) do
-
+	def handle_call({:translate_phrase, phrase}, _client, {wfl, _parent} = state) do
+		translate_phrase(wfl, phrase, [])
 		{:reply, phrase, state}
 	end
 	
@@ -235,5 +235,33 @@ defmodule WFL do
 	def to_4_bytes(_l) do
 		
 	end
+
+
+	def translate_phrase(<<>>, _wfl, phrase) do
+		phrase
+	end
+	
+
+	def translate_phrase(<<token_id :: binary-size(4), rest :: binary>>, wfl, phrase) do
+		<<space_count :: integer-unit(8)-size(1), token_bytes :: binary>> = token_id		
+
+		spaceless_token = <<0>> <> token_bytes
+		token_info = fetch_token_info(spaceless_token)
+		phrase2 = case rest do
+			<<>> -> phrase
+			_ -> space_out(phrase, space_count)
+
+		end
+		translate_phrase(rest, wfl, [token_info.type | phrase])
+	end
+
+	def space_out(phrase, space_count) when space_count < 1 do
+		phrase
+	end
+
+	def space_out(phrase, space_count) do
+		space_out(['' | phrase], space_count - 1)
+	end
+
 
 end
