@@ -31,8 +31,16 @@ defmodule WFLScratch.Server do
 		:gen_server.call(:WFL, {:get_wfl_pid, key})		
 	end
 
+	def get_colloc_pid() do
+		:gen_server.call(:WFL, :get_colloc_pid)		
+	end
+
 	def expand_type_id(wfl_pid, type_id, to_text \\ true) do		
 		:gen_server.call(:WFL, {:expand_type_id, wfl_pid, type_id, to_text})
+	end
+
+	def expand_wfl(wfl_pid, to_text \\ true) do		
+		:gen_server.call(:WFL, {:expand_wfl, wfl_pid, to_text})
 	end
 
 	def start_link(_x) do 	#we could initialise with an existing wfl or lemma file? if so we could spawn the process that reads those in.
@@ -91,9 +99,30 @@ defmodule WFLScratch.Server do
 	def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, state) do
 		parent_wfl_pid = WFL.get_parent(wfl_pid)
 		continuation_wfl_pid = Map.get(state, "colloc_wfl_pid")
-WORKING here
-		x = expand_token({token_id, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], <<>>, to_text) #we don't have the combination_wfl - how do we get that?
+
+		x = expand_token({token_id, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], <<>>, to_text)
 		{:reply, x, state}
+	end
+
+	def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, state) do
+		parent_wfl_pid = WFL.get_parent(wfl_pid)
+		continuation_wfl_pid = Map.get(state, "colloc_wfl_pid")
+
+		x = expand_token({token_id, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], <<>>, to_text)
+		{:reply, x, state}
+	end
+
+
+	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, state) do
+		
+		continuation_wfl_pid = Map.get(state, "colloc_wfl_pid")
+		{wfl, parent_pid} = WFL.get_wfl_state(wfl_pid)
+		Enum.each(wfl.types, fn({key, info})  -> 			
+			tok = expand_token({wfl_pid, parent_pid, continuation_wfl_pid}, key, [], <<>>, to_text)
+			IO.inspect({tok, info.freq, info.instances})
+		end)
+		
+		{:reply, :ok, state}
 	end
 
 
@@ -154,7 +183,7 @@ WORKING here
 		
 		# get the list of wfl_items 		
 		sorted_wfl = get_sorted_wfl(source_wfl_pid, :freq, :desc)
-      	filtered_list = Enum.take_while(sorted_wfl, fn({_key, item}) -> item.freq >= cutoff end)
+      	#?filtered_list = Enum.take_while(sorted_wfl, fn({_key, item}) -> item.freq >= cutoff end)
 
 		#for the moment use the parent_wfl_pid to store source.  this may not end up as method of choice
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
@@ -228,14 +257,11 @@ WORKING here
 		do_phrase_wfls(parent_wfl_pid, root_wfl_pid, deadend_wfl_pid)
 	end
 
-	defp merge_wfls(_a, accum) do
-		accum
-	end
 
-def expand_token({<<>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], phrase, to_text) when is_nil(parent_wfl_pid) do 
+	def expand_token({<<>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], phrase, to_text) when is_nil(parent_wfl_pid) do 
 		#we're finished if there are no more tokens to process for this chunk, and there are no remaining chunks left
-		if to_text == 1 do
-			translate_token_ids(wfl_pid, phrase)
+		if to_text == true do
+			WFL.translate_phrase(wfl_pid, phrase)
 		else
 			Utils.rev_bin(phrase)
 		end
@@ -253,7 +279,7 @@ def expand_token({<<>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], phra
 		expand_token(next_chunk, continuation_wfl_pid, rest_chunks, phrase, to_text)
 	end
 
-	def expand_token({<<token_ids :: binary>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, next_chunks, phrase, to_text) when is_nil(parent_wfl_pid) do
+	def expand_token({<<token_ids :: binary>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [next_chunk | rest_chunks], phrase, to_text) when is_nil(parent_wfl_pid) do
 		# this chunk cannot be expanded further so copy over to phrase - expecting this to originate from combinations wfl only and wfl_pid will now be as per root wfl.
 		new_phrase = Utils.rev_bin4(token_ids, phrase) #prepended in reverse order onto phrase		
 		expand_token(next_chunk, continuation_wfl_pid, rest_chunks, new_phrase, to_text)
@@ -263,16 +289,17 @@ def expand_token({<<>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], phra
 		#here the current_wfl_pid is the continuation_wfl_pid which may be several tokens long (at least two) and which are all defined in rooot_wfl.		
 		#token_id is lhs and rest is rhs and both are found in continuation_pid
 		{lhs, lhs_parent_wfl_pid} = WFL.get_token_from_id(continuation_wfl_pid, lhs_token_id)
-		
-		{rhs, rhs_parent_wfl_pid} = WFL.get_token_from_id(continuation_wfl_pid, rhs_token_id)
-		
+		lhs_grandparent_wfl_pid = WFL.get_parent(lhs_parent_wfl_pid)
+
+		{rhs, rhs_parent_wfl_pid} = WFL.get_token_from_id(continuation_wfl_pid, rhs_token_id)		
 		rhs_grandparent_wfl_pid = WFL.get_parent(rhs_parent_wfl_pid)
+
 
 		# the rhs has to go onto the stack yet to be processed
 		new_chunk_stack = [{rhs.token_id, rhs_parent_wfl_pid, rhs_grandparent_wfl_pid} | next_chunks]
 
 		# the lhs can already go onto the current chunk		
-		expand_token({lhs.token_id, lhs_parent_wfl_pid, lhs_grandparent_wfl_pid}, new_chunk_stack, phrase, to_text)
+		expand_token({lhs.token_id, lhs_parent_wfl_pid, lhs_grandparent_wfl_pid}, continuation_wfl_pid, new_chunk_stack, phrase, to_text)
 		
 	end
 
@@ -281,16 +308,16 @@ def expand_token({<<>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], phra
 		# token id here should now come from a wfl composed of lhs, rhs where rhs is from continuation_wfl and lhs is from a descendant of the combination_wfl
 		
 		{lhs, lhs_parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, lhs_token_id)
-		
-		{rhs, rhs_parent_wfl_pid} = WFL.get_token_from_id(continuation_wfl_pid, rhs_token_id)
-		
+		lhs_grandparent_wfl_pid = WFL.get_parent(lhs_parent_wfl_pid)
+
+		{rhs, rhs_parent_wfl_pid} = WFL.get_token_from_id(continuation_wfl_pid, rhs_token_id)		
 		rhs_grandparent_wfl_pid = WFL.get_parent(rhs_parent_wfl_pid)
 
 		# the rhs has to go onto the stack yet to be processed
 		new_chunk_stack = [{rhs.token_id, rhs_parent_wfl_pid, rhs_grandparent_wfl_pid} | next_chunks]
 
 		# the lhs can already go onto the current chunk		
-		expand_token({lhs.token_id, lhs_parent_wfl_pid, lhs_grandparent_wfl_pid}, new_chunk_stack, phrase, to_text)
+		expand_token({lhs.token_id, lhs_parent_wfl_pid, lhs_grandparent_wfl_pid}, continuation_wfl_pid, new_chunk_stack, phrase, to_text)
 		
 	end
 

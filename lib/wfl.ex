@@ -10,10 +10,6 @@ defmodule WFL do
 	use GenServer
 	
 	#API	
-	def list_types(pid, min_freq \\ 0) do
-		:gen_server.call(pid, {:list_types, min_freq})
-	end
-
 	def addToken(pid, %TokenInput{} = token_info) do
 		:gen_server.call(pid, {:add_token, token_info })
 	end
@@ -49,6 +45,10 @@ defmodule WFL do
 
 	def mark_common(wfl_pid, type_list) do		
 		:gen_server.call(wfl_pid, {:mark_common, type_list})
+	end
+
+	def translate_phrase(wfl_pid, phrase) do		
+		:gen_server.call(wfl_pid, {:translate_phrase, phrase})
 	end
 
 	def start_link(parent_wfl_pid \\ nil) do		#pass in an initial wfl?
@@ -107,16 +107,12 @@ defmodule WFL do
 		{:reply, :ok, {%WFL_Data{wfl | types: new_wfl_types}, parent}}
 	end
 
+	def handle_call({:translate_phrase, phrase}, _client, state) do
 
-	def handle_call({:list_types, cut_off}, _from, {wfl, parent_pid} = state) do
-
-		Enum.each(wfl.types, fn({key, info})  -> 
-			wfl_pid = self()
-			tok = xp_token({wfl_pid, parent_pid}, key, 1)
-			IO.inspect({tok, info.freq, info.instances})
-		end)
-		{:reply, :ok, state}
+		{:reply, phrase, state}
 	end
+	
+
 
 	#{<<"first_off">>, <<"last_off">>, <<1, 0, 0, 130, 2, 0, 0, 120, 0, 0, 0, 109>>}
 
@@ -154,65 +150,6 @@ defmodule WFL do
 	end
 
 
-	def deep_lookup(lookup) do
-		deep_lookup(lookup, [])
-	end
-
-	def deep_lookup([], acc) do
-		#stop search when (include_root is true AND parent_wfl is null) OR grandparent_wfl is null - any other way to tell this?
-		acc
-	end
-
-	def deep_lookup([h | t], acc) do
-		
-		case h do
-			1 -> 			
-				IO.inspect(t)
-		
-				deep_lookup(t, [h | acc])
-			_ -> 			
-				deep_lookup([h - 1 | [1 | t]], acc)			
-		end
-	end
-
-	defp deep_lookup({%WFL_Data{} = wfl_data, parent_wfl_pid} = state, wfl_pid, token_id) do
-		#this is here only by way of a backup in case we implement deep_search at some point.
-		#fetch_token_info_from_id - deep version of fetch_token_info_from_id - searches parent wfl if not found locally
-		
-		search_result = Map.fetch(wfl_data.type_ids, token_id)
-		
-		{where_to_continue, where_found, search_token} = case search_result do
-			{:ok, res} ->
-				{nil, wfl_pid, res}	#why do we need the pid of wfl where found? -so that we can continue to expand token.
-
-			{:error, _res} ->
-				#this wfl doesn't have the token - try parent wfl
-				parent_state = WFL.get_wfl_state(parent_wfl_pid)				
-				{parent_state, parent_wfl_pid, token_id}
-		end
-
-		deep_lookup(where_to_continue, where_found, search_token)
-	end
-
-	defp deep_lookup(_, _, nil) do
-		#ditto above
-		IO.puts("error: nil search term token id")
-	end
-
-	defp deep_lookup(nil, where_found, search_token) do
-		#ditto above
-		{nil, where_found, search_token}	#where_found is a wfl pid - has this been found, though?
-	end
-
-
-	defp expand_phrase(key, wfl_data, include_root, parent_wfl_pid) do
-
-		#key may be <<0,0,0,3,  0,0,0,4>> in which case we have two lookups - note that we have to drop the left most 4byte as that indicates a space count
-		#how will the space count be handled?.  Note that the space count is part of the token_id so leave on to retrieve -just a presentation thing.
-		#need to find a way to manage the place holders cat * on the mat
-		phrase = expand_phrase(key)
-	end
-
 	defp process_tokens(tokens, sentence_id, %WFL_Data{} = wfl_data) do
 		
 		#we want to end up with 
@@ -232,10 +169,14 @@ defmodule WFL do
 	end
 
 	defp process_token(token, sentence_id, offset, %WFL_Data{types: types, type_ids: type_ids}) do
-
+		
 		offsets = case offset do
-			{first_off, last_off} ->
-				{first_off, last_off}
+
+			{_first_off, _last_off, _max_off} ->
+				offset
+
+			{_first_off, _last_off} ->
+				offset
 				
 			first_off ->
 				{first_off, first_off}
