@@ -104,22 +104,14 @@ defmodule WFLScratch.Server do
 		{:reply, x, state}
 	end
 
-	def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, state) do
-		parent_wfl_pid = WFL.get_parent(wfl_pid)
-		continuation_wfl_pid = Map.get(state, "colloc_wfl_pid")
-
-		x = expand_token({token_id, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], <<>>, to_text)
-		{:reply, x, state}
-	end
-
-
 	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, state) do
 		
 		continuation_wfl_pid = Map.get(state, "colloc_wfl_pid")
 		{wfl, parent_pid} = WFL.get_wfl_state(wfl_pid)
+		grandparent_pid = WFL.get_parent(parent_pid)
 		Enum.each(wfl.types, fn({key, info})  -> 			
-			tok = expand_token({wfl_pid, parent_pid, continuation_wfl_pid}, key, [], <<>>, to_text)
-			IO.inspect({tok, info.freq, info.instances})
+			tok = expand_token({key, parent_pid, grandparent_pid}, continuation_wfl_pid, [], <<>>, to_text)
+			IO.inspect({:tik, info.freq, tok})
 		end)
 		
 		{:reply, :ok, state}
@@ -257,9 +249,9 @@ defmodule WFLScratch.Server do
 		do_phrase_wfls(parent_wfl_pid, root_wfl_pid, deadend_wfl_pid)
 	end
 
-
 	def expand_token({<<>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], phrase, to_text) when is_nil(parent_wfl_pid) do 
 		#we're finished if there are no more tokens to process for this chunk, and there are no remaining chunks left
+		IO.inspect({:to_text, to_text})
 		if to_text == true do
 			WFL.translate_phrase(wfl_pid, phrase)
 		else
@@ -267,22 +259,21 @@ defmodule WFLScratch.Server do
 		end
 	end
 
-
 	def expand_token({<<>>, _wfl_pid, _parent_wfl_pid}, continuation_wfl_pid, [next_chunk | rest_chunks], phrase, to_text) do 
 		# we have processed a token chunk or phrase section - but there are more chunks to do. 
 		expand_token(next_chunk, continuation_wfl_pid, rest_chunks, phrase, to_text)
 	end
 
-
-	def expand_token({<<>>, _wfl_pid, _parent_wfl_pid}, continuation_wfl_pid, [next_chunk | rest_chunks], phrase, to_text) do 
-		# we have processed a token chunk or phrase section - but there are more chunks to do. 
-		expand_token(next_chunk, continuation_wfl_pid, rest_chunks, phrase, to_text)
-	end
-
-	def expand_token({<<token_ids :: binary>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [next_chunk | rest_chunks], phrase, to_text) when is_nil(parent_wfl_pid) do
+	def expand_token({<<token_ids :: binary>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, next_chunks, phrase, to_text) when is_nil(parent_wfl_pid) do
 		# this chunk cannot be expanded further so copy over to phrase - expecting this to originate from combinations wfl only and wfl_pid will now be as per root wfl.
 		new_phrase = Utils.rev_bin4(token_ids, phrase) #prepended in reverse order onto phrase		
-		expand_token(next_chunk, continuation_wfl_pid, rest_chunks, new_phrase, to_text)
+		case next_chunks do
+			[next_chunk | rest_chunks] ->
+				expand_token(next_chunk, continuation_wfl_pid, rest_chunks, new_phrase, to_text)
+			[] ->
+				expand_token({<<>>, wfl_pid, nil}, continuation_wfl_pid, [], new_phrase, to_text)
+		end
+		
 	end
 
 	def expand_token({<<lhs_token_id :: binary-size(4), rhs_token_id :: binary-size(4)>>, continuation_wfl_pid, parent_wfl_pid}, continuation_wfl_pid, next_chunks, phrase, to_text) do

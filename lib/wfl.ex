@@ -108,7 +108,9 @@ defmodule WFL do
 	end
 
 	def handle_call({:translate_phrase, phrase}, _client, {wfl, _parent} = state) do
-		translate_phrase(wfl, phrase, [])
+		me = self()
+		IO.inspect({:me, me})
+		translate_phrase(phrase, wfl, [])
 		{:reply, phrase, state}
 	end
 	
@@ -246,13 +248,16 @@ defmodule WFL do
 		<<space_count :: integer-unit(8)-size(1), token_bytes :: binary>> = token_id		
 
 		spaceless_token = <<0>> <> token_bytes
-		token_info = fetch_token_info(spaceless_token)
+		
+		#token_info = fetch_token_info_from_id(wfl, spaceless_token)
+		token = Map.get(wfl.type_ids, spaceless_token)
+		IO.inspect({:spaceless_token, spaceless_token, token})
 		phrase2 = case rest do
 			<<>> -> phrase
 			_ -> space_out(phrase, space_count)
 
 		end
-		translate_phrase(rest, wfl, [token_info.type | phrase])
+		translate_phrase(rest, wfl, [token | phrase])
 	end
 
 	def space_out(phrase, space_count) when space_count < 1 do
