@@ -82,7 +82,7 @@ defmodule Collocation do
 
 		nilFunc = PhraseStream.unchained(nil)	#this is initial setting for quartets - data
 		fPhrase = PhraseStream.unchained(phrases)
-		fQuartetExtractor = PhraseStream.quartet_extractor(fPhrase)
+		fQuartetExtractor = PhraseStream.pair_extractor(fPhrase)
 
 		fQuartets = PhraseStream.chained(nilFunc, fQuartetExtractor)
 
@@ -115,6 +115,9 @@ defmodule Collocation do
 			
 			#from each colloc we want {bin_tokens, sentence_id, token_offset} to match data structure for tokens/sentences
 			#store quartet
+
+			IO.inspect(quartet)
+			_sample_quartet = {0, [2, 3, 4]} # where 0 is key offset and 2,3,4 are offsets of possible partners
 
 			collocs = CollocStream.get_colloc_stream(quartet, index_map)
 
@@ -459,78 +462,6 @@ defmodule Collocation do
 		tok_a <> rhs
 	end
 
-	
-	#i want to go through bin_tok_freq_list a,b   b, c  :  c,d etc until a pair is unobtainable
-	
-	def get_pairs(bin_tok_freq_list, cutoff) do		
-		get_pairs({nil, nil}, bin_tok_freq_list, -1, cutoff, [])
-	end
-
-	def get_pairs(_pair, [], _index, _cutoff, accum) do
-		accum
-	end
-	
-	def get_pairs(pr, bin_tok_freq_list, index, cutoff, accum) do		
-		{{a, b} = new_pair, new_toke_list, new_index} = get_pair(pr, bin_tok_freq_list, index, cutoff)		
-		#IO.puts("a: #{a}\nb: #{b}\nindex: #{index}\nnew_index: #{new_index}")
-		new_accum = 
-			if not(is_nil(b) || is_nil(a) || new_index - index > cutoff) do				
-				[new_pair | accum]
-			else
-				accum
-			end
-		get_pairs({b, nil}, new_toke_list, new_index, cutoff, new_accum)
-	end
-
-	def get_pair({%TokenFreq{}, %TokenFreq{}} = pair, token_freqs, index, _cutoff) do
-		#we have a pair		
-		{pair, token_freqs, index}
-	end
-
-	def get_pair({_, _}, [], index, _cutoff) do		
-		#unable to complete a pair
-		{{nil, nil}, [], index}	#right thing to return?
-	end
-
-	def get_pair({%TokenFreq{} = tf_a, _tf_b}, token_freqs, index, cutoff) do		
-		#we have first of pair - get second.
-		{tf_b, rest, new_index} = get_frequent_token(token_freqs, index, cutoff)
-		new_tf_b = 
-			if is_nil(tf_b) do
-				nil 
-			else
-				%TokenFreq{tf_b | index: new_index }
-			end
-		get_pair({tf_a, new_tf_b}, rest, new_index, cutoff)
-	end
-
-	def get_pair({_, _}, token_freqs, index, cutoff) do		
-		#we don't have any of the pair yet - get first
-		{tf_a, new_list, new_index} = get_frequent_token(token_freqs, index, cutoff)
-
-		new_tf_a = 
-			if is_nil(tf_a) do
-				nil 
-			else
-				%TokenFreq{tf_a | index: new_index }
-			end
-
-		
-		get_pair({new_tf_a, nil}, new_list, new_index, cutoff)
-	end
-
-	def get_frequent_token([], index, _cutoff) do		
-		{nil, [], index}
-	end
-
-	def get_frequent_token([h | t], index, cutoff) do		
-		if h.freq >= cutoff do			
-			{h, t, index + 1}
-		else
-			get_frequent_token(t, index + 1, cutoff)	#we need to keep track of the token index also
-		end
-	end
-
 
 	def get_abstractions(merged_token) do
 		_combinations = get_set_bits(merged_token, 0, [])
@@ -779,7 +710,54 @@ end
 
 
 defmodule PhraseStream do
-  
+	def get_pairs(phrase_indices) do
+		cutoff = Collocation.get_cutoff()
+		#check if we need to reverse the phrase list tk#
+		next_indices = case phrase_indices do
+	 		[_next_player | opponents] -> opponents
+	 		_  -> []
+	 	end
+
+		get_pairs(phrase_indices, next_indices, cutoff, [])
+	end
+	
+	def get_pairs([], [], _cutoff, pair_accum) do
+		 #no more battles and no indices left in phrase list.
+		 pair_accum
+	end
+
+	def get_pairs([], [_h | t] = rest, cutoff, pair_accum) do
+		#no battles but there are indices left in phrase list.		 
+		get_pairs(rest, t, cutoff, pair_accum)
+	end
+
+	def get_pairs([a | []], phrase_indices, cutoff, pair_accum) do
+		#last token in phrase can't start anything - so see if there are more contestants
+		next_indices = case phrase_indices do
+	 		[next_player | opponents] -> opponents
+	 		_  -> []
+	 	end
+		get_pairs(phrase_indices, next_indices, cutoff, pair_accum)
+	end
+
+	def get_pairs([a, b | rest], phrase_indices, cutoff, pair_accum) do
+		#winner stays on. a beats b if a is within cutoff of b
+		{new_players, new_phrase_indices, new_accum} = if b - a - 1 > cutoff do
+		 	#a loses so someone else's turn to play
+		 	next_indices = case phrase_indices do
+		 		[next_player | opponents] -> opponents
+		 		_  -> []
+		 	end
+			{phrase_indices, next_indices, pair_accum}
+		else
+			# a wins and stays on to play next in the list
+			{[a | rest], phrase_indices, [{a, b} | pair_accum]}
+		end
+
+		get_pairs(new_players, new_phrase_indices, cutoff, new_accum)
+	end
+
+
   def get_quartets([]) do  #doubt we come here
 		#quartets are rolling sequences of 4 - Enum.chunk does something similar but does not do the tail where the chunk length tapers to 1
 		#a quartet may not have four members  it has up to 4 members and at least 2
@@ -802,7 +780,6 @@ defmodule PhraseStream do
 		get_quartets(bcd_etc, new_quartets)
 	end
 
-
 	def get_bcd([], bcd) do
 		bcd		
 	end
@@ -816,22 +793,22 @@ defmodule PhraseStream do
 		get_bcd(t, new_bcd)
 	end
 
-  def get_phrase_stream(phrases_list) do
-    Stream.resource(
-      fn ->
-      	phrases_list #array per sentence each with array of phrases.
-      end,	#this fn intitialises the resource - it takes no params and returns 'the resource' 
-      fn(remaining_phrases_list) -> 
-        case remaining_phrases_list do 	#return next wfl_item.  {:halt, accumulator} when finished.        
-        	[] -> {:halt, []}
-        	[phrase | remaining_phrases] ->  
+	def get_phrase_stream(phrases_list) do
+		Stream.resource(
+			fn ->
+				phrases_list #array per sentence each with array of phrases.
+			end,	#this fn intitialises the resource - it takes no params and returns 'the resource' 
+			fn(remaining_phrases_list) -> 
+				case remaining_phrases_list do 	#return next wfl_item.  {:halt, accumulator} when finished.        
+					[] -> {:halt, []}
+					[phrase | remaining_phrases] ->  
 
-            	{[phrase], remaining_phrases}
-        end
-      end,
-      fn(empty_phrases_list) -> empty_phrases_list end 	#tidy up - returns the final value of the stream if there is one.
-    )
-  end  
+				    	{[phrase], remaining_phrases}
+				end
+			end,
+			fn(empty_phrases_list) -> empty_phrases_list end 	#tidy up - returns the final value of the stream if there is one.
+		)
+  	end  
 
 	def unchained(enumerable) do
 		fn() ->  			
@@ -864,6 +841,23 @@ defmodule PhraseStream do
 					{data, fData2, fCx}
 			end
 			{nextData, chained(next_fData, next_fCx)}
+		end
+	end
+
+	def pair_extractor(fPhraseIterator) do
+		fn() ->
+			{phrase,  fNextPhraseIterator} = fPhraseIterator.()		
+			
+			if is_nil(phrase) do
+				nilFunc = unchained(nil)
+				{nilFunc, nilFunc}
+			else				
+				rev_phrase = Enum.reverse(phrase) #might be able to work backwards through the list without this reverse, but for now easier to read output if forwards
+				pairs = get_pairs(rev_phrase)
+				qUnchained = unchained(pairs)					
+				nextExtractor = pair_extractor(fNextPhraseIterator)
+				{qUnchained, nextExtractor}
+			end			
 		end
 	end
 
