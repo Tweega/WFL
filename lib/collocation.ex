@@ -48,163 +48,6 @@ defmodule Collocation do
 		IO.inspect(x)
 	end
 
-	def say_hello({sentence_id, %TokensBinary{bin_tokens: bin_tokens} = tb}, colloc_wfl_pid) do
-		#note that this function is being called in a parallel job one for each sentence
-		source_wfl_pid = WFL.get_parent(colloc_wfl_pid)
-		cutoff = get_cutoff()
-
-		#get freqs for each token_id - TokenStream
-		token_stream = TokenStream.get_token_stream(bin_tokens)	#using a stream to hand out token_ids into 4 byte chunks
-		
-		#get freqs for each token_id - map
-		{bin_tok_freq_list, index_map, _ndx} = Enum.reduce(token_stream, {[], %{}, 0}, fn(tok_id, {list_acc, map_acc, index}) ->
-			#get the wfl_info for this token
-			wfl_info = WFL.get_token_info_from_id(source_wfl_pid, tok_id)
-			tok_freq = %TokenFreq{token_id: tok_id, freq: wfl_info.freq, is_common: wfl_info.is_common, offset: index}
-			
-			new_list_acc = [tok_freq | list_acc]
-			new_map = Map.put(map_acc, index, tok_freq)
-			{new_list_acc, new_map, index + 1}
-		end)
-
-		#index_map maps token offsets with token ids
-		_sample_index =  %{12 => %TokenFreq{freq: 1, index: -1, is_common: false, offset: 12, token_id: <<0, 0, 0, 52>>}}
-
-		#split this list on sequences of tokens with freq > cutoff or where the gap is less than 3 ignore phrases of length 1 only
-		#changing phrases to record only offsets not tokenfreq records
-		#to revert go to commit a52d471101afcc79f63e5b614ea78cc6d03bf10d
-		phrases = get_phrases(bin_tok_freq_list, cutoff)
-		#bin_tok_freq_list
-		_sample_phrases = [[12, 11, 9, 7, 5, 4, 3, 1, 0], [32, 31, 30, 28, 27, 25]] 	#strings of proximate tokens with freq > c/o
-
-		#--chained(fData, fCx) fData is func for quartets which will initially return nil.  
-		# fCx is called on data is nil and returns a new data item and data continuation func and cx cont func
-
-		nilFunc = PhraseStream.unchained(nil)	#this is initial setting for quartets - data
-		fPhrase = PhraseStream.unchained(phrases)
-		fQuartetExtractor = PhraseStream.pair_extractor(fPhrase)
-
-		fQuartets = PhraseStream.chained(nilFunc, fQuartetExtractor)
-
-		#quartets = PhraseStream.chained(phrase_stream)
-		quartet_stream = PhraseStream.stream_chained(fQuartets)
-
-		_sample_quartet = {%TokenFreq{freq: 6, index: 1, is_common: false, offset: 3, token_id: <<0, 0, 0, 30>>},
-		 				 [%TokenFreq{freq: 3, index: 4, is_common: false, offset: 6, token_id: <<0, 0, 0, 27>>}, 
-		 				  %TokenFreq{freq: 2, index: 3, is_common: false, offset: 5, token_id: <<0, 0, 0, 28>>},
-		  				  %TokenFreq{freq: 8, index: 2, is_common: false, offset: 4, token_id: <<0, 0, 0, 29>>}]}
-			
-		
-		#phrase_id will be key to a tuple holding sentence_id and combinations - stored as indices which resolve to tokens via the token_map.
-		#sentence id will be the key to getting hold of the token map which maps offset to token id
-
-
-##this section could be re-usable in iterations.
-
-
-		new_combination_map = Enum.reduce(quartet_stream, %{}, fn(quartet, comb_map) ->			
-			###collocs_len = length(colloc_types)
-	
-			{_key_type, colloc_types} = quartet
-			max_offset = get_max_off_temp(colloc_types) # temp function - should be able to get max_offset from quartet extractor
-			#IO.inspect({colloc_types, max_offset})
-			#we need to gt the maximum offset in a quartet - this could be retrieved within the streamer - but for now, do it the long way.
-			#quartet_id = QuartetCounter.get_quartet_id()
-
-			#Quartets.new(quartet_id, {sentence_id, quartet})
-			
-			#from each colloc we want {bin_tokens, sentence_id, token_offset} to match data structure for tokens/sentences
-			#store quartet
-
-			IO.inspect(quartet)
-			_sample_quartet = {0, [2, 3, 4]} # where 0 is key offset and 2,3,4 are offsets of possible partners
-
-			collocs = CollocStream.get_colloc_stream(quartet, index_map)
-
-			offset_combinations_map = Enum.reduce(collocs, comb_map, fn({first_off, last_off, colloc}, offset_combinations_map_accum) ->
-				#%TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid} = state) do
-				{:ok, colloc_id} = WFL.addToken(colloc_wfl_pid, %TokenInput{token: colloc, instance: %TokenInstance{sentence_id: sentence_id, offset: {first_off, last_off}}})  #check if first off references sentence or phrase - we should have sentence here
-				
-				#should we add last offset in with first offset as in offset: {first, last}
-
-				# now add to this combination map
-				# the point of this map is so that when the combination frequencies have been calculated we can find which sibling phrases are
-					# continuations of the current one.
-					# so we need an iterable something that lets us go through phrase sets which have combination linked with all other permutations for that phrase in the map
-					# so i need to say for each combination, find continuation
-					# each map links to more than one combination - there is a map per phrase
-					# what does the map data look like - it is keyed on first offset and data is (an array) of combinations (see sample collcations below) - are these in index form or token_ids?  I think the latter - the former would require the token map to  hang around
-
-					# phrase example = {23, 25, <<1, 0, 0, 11, 0, 0, 0, 12>>}
-					###?phrase_id = PhraseCounter.get_phrase_id()
-					###?Phrases.new(phrase_id, {sentence_id, phrase})
-
-					# here put the accumulator for offset_combinations_accum - which is the offset version of the phrase combination keyed on the first offset
-					# get the existing value for first_off in offset_combinations_map_accum
-
-					{max_off, offset_combinations} = Map.get(offset_combinations_map_accum, first_off, {max_offset, []})
-					colloc_len = get_last_offset(colloc, 0)
-						
-					new_offset_combinations = [{colloc_id, colloc_len} | offset_combinations]					
-					Map.put(offset_combinations_map_accum, first_off, {max_off, new_offset_combinations})
-			end)
-
-			
-			_sample_collocations = [{<<"first_off">>, <<"last_off">>, <<1, 0, 0, 130, 2, 0, 0, 120, 0, 0, 0, 109>>},
-								   {nil, nil, <<2, 0, 0, 130, 1, 0, 0, 112, 0, 0, 0, 109>>},
-								   {nil, nil, <<1, 0, 0, 130, 0, 0, 0, 120, 1, 0, 0, 112, 0, 0, 0, 109>>},
-								   {nil, nil, <<1, 0, 0, 130, 0, 0, 0, 120, 0, 0, 0, 112>>}, 
-								   {nil, nil, <<2, 0, 0, 130, 0, 0, 0, 112>>},
-								   {nil, nil, <<1, 0, 0, 130, 0, 0, 0, 120>>}]
-
-
-			#{23, [25, 26, 28]} - I want to store this now along with token_map - here 23 would be key and [25, 26, 28] would be the data.
-
-			#Map.put(comb_map, key_type, colloc_types)	#this should be last statement of the reduce function as it is the accumulator - may need more in the accumulator
-			offset_combinations_map
-		end)
-
-		new_tokens_binary = update_in(tb.offset_maps.combination_map, fn(_old_comb_map) -> 
-			new_combination_map
-		end)
-
-		#we now need to save new_tokens_binary in tokensbinary agent
-		TokensBinary.update(sentence_id, new_tokens_binary)
-
-
-#	%TokenFreq{freq: 5, index: 2, token_id: <<0, 0, 0, 2>>},
-
-		#WE STILL NEED to expand quartets as they are in {a, [b,c,d]} form at the moment.
-
-		#now add all these to a wfl -colloc_wfl_pid.
-		#before we do that we need to mark phrase up for abstractions - in this case a is concretisation for all comb([b,c,d])
-
-		#set_bits(bit_list, merged_token)
-
-	end
-
-	def get_max_off_temp([last_offset | []]) do
-		#temporary function
-
-		last_offset
-	end
-
-
-	def get_max_off_temp([_h | t]) do
-		#temporary function
-
-		get_max_off_temp(t)
-
-	end
-
-	def get_max_off_temp([]) do
-		#temporary function
-		# should not get here
-		-1
-
-	end
-
-
 	
 	#for each sentence, for each continuation list - extend the continuation list and recurse until no more continuations.
 
@@ -229,15 +72,18 @@ defmodule Collocation do
 	def create_sent_map_from_wfl(wfl_pid) do
 		types = WFL.get_wfl(wfl_pid).types		
 		#cutoff = get_cutoff()
-		Enum.reduce(types, %{}, fn({token_id, %WFL_Type{} = wfl_type}, sent_map) ->		
+		#could we parallelise this? to do this we would have to replace the reduce mechanism wiht parallel_job - otherwise should be no problem. probably should fo the frequency filter before parralellising
+		#anonymous fn({15, {3, 3}}, %{}) 
+
+		Enum.reduce(types, %{}, fn({token_key, %WFL_Type{} = wfl_type}, sent_map) ->		
 			if wfl_type.freq > 1 do				
-				IO.inspect(wfl_type.instances)
-				Enum.reduce(wfl_type.instances, sent_map, fn({sent_id, {first_offset, last_offset, max_offset}}, sent_map_acc) ->
-					Map.update(sent_map_acc, sent_id, %{first_offset => {max_offset, []}}, fn(offset_map) -> 
+				#IO.inspect(wfl_type.instances)
+				Enum.reduce(wfl_type.instances, sent_map, fn({sent_id, {first_offset, last_offset}}, sent_map_acc) ->
+					#IO.inspect({first_offset, sent_map_acc})
+					Map.update(sent_map_acc, sent_id, [], fn(continuations) ->
+						#add {token_id, last_offset} to the offset list
 	    				#this offset map needs updating now with a new continuation item - these will be used for lhs only not continuations despite the name.
-	    				Map.update!(offset_map, first_offset, fn({last_off, continuations}) ->	    					
-	    					{last_off, [{token_id, last_offset} | continuations]}
-	    				end)
+	    					[{last_offset, wfl_type.type_id, token_key} | continuations]
 	    			end)
 				end)
 			else

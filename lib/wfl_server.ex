@@ -173,24 +173,12 @@ defmodule WFLScratch.Server do
 	defp process_collocations(source_wfl_pid) do
 		cutoff = 2	#this will have to be in config or similar.
 		
-		# get the list of wfl_items 		
-		sorted_wfl = get_sorted_wfl(source_wfl_pid, :freq, :desc)
-      	#?filtered_list = Enum.take_while(sorted_wfl, fn({_key, item}) -> item.freq >= cutoff end)
+		
+		sent_map = Collocation.create_sent_map_from_wfl(source_wfl_pid)
+		IO.inspect(sent_map)
+		##/sent_map
 
-		#for the moment use the parent_wfl_pid to store source.  this may not end up as method of choice
-		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
-		#this iterates each binary representation of sentence - but not by going to sentence list as it probably should - it goes straight to the store
-		#we need to get passed in a list of sentences and iterate that - or have a different tokens_binary for phrases.
-		tb_s = Stream.map(TokensBinary.get_map(), fn(tok_bin) -> tok_bin end)
-		Parallel.pjob(tb_s, [{Collocation, :say_hello, [colloc_wfl_pid]}])
-		last_wfl_pid = get_colloc_continuations(colloc_wfl_pid, colloc_wfl_pid)
-		#IO.inspect(last_wfl_pid)
-		###-debug_wfl = WFL.get_wfl(last_wfl_pid)
-		###IO.inspect(debug_wfl)
-		#copy frequent phrases into main wfl expanding as we go - filter out infrequent types from main wfl also?
-		###-{:ok, deadend_wfl_pid} = WFL.start_link()
-		###-do_phrase_wfls(last_wfl_pid, source_wfl_pid, deadend_wfl_pid)
-		{colloc_wfl_pid, last_wfl_pid}
+		{1, 2}
 	end
 
 
