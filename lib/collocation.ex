@@ -143,16 +143,15 @@ defmodule Collocation do
 		
 		# we don't need to reduce as we only want to store in wfl.  Should be able to replace with each loops and can just return :ok here.
 		# however, placing the WFL.addToken code inside the reduce makes it blow up for some reason - so doing that in the pre pair_up function
-		Enum.reduce(lhs_phrase_map, [], fn({lhs_first_off, lhs_phrases}, pair_acc) ->
-			Enum.reduce(lhs_phrases, pair_acc, fn({lhs_last_off, lhs_token_id, _}, pairs)-> 
-				Enum.reduce_while(1..cutoff + 1, pairs, fn (gap, pairs3) ->
+		Enum.each(lhs_phrase_map, fn({lhs_first_off, lhs_phrases}) ->
+			Enum.each(lhs_phrases, fn({lhs_last_off, lhs_token_id, _})-> 
+				Enum.each(1..cutoff + 1, fn (gap) ->
 					rhs_first_off = lhs_last_off + gap
-					if cutoff + 1 < rhs_first_off - lhs_last_off do
-						{:halt, pairs3}
-					else
+					unless cutoff + 1 < rhs_first_off - lhs_last_off do
+						
 						case Map.fetch(continuation_map, rhs_first_off) do
 							{:ok, rhs_continuations} ->
-								Enum.reduce(rhs_continuations, pairs3, fn({rhs_last_off, rhs_token_id, _}, pairs4)->
+								Enum.each(rhs_continuations, fn({rhs_last_off, rhs_token_id, _})->
 
 									#shift_new_gap = new_gap * round(:math.pow(2, 6))	 #or left shift 6 times  - use shift_new for very large corpora where we need 4th byte for colloc ids
 
@@ -163,17 +162,15 @@ defmodule Collocation do
 									phrase_candidate = new_lhs_token_id <> rhs_token_id
 
 									#WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {lhs_first_off, rhs_last_off}}})
+									IO.inspect("add token #{phrase_candidate}")
 
-
-									{:cont, [{lhs_first_off, rhs_last_off, phrase_candidate} | pairs4]}
-								end) 
-							_ ->
-								{:cont, pairs3}
+								end)
 						end
 					end
 				end)			
 			end)
 	 	end)
+	 	:okey_dokey
 	 		 
 	end
 
