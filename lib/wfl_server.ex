@@ -172,11 +172,10 @@ defmodule WFLScratch.Server do
 
 	defp process_collocations(source_wfl_pid) do
 		cutoff = 2	#this will have to be in config or similar.
-		
-		
-		root_sent_map = Collocation.create_sent_map_from_wfl(source_wfl_pid) 	#we may want to get back count of items with freq > c/o
+				
+		{root_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(source_wfl_pid) 	#we may want to get back count of items with freq > c/o
 		#when we put tokens together rhs always comes from the same sentence as the lhs.
-
+IO.inspect({:freq_token_count, freq_token_count})
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
 		Parallel.pjob(root_sent_map, [{Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]}])  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
 
