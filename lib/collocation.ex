@@ -79,12 +79,28 @@ defmodule Collocation do
 			if wfl_type.freq > 1 do				
 				#IO.inspect(wfl_type.instances)
 				Enum.reduce(wfl_type.instances, sent_map, fn({sent_id, {first_offset, last_offset}}, sent_map_acc) ->
-					#IO.inspect({first_offset, sent_map_acc})
-					Map.update(sent_map_acc, sent_id, [], fn(continuations) ->
-						#add {token_id, last_offset} to the offset list
-	    				#this offset map needs updating now with a new continuation item - these will be used for lhs only not continuations despite the name.
-	    					[{last_offset, wfl_type.type_id, token_key} | continuations]
+					IO.inspect({sent_id, first_offset, last_offset})
+					{_, new_sent_map} = Map.get_and_update(sent_map_acc, sent_id, fn(cm) ->  
+						continuation_map = case cm do
+							nil -> %{}
+							_ -> cm
+						end
+
+							
+						{_, new_continuation_map} = Map.get_and_update(continuation_map, first_offset, fn(continuation_list) ->	
+							continuations = case continuation_list do
+								nil -> []
+								_ -> continuation_list
+							end
+
+							{nil, [{last_offset, wfl_type.type_id, token_key} | continuations]}
+
+	    				end)
+	    			
+		    			{nil, new_continuation_map}
+
 	    			end)
+					new_sent_map
 				end)
 			else
 				sent_map
@@ -92,6 +108,53 @@ defmodule Collocation do
 		end)
 	end
 
+
+def pre_pair_up({sent_id,  lhs_cont_map}, root_sent_map, colloc_wfl_pid) do
+	{:ok, rhs_cont_map} = Map.fetch(root_sent_map, sent_id)
+	pair_up(sent_id, lhs_cont_map, rhs_cont_map, colloc_wfl_pid)
+end
+
+	def pair_up(sent_id, lhs_phrase_map, continuation_map, _colloc_wfl_pid) do 
+
+	_sample_continuation_map = %{0 => [{0, <<0, 0, 0, 93>>, "we"}],
+	    1 => [{1, <<0, 0, 0, 92>>, "needed"}], 
+	    2 => [{2, <<0, 0, 0, 7>>, "the"}],
+	    3 => [{3, <<0, 0, 0, 33>>, "perfect"}],
+	    4 => [{4, <<0, 0, 0, 88>>, "performance"}],
+	    5 => [{5, <<0, 0, 0, 42>>, "and"}], 
+	    6 => [{6, <<0, 0, 0, 29>>, "it"}],
+	    7 => [{7, <<0, 0, 0, 41>>, "was"}], 
+	    8 => [{8, <<0, 0, 0, 4>>, "one"}],
+	    9 => [{9, <<0, 0, 0, 75>>, "of"}], 
+	    10 => [{10, <<0, 0, 0, 7>>, "the"}],
+	    11 => [{11, <<0, 0, 0, 162>>, "best"}], 
+	    12 => [{12, <<0, 0, 0, 93>>, "we"}], 
+	    15 => [{15, <<0, 0, 0, 8>>, "in"}]}
+
+		cutoff = 2  	#+ 1?
+		
+		x = Enum.reduce(lhs_phrase_map, [], fn({lhs_first_off, lhs_phrases}, pair_acc) ->
+			Enum.reduce(lhs_phrases, pair_acc, fn({lhs_last_off, lhs_token_id, _}, pairs)-> 
+				Enum.reduce_while(1..cutoff + 1, pairs, fn (gap, pairs3) ->
+					rhs_first_off = lhs_last_off + gap
+					if cutoff + 1 < rhs_first_off - lhs_last_off do
+						{:halt, pairs3}
+					else
+						case Map.fetch(continuation_map, rhs_first_off) do
+							{:ok, rhs_continuations} ->
+								Enum.reduce(rhs_continuations, pairs3, fn({rhs_last_off, rhs_token_id, _}, pairs4)->
+									{:cont, [{lhs_token_id <> rhs_token_id, {lhs_first_off, rhs_last_off}} | pairs4]}
+								end) 
+							_ ->
+								{:cont, pairs3}
+						end
+					end
+				end)			
+			end)
+	 	end)
+	 	IO.inspect(x)
+	 	x
+	end
 
 	def temp_get_x(_sentence_map, sent_id) do
 		#IO.inspect({:sent_id, sent_id})

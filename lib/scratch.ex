@@ -254,7 +254,45 @@ def deep_lookup([h | t], acc) do
 end
 
 
+def pair_up(lhs_phrase_map, continuation_map) do 
 
+_sample_continuation_map = %{0 => [{0, <<0, 0, 0, 93>>, "we"}],
+    1 => [{1, <<0, 0, 0, 92>>, "needed"}], 
+    2 => [{2, <<0, 0, 0, 7>>, "the"}],
+    3 => [{3, <<0, 0, 0, 33>>, "perfect"}],
+    4 => [{4, <<0, 0, 0, 88>>, "performance"}],
+    5 => [{5, <<0, 0, 0, 42>>, "and"}], 
+    6 => [{6, <<0, 0, 0, 29>>, "it"}],
+    7 => [{7, <<0, 0, 0, 41>>, "was"}], 
+    8 => [{8, <<0, 0, 0, 4>>, "one"}],
+    9 => [{9, <<0, 0, 0, 75>>, "of"}], 
+    10 => [{10, <<0, 0, 0, 7>>, "the"}],
+    11 => [{11, <<0, 0, 0, 162>>, "best"}], 
+    12 => [{12, <<0, 0, 0, 93>>, "we"}], 
+    15 => [{15, <<0, 0, 0, 8>>, "in"}]}
+
+	cutoff = 2  	#+ 1?
+	
+	Enum.reduce(lhs_phrase_map, [], fn({lhs_first_off, lhs_phrases}, pair_acc) ->
+		Enum.reduce(lhs_phrases, pair_acc, fn({lhs_last_off, lhs_token_id, _}, pairs)-> 
+			Enum.reduce_while(1..cutoff + 1, pairs, fn (gap, pairs3) ->
+				rhs_first_off = lhs_last_off + gap
+				if cutoff + 1 < rhs_first_off - lhs_last_off do
+					{:halt, pairs3}
+				else
+					case Map.fetch(continuation_map, rhs_first_off) do
+						{:ok, rhs_continuations} ->
+							Enum.reduce(rhs_continuations, pairs3, fn({rhs_last_off, rhs_token_id, _}, pairs4)->
+								{:cont, [{lhs_token_id <> rhs_token_id, {lhs_first_off, rhs_last_off}} | pairs4]}
+							end) 
+						_ ->
+							{:cont, pairs3}
+					end
+				end
+			end)			
+		end)
+ 	end)
+end
 
 
 end
