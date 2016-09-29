@@ -112,14 +112,7 @@ defmodule Collocation do
 
 	def pre_pair_up({sent_id,  lhs_cont_map}, root_sent_map, colloc_wfl_pid) do
 		{:ok, rhs_cont_map} = Map.fetch(root_sent_map, sent_id)
-		x = pair_up(sent_id, lhs_cont_map, rhs_cont_map, colloc_wfl_pid)
-		IO.inspect(x)
-		Enum.each(x, fn({lhs_first_offset, rhs_last_offset, phrase} = x) ->
-		 		{l, m} = WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase, instance: %TokenInstance{sentence_id: sent_id, offset: {lhs_first_offset, rhs_last_offset}}})
-		 		p = WFL.get_parent(colloc_wfl_pid)
-		 		#IO.inspect(p)
-		 	end)
-		x
+		pair_up(sent_id, lhs_cont_map, rhs_cont_map, colloc_wfl_pid)
 	end
 
 	def pair_up(sent_id, lhs_phrase_map, continuation_map, colloc_wfl_pid) do 
@@ -147,12 +140,10 @@ defmodule Collocation do
 			Enum.each(lhs_phrases, fn({lhs_last_off, lhs_token_id, _})-> 
 				Enum.each(1..cutoff + 1, fn (gap) ->
 					rhs_first_off = lhs_last_off + gap
-					unless cutoff + 1 < rhs_first_off - lhs_last_off do
-						IO.inspect({:rhs_first_off, rhs_first_off})
+					unless cutoff + 1 < rhs_first_off - lhs_last_off do						
 						case Map.fetch(continuation_map, rhs_first_off) do
 							{:ok, rhs_continuations} ->
 								Enum.each(rhs_continuations, fn({rhs_last_off, rhs_token_id, _})->
-
 									#shift_new_gap = new_gap * round(:math.pow(2, 6))	 #or left shift 6 times  - use shift_new for very large corpora where we need 4th byte for colloc ids
 
 									<<_discard_byte :: binary-size(1),  lhs_rest :: binary-size(3)>> = lhs_token_id
@@ -161,17 +152,16 @@ defmodule Collocation do
 									
 									phrase_candidate = new_lhs_token_id <> rhs_token_id
 
-									#WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {lhs_first_off, rhs_last_off}}})
-									IO.inspect("add token #{phrase_candidate}")
+									WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {lhs_first_off, rhs_last_off}}})
+									IO.inspect(phrase_candidate)
 
 								end)
+								_ ->
 						end
 					end
 				end)			
 			end)
-	 	end)
-	 	:okey_dokey
-	 		 
+	 	end) 
 	end
 
 	def temp_get_x(_sentence_map, sent_id) do

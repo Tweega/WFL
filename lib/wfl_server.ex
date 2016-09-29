@@ -171,7 +171,7 @@ defmodule WFLScratch.Server do
 	end
 
 	defp process_collocations(source_wfl_pid) do
-				
+				IO.puts("hello")
 		{root_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(source_wfl_pid) 	#we may want to get back count of items with freq > c/o
 
 		if freq_token_count > 0 do
