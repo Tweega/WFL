@@ -148,7 +148,7 @@ defmodule Collocation do
 				Enum.each(1..cutoff + 1, fn (gap) ->
 					rhs_first_off = lhs_last_off + gap
 					unless cutoff + 1 < rhs_first_off - lhs_last_off do
-						
+						IO.inspect({:rhs_first_off, rhs_first_off})
 						case Map.fetch(continuation_map, rhs_first_off) do
 							{:ok, rhs_continuations} ->
 								Enum.each(rhs_continuations, fn({rhs_last_off, rhs_token_id, _})->
