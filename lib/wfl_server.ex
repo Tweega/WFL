@@ -122,9 +122,9 @@ defmodule WFLScratch.Server do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
 		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
 		WFL.mark_common(wfl_pid, ["the", "a"])
-		{colloc_wfl_pid, last_wfl_pid} = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 
-		new_state = Map.put_new(state, "colloc_wfl_pid", colloc_wfl_pid)
-		new_state2 = Map.put_new(new_state, "last_wfl_pid", last_wfl_pid)
+		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 
+		#new_state = Map.put_new(state, "colloc_wfl_pid", colloc_wfl_pid)   #DO WE NEED colloc_wfl_pid? this was going to be the wfl with initial combinations - which we are not using any more.
+		new_state2 = Map.put_new(state, "last_wfl_pid", last_wfl_pid)
 		{:noreply, new_state2}
 	end
 
@@ -171,19 +171,28 @@ defmodule WFLScratch.Server do
 	end
 
 	defp process_collocations(source_wfl_pid) do
-		cutoff = 2	#this will have to be in config or similar.
 				
 		{root_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(source_wfl_pid) 	#we may want to get back count of items with freq > c/o
-		#when we put tokens together rhs always comes from the same sentence as the lhs.
-IO.inspect({:freq_token_count, freq_token_count})
+
+		if freq_token_count > 0 do
+			process_collocations2(root_sent_map, root_sent_map, source_wfl_pid)
+		else
+			#this wfl has nothing in it, return the parent which will be the last wfl to have frequent tokens
+			WFL.get_parent(source_wfl_pid)
+		end
+	end
+
+	defp process_collocations2(sent_map, root_sent_map, source_wfl_pid) do
+		cutoff = 2	#this will have to be in config or similar.
+				
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
-		Parallel.pjob(root_sent_map, [{Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]}])  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
+		Parallel.pjob(sent_map, [{Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]}])  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
 
 		#pairs = Collocation.pair_up(sent_map, sent_map)
 		#IO.inspect(pairs)
 		##/sent_map
 
-		{1, 2}
+		process_collocations(colloc_wfl_pid)
 	end
 
 

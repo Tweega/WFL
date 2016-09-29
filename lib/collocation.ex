@@ -61,7 +61,7 @@ defmodule Collocation do
 		# we now have a wfl with collocation frequencies.  we want to do the loop again	for which we need a combination map
 		# which is indexed on sentence, then continuations indexed on offset.
 		#so we are going to call process_sent_map again
-		new_sent_map = create_sent_map_from_wfl(phrase_wfl_pid)
+		{new_sent_map, freq_token_count} = create_sent_map_from_wfl(phrase_wfl_pid)
 		
 		##new_sent_x_fun = fn(x) -> x end
 
@@ -75,11 +75,12 @@ defmodule Collocation do
 		#could we parallelise this? to do this we would have to replace the reduce mechanism wiht parallel_job - otherwise should be no problem. probably should fo the frequency filter before parralellising
 		#anonymous fn({15, {3, 3}}, %{}) 
 
-		Enum.reduce(types, %{}, fn({token_key, %WFL_Type{} = wfl_type}, sent_map) ->		
+		Enum.reduce(types, {%{}, 0}, fn({token_key, %WFL_Type{} = wfl_type}, {sent_map, freq_token_count}) ->
+		#IO.inspect(sent_map)		
 			if wfl_type.freq > 1 do				
-				#IO.inspect(wfl_type.instances)
-				Enum.reduce(wfl_type.instances, sent_map, fn({sent_id, {first_offset, last_offset}}, sent_map_acc) ->
-					IO.inspect({sent_id, first_offset, last_offset})
+				
+				Enum.reduce(wfl_type.instances, {sent_map, freq_token_count}, fn({sent_id, {first_offset, last_offset}}, {sent_map_acc, tok_count}) ->
+					#IO.inspect({sent_id, first_offset, last_offset})
 					{_, new_sent_map} = Map.get_and_update(sent_map_acc, sent_id, fn(cm) ->  
 						continuation_map = case cm do
 							nil -> %{}
@@ -99,22 +100,29 @@ defmodule Collocation do
 	    			
 		    			{nil, new_continuation_map}
 
-	    			end)
-					new_sent_map
+	    			end)	    			
+					{new_sent_map, tok_count + 1}
 				end)
 			else
-				sent_map
+				{sent_map, freq_token_count}
 			end
 		end)
 	end
 
 
-def pre_pair_up({sent_id,  lhs_cont_map}, root_sent_map, colloc_wfl_pid) do
-	{:ok, rhs_cont_map} = Map.fetch(root_sent_map, sent_id)
-	pair_up(sent_id, lhs_cont_map, rhs_cont_map, colloc_wfl_pid)
-end
+	def pre_pair_up({sent_id,  lhs_cont_map}, root_sent_map, colloc_wfl_pid) do
+		{:ok, rhs_cont_map} = Map.fetch(root_sent_map, sent_id)
+		x = pair_up(sent_id, lhs_cont_map, rhs_cont_map, colloc_wfl_pid)
+		IO.inspect(x)
+		Enum.each(x, fn({lhs_first_offset, rhs_last_offset, phrase} = x) ->
+		 		{l, m} = WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase, instance: %TokenInstance{sentence_id: sent_id, offset: {lhs_first_offset, rhs_last_offset}}})
+		 		p = WFL.get_parent(colloc_wfl_pid)
+		 		#IO.inspect(p)
+		 	end)
+		x
+	end
 
-	def pair_up(sent_id, lhs_phrase_map, continuation_map, _colloc_wfl_pid) do 
+	def pair_up(sent_id, lhs_phrase_map, continuation_map, colloc_wfl_pid) do 
 
 	_sample_continuation_map = %{0 => [{0, <<0, 0, 0, 93>>, "we"}],
 	    1 => [{1, <<0, 0, 0, 92>>, "needed"}], 
@@ -133,7 +141,9 @@ end
 
 		cutoff = 2  	#+ 1?
 		
-		x = Enum.reduce(lhs_phrase_map, [], fn({lhs_first_off, lhs_phrases}, pair_acc) ->
+		# we don't need to reduce as we only want to store in wfl.  Should be able to replace with each loops and can just return :ok here.
+		# however, placing the WFL.addToken code inside the reduce makes it blow up for some reason - so doing that in the pre pair_up function
+		Enum.reduce(lhs_phrase_map, [], fn({lhs_first_off, lhs_phrases}, pair_acc) ->
 			Enum.reduce(lhs_phrases, pair_acc, fn({lhs_last_off, lhs_token_id, _}, pairs)-> 
 				Enum.reduce_while(1..cutoff + 1, pairs, fn (gap, pairs3) ->
 					rhs_first_off = lhs_last_off + gap
@@ -143,7 +153,19 @@ end
 						case Map.fetch(continuation_map, rhs_first_off) do
 							{:ok, rhs_continuations} ->
 								Enum.reduce(rhs_continuations, pairs3, fn({rhs_last_off, rhs_token_id, _}, pairs4)->
-									{:cont, [{lhs_token_id <> rhs_token_id, {lhs_first_off, rhs_last_off}} | pairs4]}
+
+									#shift_new_gap = new_gap * round(:math.pow(2, 6))	 #or left shift 6 times  - use shift_new for very large corpora where we need 4th byte for colloc ids
+
+									<<_discard_byte :: binary-size(1),  lhs_rest :: binary-size(3)>> = lhs_token_id
+									#new_token_int = :binary.decode_unsigned(token_id) + new_gap 	#need to update this so that new_gap is two most sig bits of integer - this only works if token_id = 0
+									new_lhs_token_id = <<gap :: integer-unit(8)-size(1)>> <> <<lhs_rest :: binary >>
+									
+									phrase_candidate = new_lhs_token_id <> rhs_token_id
+
+									#WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {lhs_first_off, rhs_last_off}}})
+
+
+									{:cont, [{lhs_first_off, rhs_last_off, phrase_candidate} | pairs4]}
 								end) 
 							_ ->
 								{:cont, pairs3}
@@ -152,8 +174,7 @@ end
 				end)			
 			end)
 	 	end)
-	 	IO.inspect(x)
-	 	x
+	 		 
 	end
 
 	def temp_get_x(_sentence_map, sent_id) do
