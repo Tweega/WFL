@@ -146,11 +146,11 @@ defmodule Collocation do
 								Enum.each(rhs_continuations, fn({rhs_last_off, rhs_token_id, _})->
 									#shift_new_gap = new_gap * round(:math.pow(2, 6))	 #or left shift 6 times  - use shift_new for very large corpora where we need 4th byte for colloc ids
 
-									<<_discard_byte :: binary-size(1),  lhs_rest :: binary-size(3)>> = lhs_token_id
+									<<_gap_byte :: binary-size(1),  rhs_rest :: binary-size(3)>> = rhs_token_id
 									#new_token_int = :binary.decode_unsigned(token_id) + new_gap 	#need to update this so that new_gap is two most sig bits of integer - this only works if token_id = 0
-									new_lhs_token_id = <<gap :: integer-unit(8)-size(1)>> <> <<lhs_rest :: binary >>
+									new_rhs_token_id = <<gap :: integer-unit(8)-size(1)>> <> <<rhs_rest :: binary >>
 									
-									phrase_candidate = new_lhs_token_id <> rhs_token_id
+									phrase_candidate = lhs_token_id <> new_rhs_token_id
 
 									WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {lhs_first_off, rhs_last_off}}})
 									IO.inspect(phrase_candidate)

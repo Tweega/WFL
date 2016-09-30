@@ -55,7 +55,7 @@ defmodule WFLScratch.Server do
 	
 	def handle_cast( {:wfl_file, {filePath, readerModule}}, state) do
 		{:ok, wfl_pid} = WFL.start_link()	#store this in map with filename as key? we need to have a completed status flag in state
-		new_state = Map.put_new(state, filePath, wfl_pid)	#check if a wfl for this filename already exists
+		new_state = Map.put_new(state, "root_wfl_pid", wfl_pid)	#originally used filename as key but want access to root - need another level to manage mutiple files
 		process_file(filePath, readerModule, wfl_pid)	#should process_file be async?  what is the effect of handle_info calls which set state before this call terminates?
 		
 		{:noreply, new_state}	#note that new_state will not yet have an up-to-date wfl - we get a handle_info notification when file has been read.
@@ -98,7 +98,7 @@ defmodule WFLScratch.Server do
 
 	def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, state) do
 		parent_wfl_pid = WFL.get_parent(wfl_pid)
-		continuation_wfl_pid = Map.get(state, "colloc_wfl_pid")
+		continuation_wfl_pid = Map.get(state, "root_wfl_pid")
 
 		x = expand_token({token_id, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], <<>>, to_text)
 		{:reply, x, state}
@@ -106,11 +106,13 @@ defmodule WFLScratch.Server do
 
 	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, state) do
 		
-		continuation_wfl_pid = Map.get(state, "colloc_wfl_pid")
+		root_wfl_pid = Map.get(state, "root_wfl_pid")
+		#add a check to see if wfl_pid is the root wfl pid, in which case we just want a dump of the wfl - or at least the types.
 		{wfl, parent_pid} = WFL.get_wfl_state(wfl_pid)
-		grandparent_pid = WFL.get_parent(parent_pid)
-		Enum.each(wfl.types, fn({key, info})  -> 			
-			tok = expand_token({key, parent_pid, grandparent_pid}, continuation_wfl_pid, [], <<>>, to_text)
+		#grandparent_pid = WFL.get_parent(parent_pid)
+		Enum.each(wfl.type_ids, fn({token_id, info})  ->
+			tok = exp_token(token_id, wfl_pid, parent_pid, root_wfl_pid, to_text)
+			#tok = exp_token(key, parent_pid, grandparent_pid}, continuation_wfl_pid, [], <<>>, to_text)
 			IO.inspect({:tik, info.freq, tok})
 		end)
 		
@@ -121,9 +123,9 @@ defmodule WFLScratch.Server do
 	def handle_info( {:file_complete, wfl_pid}, state) do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
 		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
+		#if working with multiple files, create common tokens once and clone
 		WFL.mark_common(wfl_pid, ["the", "a"])
-		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 
-		#new_state = Map.put_new(state, "colloc_wfl_pid", colloc_wfl_pid)   #DO WE NEED colloc_wfl_pid? this was going to be the wfl with initial combinations - which we are not using any more.
+		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 		
 		new_state2 = Map.put_new(state, "last_wfl_pid", last_wfl_pid)
 		{:noreply, new_state2}
 	end
@@ -170,8 +172,7 @@ defmodule WFLScratch.Server do
 		end	
 	end
 
-	defp process_collocations(source_wfl_pid) do
-				IO.puts("hello")
+	defp process_collocations(source_wfl_pid) do				
 		{root_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(source_wfl_pid) 	#we may want to get back count of items with freq > c/o
 
 		if freq_token_count > 0 do
@@ -251,15 +252,40 @@ defmodule WFLScratch.Server do
 		do_phrase_wfls(parent_wfl_pid, root_wfl_pid, deadend_wfl_pid)
 	end
 
-	def expand_token({<<>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], phrase, to_text) when is_nil(parent_wfl_pid) do 
-		#we're finished if there are no more tokens to process for this chunk, and there are no remaining chunks left
-		IO.inspect({:to_text, to_text})
+	def exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, to_text) do		
+		phrase = xp_token([{token_id, wfl_pid, parent_wfl_pid}], root_wfl_pid, <<>>)
 		if to_text == true do
-			WFL.translate_phrase(wfl_pid, phrase)
+			WFL.translate_phrase(root_wfl_pid, phrase)
 		else
 			Utils.rev_bin(phrase)
 		end
+
 	end
+
+
+	def xp_token([], _root_wfl_pid, phrase) do 
+		#we've finished if there are no more tokens to process for this chunk, and there are no remaining chunks left
+		phrase
+	end
+
+	def xp_token([{token_id, _wfl_pid, parent_wfl_pid} | rest], root_wfl_pid, phrase) when is_nil(parent_wfl_pid) do 
+		#this token_id is not expandable (points to real word)
+		new_phrase = token_id <> phrase
+		xp_token(rest, root_wfl_pid, new_phrase)
+	end
+
+	def xp_token([{token_id, wfl_pid, parent_wfl_pid} | rest], root_wfl_pid, phrase) do
+		#this token_id is expandable
+		{token_type, lhs_parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, token_id)
+		IO.inspect({:token_type, token_type, token_id})
+		grandparent_wfl_pid = WFL.get_parent(parent_wfl_pid)
+		<<lhs :: binary-size(4), rhs :: binary-size(4)>> = token_type
+
+		new_stack = [{lhs, parent_wfl_pid, grandparent_wfl_pid} | [{rhs, root_wfl_pid, root_wfl_pid} | rest]]
+
+		xp_token(new_stack, root_wfl_pid, phrase)
+	end
+
 
 	def expand_token({<<>>, _wfl_pid, _parent_wfl_pid}, continuation_wfl_pid, [next_chunk | rest_chunks], phrase, to_text) do 
 		# we have processed a token chunk or phrase section - but there are more chunks to do. 
@@ -278,15 +304,14 @@ defmodule WFLScratch.Server do
 		
 	end
 
-	def expand_token({<<lhs_token_id :: binary-size(4), rhs_token_id :: binary-size(4)>>, continuation_wfl_pid, parent_wfl_pid}, continuation_wfl_pid, next_chunks, phrase, to_text) do
-		#here the current_wfl_pid is the continuation_wfl_pid which may be several tokens long (at least two) and which are all defined in rooot_wfl.		
-		#token_id is lhs and rest is rhs and both are found in continuation_pid
-		{lhs, lhs_parent_wfl_pid} = WFL.get_token_from_id(continuation_wfl_pid, lhs_token_id)
+	def expand_token({<<lhs_token_id :: binary-size(4), rhs_token_id :: binary-size(4)>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, next_chunks, phrase, to_text) do
+		# token id here should now come from a wfl composed of lhs, rhs where rhs is from continuation_wfl and lhs is from a descendant of the combination_wfl
+		
+		{lhs, lhs_parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, lhs_token_id)
 		lhs_grandparent_wfl_pid = WFL.get_parent(lhs_parent_wfl_pid)
 
 		{rhs, rhs_parent_wfl_pid} = WFL.get_token_from_id(continuation_wfl_pid, rhs_token_id)		
 		rhs_grandparent_wfl_pid = WFL.get_parent(rhs_parent_wfl_pid)
-
 
 		# the rhs has to go onto the stack yet to be processed
 		new_chunk_stack = [{rhs.token_id, rhs_parent_wfl_pid, rhs_grandparent_wfl_pid} | next_chunks]
@@ -296,6 +321,30 @@ defmodule WFLScratch.Server do
 		
 	end
 
+
+	def expand_token({<<lhs_token_id :: binary-size(4), rhs_token_id_with_gap :: binary-size(4)>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, next_chunks, phrase, to_text) do
+		# token id here should now come from a wfl composed of lhs, rhs where rhs is from continuation_wfl and lhs is self-or-descendant of the combination_wfl
+		
+		{lhs, lhs_parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, lhs_token_id)
+		lhs_grandparent_wfl_pid = WFL.get_parent(lhs_parent_wfl_pid)
+
+		<<gap_byte :: binary-size(1),  rhs_rest :: binary-size(3)>> = rhs_token_id_with_gap
+		
+		gap_count = :binary.decode_unsigned(gap_byte)
+
+		rhs_token_id = <<0 :: integer-unit(8)-size(1)>> <> <<rhs_rest :: binary >>
+
+
+		{rhs, rhs_parent_wfl_pid} = WFL.get_token_from_id(continuation_wfl_pid, rhs_token_id)		
+		rhs_grandparent_wfl_pid = WFL.get_parent(rhs_parent_wfl_pid)
+
+		# the rhs has to go onto the stack yet to be processed
+		new_chunk_stack = [{rhs.token_id, rhs_parent_wfl_pid, rhs_grandparent_wfl_pid} | next_chunks]
+
+		# the lhs can already go onto the current chunk		
+		expand_token({lhs.token_id, lhs_parent_wfl_pid, lhs_grandparent_wfl_pid}, continuation_wfl_pid, new_chunk_stack, phrase, to_text)
+		
+	end
 
 	def expand_token({<<lhs_token_id :: binary-size(4), rhs_token_id :: binary-size(4)>>, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, next_chunks, phrase, to_text) do
 		# token id here should now come from a wfl composed of lhs, rhs where rhs is from continuation_wfl and lhs is from a descendant of the combination_wfl
@@ -314,8 +363,13 @@ defmodule WFLScratch.Server do
 		
 	end
 
+
 	def expand_token(<<token_id :: binary-size(4)>>, wfl_pid, parent_wfl_pid, continuation_wfl_pid, next_chunks, phrase, to_text) do
 		#we have a single lookup token - place token_id in current chunk and process - not sure that we would actually come here - check the api call
+		IO.puts("Single token lookup")
+		grandparent_wfl_pid = WFL.get_parent(parent_wfl_pid)
+		new_chunk_stack = [{token_id, parent_wfl_pid, grandparent_wfl_pid}]
+		expand_token({token_id, parent_wfl_pid, grandparent_wfl_pid}, continuation_wfl_pid, new_chunk_stack, phrase, to_text)
 	end
 
 	def expand_token_text(wfl_pid, tokens) do
