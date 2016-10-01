@@ -172,16 +172,12 @@ defmodule WFLScratch.Server do
 		end	
 	end
 
+
 	defp process_collocations(source_wfl_pid) do				
 		{root_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(source_wfl_pid) 	#we may want to get back count of items with freq > c/o
-
-		if freq_token_count > 0 do
-			process_collocations2(root_sent_map, root_sent_map, source_wfl_pid)
-		else
-			#this wfl has nothing in it, return the parent which will be the last wfl to have frequent tokens
-			WFL.get_parent(source_wfl_pid)
-		end
+		process_collocations2(root_sent_map, root_sent_map, source_wfl_pid)
 	end
+
 
 	defp process_collocations2(sent_map, root_sent_map, source_wfl_pid) do
 		cutoff = 2	#this will have to be in config or similar.
@@ -189,11 +185,15 @@ defmodule WFLScratch.Server do
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
 		Parallel.pjob(sent_map, [{Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]}])  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
 
-		#pairs = Collocation.pair_up(sent_map, sent_map)
-		#IO.inspect(pairs)
-		##/sent_map
+		{colloc_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(colloc_wfl_pid) 	#we may want to get back count of items with freq > c/o
 
-		process_collocations(colloc_wfl_pid)
+		if freq_token_count > 0 do
+			IO.puts("we never get here do we?")
+			process_collocations2(colloc_sent_map, root_sent_map, colloc_wfl_pid)
+		else
+			#this wfl has nothing in it, return the parent/source which will be the last wfl to have frequent tokens
+			source_wfl_pid
+		end
 	end
 
 
@@ -265,24 +265,32 @@ defmodule WFLScratch.Server do
 
 	def xp_token([], _root_wfl_pid, phrase) do 
 		#we've finished if there are no more tokens to process for this chunk, and there are no remaining chunks left
+		IO.inspect("hi")
 		phrase
 	end
 
 	def xp_token([{token_id, _wfl_pid, parent_wfl_pid} | rest], root_wfl_pid, phrase) when is_nil(parent_wfl_pid) do 
 		#this token_id is not expandable (points to real word)
+		IO.inspect("ho")
 		new_phrase = token_id <> phrase
 		xp_token(rest, root_wfl_pid, new_phrase)
 	end
 
-	def xp_token([{token_id, wfl_pid, parent_wfl_pid} | rest], root_wfl_pid, phrase) do
+	def xp_token([{token_id, wfl_pid, parent_wfl_pid} | rest_tokens], root_wfl_pid, phrase) do
 		#this token_id is expandable
-		{token_type, lhs_parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, token_id)
-		IO.inspect({:token_type, token_type, token_id})
+IO.inspect("there")
+		#mind the gap
+		<<_gap_byte :: binary-size(1),  rest_bytes :: binary-size(3)>> = token_id
+		token_id_without_gap = <<0x00 :: integer-unit(8)-size(1)>> <> rest_bytes		
+
+		{token_type, lhs_parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, token_id_without_gap)
+		IO.inspect({:token_type, token_type, token_id_without_gap, wfl_pid, parent_wfl_pid})
 		grandparent_wfl_pid = WFL.get_parent(parent_wfl_pid)
 		<<lhs :: binary-size(4), rhs :: binary-size(4)>> = token_type
+		IO.inspect({:rhs, rhs})
 
-		new_stack = [{lhs, parent_wfl_pid, grandparent_wfl_pid} | [{rhs, root_wfl_pid, root_wfl_pid} | rest]]
-
+		new_stack = [{lhs, parent_wfl_pid, grandparent_wfl_pid} | [{rhs, root_wfl_pid, nil} | rest_tokens]]
+IO.inspect({:new_stack, new_stack})
 		xp_token(new_stack, root_wfl_pid, phrase)
 	end
 
