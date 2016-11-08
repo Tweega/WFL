@@ -98,10 +98,11 @@ defmodule WFLScratch.Server do
 
 	def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, state) do
 		parent_wfl_pid = WFL.get_parent(wfl_pid)
-		continuation_wfl_pid = Map.get(state, "root_wfl_pid")
+		root_wfl_pid = Map.get(state, "root_wfl_pid")
 
-		x = expand_token({token_id, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], <<>>, to_text)
-		{:reply, x, state}
+		#x = expand_token({token_id, wfl_pid, parent_wfl_pid}, continuation_wfl_pid, [], <<>>, to_text)
+		tok = exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, to_text)
+		{:reply, tok, state}
 	end
 
 	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, state) do
@@ -110,10 +111,10 @@ defmodule WFLScratch.Server do
 		#add a check to see if wfl_pid is the root wfl pid, in which case we just want a dump of the wfl - or at least the types.
 		{wfl, parent_pid} = WFL.get_wfl_state(wfl_pid)
 		#grandparent_pid = WFL.get_parent(parent_pid)
-		Enum.each(wfl.type_ids, fn({token_id, info})  ->
+		Enum.each(wfl.type_ids, fn({token_id, _phrase})  ->
 			tok = exp_token(token_id, wfl_pid, parent_pid, root_wfl_pid, to_text)
 			#tok = exp_token(key, parent_pid, grandparent_pid}, continuation_wfl_pid, [], <<>>, to_text)
-			IO.inspect({:tik, info.freq, tok})
+			IO.inspect({:tik, token_id, tok})
 		end)
 		
 		{:reply, :ok, state}
