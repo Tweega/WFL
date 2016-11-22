@@ -133,13 +133,12 @@ defmodule Collocation do
 	    15 => [{15, <<0, 0, 0, 8>>, "in"}]}
 
 		cutoff = 2  	#+ 1?
-		
 		# we don't need to reduce as we only want to store in wfl.  Should be able to replace with each loops and can just return :ok here.
 		# however, placing the WFL.addToken code inside the reduce makes it blow up for some reason - so doing that in the pre pair_up function
 		Enum.each(lhs_phrase_map, fn({lhs_first_off, lhs_phrases}) ->
 			Enum.each(lhs_phrases, fn({lhs_last_off, lhs_token_id, _})-> 
-				Enum.each(1..cutoff + 1, fn (gap) ->
-					rhs_first_off = lhs_last_off + gap
+				Enum.each(0..cutoff, fn (gap) ->
+					rhs_first_off = lhs_last_off + gap + 1
 					unless cutoff + 1 < rhs_first_off - lhs_last_off do						
 						case Map.fetch(continuation_map, rhs_first_off) do
 							{:ok, rhs_continuations} ->
@@ -598,7 +597,8 @@ defmodule CollocStream do
 				first_offset
 		end
 
-		
+		IO.inspect({:new_gap, new_gap}) #don't think we come here
+
 		#shift_new_gap = new_gap * round(:math.pow(2, 6))	 #or left shift 6 times  - use shift_new for very large corpora where we need 4th byte for colloc ids
 
 		<<token_id :: binary-size(1),  rest :: binary-size(3)>> = tok_freq.token_id

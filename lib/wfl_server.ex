@@ -112,6 +112,7 @@ defmodule WFLScratch.Server do
 		#grandparent_pid = WFL.get_parent(parent_pid)
 		Enum.each(wfl.type_ids, fn({token_id, _phrase})  ->
 			tok = exp_token(token_id, wfl_pid, parent_pid, root_wfl_pid, to_text)
+			IO.inspect(tok)
 		end)
 		
 		{:reply, :ok, state}
