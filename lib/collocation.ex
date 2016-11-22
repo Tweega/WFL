@@ -271,6 +271,59 @@ defmodule Collocation do
 
 	end
 
+	def concretise_phrases(last_wfl_pid) do
+		#create a wfl to hold all the phrases that have already been processed.
+		#process each phrase in the wfl
+		processed_phrases = ProcessedPhrases.start_link()	#start this in the supervisor?
+		
+		ProcessedPhrases.new(<<0,0,0,32>>)
+		IO.inspect(ProcessedPhrases.contains(<<0,0,0,31>>))
+		IO.inspect(ProcessedPhrases.contains(<<0,0,0,32>>))
+
+		cutoff = 2
+
+		#we want to set up a stream here iterating through wfls
+		#for the moment only, process a complete list of phrases from the last wfl
+		phrases = WFL.get_wfl(last_wfl_pid).types	
+		frequent_phrases = Enum.filter(phrases, fn({_,  wfl_type}) -> 
+			_sample_colloc = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+					 %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
+					  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+					  type_id: <<0, 0, 1, 42>>}}
+
+			wfl_type.freq >= cutoff 
+		end)	
+
+		case frequent_phrases do
+			[_h | _t] = frequent_phrases ->
+				#we have at least one frequent phrase so process it
+				Parallel.pjob(frequent_phrases, [{Collocation, :concretise_phrase, [last_wfl_pid]}])
+			_ ->
+				last_wfl_pid
+		end	
+	end
+
+
+	def concretise_phrase(phrase, wfl_pid) do
+		{_key, type} = phrase
+			IO.inspect({type.type_id})
+			IO.inspect(:hello)
+			#this looks like a blocking call - we are calling back into wflscratch server from a job started there, so neither job can now proceed.
+			# the only way forward for the moment is to call the end function directly so that we stay on this thread.
+			#later we need to review which modules have which functions
+		#expanded_phrase = WFLScratch.Server.expand_type_id(wfl_pid, type.type_id)	#false leaves the expansion as binary token ids
+		#may not be so simple.  I think we are going to have t find a way not to start this exercise from inside WFLScratch.Server
+			IO.inspect({:expanded_phrase, expanded_phrase})
+	end
+
+	def make_concrete([], _phrase, _parent_wfl_pid) do
+		123
+	end
+
+	def make_concrete([next_abstraction | rest_abstractions], phrase, parent_wfl_pid) do
+		123
+	end
+
 
 	def lose_one_bin(bin4) do
 		#returns a list of binaries each one token shorter than the initial input binary	

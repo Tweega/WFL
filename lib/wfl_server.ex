@@ -125,6 +125,7 @@ defmodule WFLScratch.Server do
 		#if working with multiple files, create common tokens once and clone
 		WFL.mark_common(wfl_pid, ["the", "a"])
 		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 		
+		Collocation.concretise_phrases(last_wfl_pid)		
 		new_state2 = Map.put_new(state, "last_wfl_pid", last_wfl_pid)
 		{:noreply, new_state2}
 	end
@@ -204,7 +205,7 @@ defmodule WFLScratch.Server do
 					  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
 					  type_id: <<0, 0, 1, 42>>}}
 
-			wfl_type >= cutoff 
+			wfl_type.freq >= cutoff 
 		end)	#note - this part iterates so we need to call a holding function.
 
 		case frequent_collocs do
@@ -282,4 +283,6 @@ defmodule WFLScratch.Server do
 		new_stack = [{lhs, parent_wfl_pid, grandparent_wfl_pid} | [{rhs, root_wfl_pid, nil} | rest_tokens]]
 		xp_token(new_stack, root_wfl_pid, phrase)
 	end
+
+
 end
