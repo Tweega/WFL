@@ -271,15 +271,64 @@ defmodule Collocation do
 
 	end
 
+	def expand_phrases(last_wfl_pid) do
+		#get list of all colloc wfls
+		parent_wfl_pid = WFL.get_parent(last_wfl_pid)
+		wfl_chain = get_wfl_chain(last_wfl_pid, parent_wfl_pid, [])
+
+
+		if length(wfl_chain) > 2 do
+			[_, _ | colloc_chain] = wfl_chain
+			exp_phrases(colloc_chain)	
+		end
+		
+
+	end
+
+	def exp_phrases([]) do
+
+	end
+
+	def exp_phrases([colloc_pid | rest_pids]) do
+		#for each type in colloc_pid wfl with freq > c/o
+		#get lhs/rhs - look up lhs in parent, and append to rhs
+		
+		{wfl, parent_pid} = WFL.get_wfl_state(colloc_pid)
+		#grandparent_pid = WFL.get_parent(parent_pid)
+		Enum.each(wfl.types, fn({token_key, %WFL_Type{} = wfl_type})  ->
+			if wfl_type.freq > 1 do 
+				<<lhs :: binary-size(4),  rhs :: binary-size(4)>> = token_key
+				#the lhs should never have any spaces embedded in it
+			
+				{lhs_phrase, _grandparent_pid} = WFL.get_token_from_id(parent_pid, lhs)
+IO.inspect({:lhs, lhs_phrase, :rhs, rhs})
+				xp_phrase = <<lhs_phrase :: binary, rhs :: binary>>
+
+				IO.inspect(xp_phrase)
+			end
+		end)
+
+	end
+
+
+	def get_wfl_chain(wfl_pid, parent_wfl_pid, acc) when is_nil(parent_wfl_pid)  do
+		[wfl_pid | acc]
+	end
+
+	def get_wfl_chain(wfl_pid, parent_wfl_pid, acc) do
+		grandparent_wfl_pid = WFL.get_parent(parent_wfl_pid)
+		new_acc = [wfl_pid | acc]
+		get_wfl_chain(parent_wfl_pid, grandparent_wfl_pid, new_acc)
+	end
+	
 	def concretise_phrases(last_wfl_pid) do
 		#create a wfl to hold all the phrases that have already been processed.
 		#process each phrase in the wfl
 		processed_phrases = ProcessedPhrases.start_link()	#start this in the supervisor?
 		
-		ProcessedPhrases.new(<<0,0,0,32>>)
-		IO.inspect(ProcessedPhrases.contains(<<0,0,0,31>>))
-		IO.inspect(ProcessedPhrases.contains(<<0,0,0,32>>))
-
+		#delete entries below cutoff, and expand all other types, and create a key from the expanded type with value of {pid, token_id} which points to where the phrase details are stored
+		#looking at whether to create a new map, or add to root wfl - but leaning to new map at the moment.  If also keyed with token id then concretisations can be kept here
+		#and not on the wfl itself - could delete the concretisations field
 		cutoff = 2
 
 		#we want to set up a stream here iterating through wfls
@@ -306,28 +355,48 @@ defmodule Collocation do
 
 	def concretise_phrase(phrase, wfl_pid) do
 		{_key, type} = phrase
-			IO.inspect({type.type_id})
-			IO.inspect(:hello)
-			#this looks like a blocking call - we are calling back into wflscratch server from a job started there, so neither job can now proceed.
-			# the only way forward for the moment is to call the end function directly so that we stay on this thread.
-			#later we need to review which modules have which functions
-		#expanded_phrase = WFLScratch.Server.expand_type_id(wfl_pid, type.type_id)	#false leaves the expansion as binary token ids
-		#may not be so simple.  I think we are going to have t find a way not to start this exercise from inside WFLScratch.Server
-			IO.inspect({:expanded_phrase, expanded_phrase})
+		IO.inspect({type.type_id})
+		IO.inspect(:hello)
+		#this looks like a blocking call - we are calling back into wflscratch server from a job started there, so neither job can now proceed.
+		# the only way forward for the moment is to call the end function directly so that we stay on this thread.
+		#later we need to review which modules have which functions
+		expanded_phrase = WFLScratch.Server.expand_type_id(wfl_pid, type.type_id, false)	#false leaves the expansion as binary token ids
+		#may not be so simple.  I think we are going to have to find a way not to start this exercise from inside WFLScratch.Server
+		IO.inspect({:expanded_phrase, expanded_phrase})
+		if ProcessedPhrases.contains(type.type_id) == false do
+			abstractions = lose_one_bin(expanded_phrase)
+			parent_wfl_pid = WFL.get_parent(wfl_pid)
+			make_concrete(abstractions, expanded_phrase, parent_wfl_pid)
+			ProcessedPhrases.new(type.type_id)
+		end
 	end
-
+	
 	def make_concrete([], _phrase, _parent_wfl_pid) do
 		123
 	end
 
 	def make_concrete([next_abstraction | rest_abstractions], phrase, parent_wfl_pid) do
-		123
+		#here find the abstraction in its wfl and add phrase to its concretisation list.
+		#problem here is that phrases are only ever two tokens long..a token for the phrase so far (lhs) and one for the additional token (rhs)
+		#we cannot use the expanded token as the key... so how to find the entry so as to set its concretisations
+		#we could do a series of searches - initially for the first 2 tokens, then for that token plus the third, and so on.
+		# not excellent...but are there other options?
+		# we are going to have to find the tokens at some point.
+
+		x = WFL.get_token_info(parent_wfl_pid, next_abstraction)
+		IO.inspect({:x, x, :abs, next_abstraction})
 	end
 
 
 	def lose_one_bin(bin4) do
-		#returns a list of binaries each one token shorter than the initial input binary	
-		lose_one_bin(bin4, <<>>, [])
+		#returns a list of binaries each one token shorter than the initial input binary
+
+		bs = byte_size(bin4)
+		if bs < 5 do 	#single token_ids otherwise abstract to [''] instead of []
+			[]
+		else
+			lose_one_bin(bin4, <<>>, [])
+		end	
 	end
 
 	def lose_one_bin(<<>>, _bin2, acc) do
@@ -336,10 +405,31 @@ defmodule Collocation do
 
 
 	def lose_one_bin(<<byte4 :: binary-size(4), rest :: binary>>, bin2, acc) do
-		rev_b = Utils.rev_bin4(bin2)
-		new_acc = [<< rev_b :: binary, <<rest :: binary>> >> | acc]
+		size_bin = byte_size(bin2)	
+		size_rest = byte_size(rest)	
+		#space_count are spaces before the owning token.  i.e. I am so many spaces plus 'cat'
+		#phrase-less-one - for all instances other than the first, when bin2 is empty, we need to add a space to the first of rest.
+		#this additional space should only apply once - so should not be part of the rest that is passed on in recursion..
+
+		{new_bin, new_rest} = 
+			if size_bin == 0 do
+				{bin2, rest}
+			else
+				rev_b = Utils.rev_bin4(bin2)
+				if size_rest == 0 do
+					{rev_b, rest}
+				else
+					<<space_count :: integer-unit(8)-size(1), rest2 :: binary>> = rest		
+					spaced_rest = << space_count + 1 >> <> rest2
+					{rev_b, spaced_rest}
+				end
+				
+			end
+
+		new_acc = [<< new_bin :: binary, new_rest :: binary >> | acc]
 		lose_one_bin(rest, << byte4 :: binary, <<bin2 :: binary>> >>, new_acc)
 	end
+
 
 
 	def get_last_offset(phrase_extension, len) do

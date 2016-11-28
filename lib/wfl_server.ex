@@ -125,7 +125,13 @@ defmodule WFLScratch.Server do
 		#if working with multiple files, create common tokens once and clone
 		WFL.mark_common(wfl_pid, ["the", "a"])
 		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 		
-		Collocation.concretise_phrases(last_wfl_pid)		
+		spawn fn -> (
+            #send result_pid, {self, function.(elem)}) 
+            Collocation.expand_phrases(last_wfl_pid)
+			#Collocation.concretise_phrases(last_wfl_pid)
+			)
+         end
+		
 		new_state2 = Map.put_new(state, "last_wfl_pid", last_wfl_pid)
 		{:noreply, new_state2}
 	end
@@ -253,7 +259,7 @@ defmodule WFLScratch.Server do
 		if to_text == true do
 			WFL.translate_phrase(root_wfl_pid, phrase)
 		else
-			Utils.rev_bin(phrase)
+			Utils.rev_bin4(phrase)
 		end
 
 	end

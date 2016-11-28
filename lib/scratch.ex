@@ -173,8 +173,14 @@ def lose_one([h | t], list2, acc) do
 end
 
 def lose_one_bin(bin4) do
-	#returns a list of binaries each one token shorter than the initial input binary	
-	lose_one_bin(bin4, <<>>, [])
+	#returns a list of binaries each one token shorter than the initial input binary
+
+	bs = byte_size(bin4)
+	if bs < 5 do 
+		[]
+	else
+		lose_one_bin(bin4, <<>>, [])
+	end	
 end
 
 def lose_one_bin(<<>>, _bin2, acc) do
@@ -183,8 +189,29 @@ end
 
 
 def lose_one_bin(<<byte4 :: binary-size(4), rest :: binary>>, bin2, acc) do
-	rev_b = rev_bin4(bin2)
-	new_acc = [<< rev_b :: binary, <<rest :: binary>> >> | acc]
+
+	size_bin = byte_size(bin2)	
+	size_rest = byte_size(rest)	
+	#space_count are spaces before the owning token.  i.e. I am so many spaces plus 'cat'
+	#phrase-less-one - for all instances other than the first, when bin2 is empty, we need to add a space to the first of rest.
+	#this additional space should only apply once - so should not be part of the rest that is passed on in recursion..
+
+	{new_bin, new_rest} = 
+		if size_bin == 0 do
+			{bin2, rest}
+		else
+			rev_b = rev_bin4(bin2)
+			if size_rest == 0 do
+				{rev_b, rest}
+			else
+				<<space_count :: integer-unit(8)-size(1), rest2 :: binary>> = rest		
+				spaced_rest = << space_count + 1 >> <> rest2
+				{rev_b, spaced_rest}
+			end
+			
+		end
+
+	new_acc = [<< new_bin :: binary, new_rest :: binary >> | acc]
 	lose_one_bin(rest, << byte4 :: binary, <<bin2 :: binary>> >>, new_acc)
 end
 
