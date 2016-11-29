@@ -127,7 +127,12 @@ defmodule WFLScratch.Server do
 		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 		
 		spawn fn -> (
             #send result_pid, {self, function.(elem)}) 
-            Collocation.expand_phrases(last_wfl_pid)
+            wfl_chain = Collocation.expand_phrases(last_wfl_pid)          
+           
+            spawn fn -> (
+	             free_hapax(wfl_chain)           
+			)
+         end
 			#Collocation.concretise_phrases(last_wfl_pid)
 			)
          end
@@ -139,6 +144,16 @@ defmodule WFLScratch.Server do
 	def handle_info( {:file_error, _filePath}, state) do
 		IO.puts "Handle info File error: Something else"
 		{:noreply, state}
+	end
+
+	def free_hapax([wfl_pid | rest_wfl_pids]) do
+		{wfl, _parent_pid} = WFL.get_wfl_state(wfl_pid)
+		Enum.each(wfl.types, fn({token_key, %WFL_Type{} = wfl_type})  ->
+			if wfl_type.freq == 1 do 
+				Map.delete(wfl_type, token_key)
+			end
+		end)
+
 	end
 
 	defp process_file(filePath, readerModule, wfl_pid) do
