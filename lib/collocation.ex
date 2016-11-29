@@ -276,19 +276,20 @@ defmodule Collocation do
 		parent_wfl_pid = WFL.get_parent(last_wfl_pid)
 		wfl_chain = get_wfl_chain(last_wfl_pid, parent_wfl_pid, [])
 
-		if length(wfl_chain) > 2 do
-			[_, _ | colloc_chain] = wfl_chain
-			exp_phrases(colloc_chain)	
+		colloc_chain = case wfl_chain do
+			[_, _ | rest_chain] -> rest_chain
+			_ -> []
 		end
-		wfl_chain
+		
+		exp_phrases(colloc_chain)	
+		colloc_chain
 	end
 
 	def exp_phrases([]) do
 
 	end
 
-	def exp_phrases([colloc_pid | rest_pids]) do
-		IO.puts("Hello there")
+	def exp_phrases([colloc_pid | rest_pids]) do		
 		#for each type in colloc_pid wfl with freq > c/o
 		#get lhs/rhs - look up lhs in parent, and append to rhs
 		
