@@ -146,14 +146,19 @@ defmodule WFLScratch.Server do
 		{:noreply, state}
 	end
 
+
+	def free_hapax([]) do
+	end
+
 	def free_hapax([wfl_pid | rest_wfl_pids]) do
 		{wfl, _parent_pid} = WFL.get_wfl_state(wfl_pid)
 		Enum.each(wfl.types, fn({token_key, %WFL_Type{} = wfl_type})  ->
 			if wfl_type.freq == 1 do 
 				Map.delete(wfl_type, token_key)
+				#IO.inspect({:free, wfl_type.type_id})
 			end
 		end)
-
+		free_hapax(rest_wfl_pids)
 	end
 
 	defp process_file(filePath, readerModule, wfl_pid) do

@@ -280,6 +280,7 @@ defmodule Collocation do
 			[_, _ | colloc_chain] = wfl_chain
 			exp_phrases(colloc_chain)	
 		end
+		wfl_chain
 	end
 
 	def exp_phrases([]) do
