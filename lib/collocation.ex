@@ -152,10 +152,10 @@ defmodule Collocation do
 									phrase_candidate = lhs_token_id <> new_rhs_token_id
 
 									WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {lhs_first_off, rhs_last_off}}})
-									IO.inspect(phrase_candidate)
+									#IO.inspect(phrase_candidate)
 
 								end)
-								_ ->
+							_ ->
 						end
 					end
 				end)			
@@ -276,13 +276,10 @@ defmodule Collocation do
 		parent_wfl_pid = WFL.get_parent(last_wfl_pid)
 		wfl_chain = get_wfl_chain(last_wfl_pid, parent_wfl_pid, [])
 
-
 		if length(wfl_chain) > 2 do
 			[_, _ | colloc_chain] = wfl_chain
 			exp_phrases(colloc_chain)	
 		end
-		
-
 	end
 
 	def exp_phrases([]) do
@@ -290,6 +287,7 @@ defmodule Collocation do
 	end
 
 	def exp_phrases([colloc_pid | rest_pids]) do
+		IO.puts("Hello there")
 		#for each type in colloc_pid wfl with freq > c/o
 		#get lhs/rhs - look up lhs in parent, and append to rhs
 		
@@ -301,12 +299,19 @@ defmodule Collocation do
 				#the lhs should never have any spaces embedded in it
 			
 				{lhs_phrase, _grandparent_pid} = WFL.get_token_from_id(parent_pid, lhs)
-IO.inspect({:lhs, lhs_phrase, :rhs, rhs})
 				xp_phrase = <<lhs_phrase :: binary, rhs :: binary>>
-
-				IO.inspect(xp_phrase)
+				#as we 'lose_one' from phrases to create abstractions, we want to be able to find the token_info for those abstractions,
+				#but the abstractions are stored in compact form so we need to create new index for them
+				#save this expansion to the token_info
+		####   defstruct([:type_id, concretisations: MapSet.new()])	#concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat
+	
+				Concretisation.new(xp_phrase, %Concretisation{:phrase_id => wfl_type.type_id})
+				p = Concretisation.get(xp_phrase)
+				IO.inspect(p)
 			end
 		end)
+
+		exp_phrases(rest_pids)
 
 	end
 
@@ -355,14 +360,14 @@ IO.inspect({:lhs, lhs_phrase, :rhs, rhs})
 
 	def concretise_phrase(phrase, wfl_pid) do
 		{_key, type} = phrase
-		IO.inspect({type.type_id})
-		IO.inspect(:hello)
+		#IO.inspect({type.type_id})
+		#IO.inspect(:hello)
 		#this looks like a blocking call - we are calling back into wflscratch server from a job started there, so neither job can now proceed.
 		# the only way forward for the moment is to call the end function directly so that we stay on this thread.
 		#later we need to review which modules have which functions
 		expanded_phrase = WFLScratch.Server.expand_type_id(wfl_pid, type.type_id, false)	#false leaves the expansion as binary token ids
 		#may not be so simple.  I think we are going to have to find a way not to start this exercise from inside WFLScratch.Server
-		IO.inspect({:expanded_phrase, expanded_phrase})
+		#IO.inspect({:expanded_phrase, expanded_phrase})
 		if ProcessedPhrases.contains(type.type_id) == false do
 			abstractions = lose_one_bin(expanded_phrase)
 			parent_wfl_pid = WFL.get_parent(wfl_pid)

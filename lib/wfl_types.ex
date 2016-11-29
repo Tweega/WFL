@@ -25,10 +25,6 @@
 		defstruct([:type, :type_id, :freq, is_common: false, instances: []])
 	end
 
-	defmodule Concretisation do
-		defstruct([:type_id, :expansion, concretisations: MapSet.new()])	#concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat
-	end
-
 	defmodule TokenInstance do
 		defstruct([:sentence_id, :offset])
 	end
