@@ -12,6 +12,7 @@ defmodule WFLScratch.Supervisor do
 					worker(PhraseCounter, []),					
 					worker(TokensBinary, []),
 					worker(Concretisation, []),
+					worker(ProcessedPhrases, []),
 					worker(TokenCounter, [])]
 		supervise children, strategy: :one_for_one	
 	end

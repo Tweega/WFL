@@ -271,6 +271,19 @@ defmodule Collocation do
 
 	end
 
+	def konkret_machen() do
+		#get list/stream from concretisation
+		#for each of these, get abstraction list.
+		#for each item in the abstraction list, add
+		phrases = Concretisation.get_map()
+		#Parallel.pjob(phrases, [{Collocation, :concretise_phrase_temp, []}])
+
+		#concretise_abstractions(expanded_phrase, %Concretisation{phrase_id: concretiser}) do
+		Parallel.pjob(phrases, [{Collocation, :concretise_abstractions, []}])
+
+		#concretise_phrase(phrase, wfl_pid) does abstraction via lose_one
+	end
+
 	def expand_phrases(last_wfl_pid) do
 		#get list of all colloc wfls
 		parent_wfl_pid = WFL.get_parent(last_wfl_pid)
@@ -307,7 +320,7 @@ defmodule Collocation do
 				#save this expansion to the token_info
 		####   defstruct([:type_id, concretisations: MapSet.new()])	#concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat
 	
-				Concretisation.new(xp_phrase, %Concretisation{:phrase_id => wfl_type.type_id})
+				Concretisation.new(xp_phrase, %Concretisation{:wfl_pid => colloc_pid, :phrase_id => wfl_type.type_id})
 				p = Concretisation.get(xp_phrase)
 				IO.inspect(p)
 			end
@@ -328,6 +341,7 @@ defmodule Collocation do
 		get_wfl_chain(parent_wfl_pid, grandparent_wfl_pid, new_acc)
 	end
 	
+
 	def concretise_phrases(last_wfl_pid) do
 		#create a wfl to hold all the phrases that have already been processed.
 		#process each phrase in the wfl
@@ -359,6 +373,24 @@ defmodule Collocation do
 		end	
 	end
 
+	def concretise_phrase_temp(phrase) do
+		IO.inspect({:phrase, phrase})
+	end
+
+	def concretise_abstractions({expanded_phrase, %Concretisation{concretisations: concretisations, phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
+
+		# error message key <<0, 0, 0, 251, 0, 0, 0, 129>> not found in Map.update!/3 
+		#in Concretisation.add_concretisation/2>}
+
+
+		if ProcessedPhrases.contains(expanded_phrase) == false do
+			abstractions = lose_one_bin(expanded_phrase)
+			make_concrete(abstractions, expanded_phrase)
+			ProcessedPhrases.new(phrase_id)
+			IO.puts("hello")
+		end
+		IO.puts("there")
+	end
 
 	def concretise_phrase(phrase, wfl_pid) do
 		{_key, type} = phrase
@@ -370,28 +402,32 @@ defmodule Collocation do
 		expanded_phrase = WFLScratch.Server.expand_type_id(wfl_pid, type.type_id, false)	#false leaves the expansion as binary token ids
 		#may not be so simple.  I think we are going to have to find a way not to start this exercise from inside WFLScratch.Server
 		#IO.inspect({:expanded_phrase, expanded_phrase})
+
 		if ProcessedPhrases.contains(type.type_id) == false do
 			abstractions = lose_one_bin(expanded_phrase)
 			parent_wfl_pid = WFL.get_parent(wfl_pid)
-			make_concrete(abstractions, expanded_phrase, parent_wfl_pid)
+			make_concrete(abstractions, expanded_phrase)
 			ProcessedPhrases.new(type.type_id)
 		end
 	end
+
+
 	
-	def make_concrete([], _phrase, _parent_wfl_pid) do
-		123
+	def make_concrete([], _concretiser) do
 	end
 
-	def make_concrete([next_abstraction | rest_abstractions], phrase, parent_wfl_pid) do
+	def make_concrete([next_abstraction | rest_abstractions], concretiser) do
 		#here find the abstraction in its wfl and add phrase to its concretisation list.
 		#problem here is that phrases are only ever two tokens long..a token for the phrase so far (lhs) and one for the additional token (rhs)
 		#we cannot use the expanded token as the key... so how to find the entry so as to set its concretisations
 		#we could do a series of searches - initially for the first 2 tokens, then for that token plus the third, and so on.
-		# not excellent...but are there other options?
-		# we are going to have to find the tokens at some point.
+		#not excellent...but are there other options?
+		#we are going to have to find the tokens at some point.
 
-		x = WFL.get_token_info(parent_wfl_pid, next_abstraction)
-		IO.inspect({:x, x, :abs, next_abstraction})
+		
+		jj = Concretisation.add_concretisation(next_abstraction, concretiser)
+		IO.inspect({:jj, jj})
+		make_concrete(rest_abstractions, concretiser)
 	end
 
 
