@@ -281,6 +281,8 @@ defmodule Collocation do
 		#concretise_abstractions(expanded_phrase, %Concretisation{phrase_id: concretiser}) do
 		Parallel.pjob(phrases, [{Collocation, :concretise_abstractions, []}])
 
+		#we can let go of processed_phrases now
+
 		#concretise_phrase(phrase, wfl_pid) does abstraction via lose_one
 	end
 
@@ -290,11 +292,12 @@ defmodule Collocation do
 		wfl_chain = get_wfl_chain(last_wfl_pid, parent_wfl_pid, [])
 
 		colloc_chain = case wfl_chain do
-			[_, _ | rest_chain] -> rest_chain
+			[_root_wfl_pid | rest_chain] -> rest_chain
 			_ -> []
 		end
+			
+		exp_phrases(colloc_chain)
 		
-		exp_phrases(colloc_chain)	
 		colloc_chain
 	end
 
@@ -308,21 +311,27 @@ defmodule Collocation do
 		
 		{wfl, parent_pid} = WFL.get_wfl_state(colloc_pid)
 		#grandparent_pid = WFL.get_parent(parent_pid)
+		IO.puts("here we are")
 		Enum.each(wfl.types, fn({token_key, %WFL_Type{} = wfl_type})  ->
 			if wfl_type.freq > 1 do 
-				<<lhs :: binary-size(4),  rhs :: binary-size(4)>> = token_key
-				#the lhs should never have any spaces embedded in it
-			
-				{lhs_phrase, _grandparent_pid} = WFL.get_token_from_id(parent_pid, lhs)
-				xp_phrase = <<lhs_phrase :: binary, rhs :: binary>>
-				#as we 'lose_one' from phrases to create abstractions, we want to be able to find the token_info for those abstractions,
-				#but the abstractions are stored in compact form so we need to create new index for them
-				#save this expansion to the token_info
-		####   defstruct([:type_id, concretisations: MapSet.new()])	#concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat
-	
+				#if we have the root colloc (two tokens) we already have the expansion in token_key
+				xp_phrase = case token_key do
+					<<_ :: binary-size(8)>> ->
+						IO.puts("jojo was a man who thought he was a loner...")
+						token_key
+					_ ->
+
+						<<lhs :: binary-size(4),  rhs :: binary-size(4)>> = token_key
+
+						#the lhs should never have any spaces embedded in it
+					
+						{lhs_phrase, _grandparent_pid} = WFL.get_token_from_id(parent_pid, lhs)
+						IO.inspect({:lhs, lhs, :rhs, rhs, :lhs_phrase, lhs_phrase})
+						<<lhs_phrase :: binary, rhs :: binary>>
+				end
 				Concretisation.new(xp_phrase, %Concretisation{:wfl_pid => colloc_pid, :phrase_id => wfl_type.type_id})
 				p = Concretisation.get(xp_phrase)
-				IO.inspect(p)
+				IO.inspect({:p, p})
 			end
 		end)
 
@@ -378,16 +387,12 @@ defmodule Collocation do
 	end
 
 	def concretise_abstractions({expanded_phrase, %Concretisation{concretisations: concretisations, phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
-
-		# error message key <<0, 0, 0, 251, 0, 0, 0, 129>> not found in Map.update!/3 
-		#in Concretisation.add_concretisation/2>}
-
-
+		IO.inspect({:look, expanded_phrase})
 		if ProcessedPhrases.contains(expanded_phrase) == false do
 			abstractions = lose_one_bin(expanded_phrase)
 			make_concrete(abstractions, expanded_phrase)
 			ProcessedPhrases.new(phrase_id)
-			IO.puts("hello")
+			#IO.puts("hello")
 		end
 		IO.puts("there")
 	end

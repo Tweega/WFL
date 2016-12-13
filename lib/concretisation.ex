@@ -1,6 +1,8 @@
-
 defmodule Concretisation do
-  
+  #Here we store concretisations for phrase_id, keeping reference to wf_pid also to know where to find token_info for the type.
+  #map is populated when we expand all frequent phrases.  the expanded phrase is put here as key, the value a %Concretisation struct.
+  # the concretisations field of the struct is populated in a second phase as we disassemble phrases with lose_one()
+
   defstruct([:wfl_pid, :phrase_id, concretisations: MapSet.new()])  #concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat
 
   @name :concretisation
@@ -28,5 +30,8 @@ defmodule Concretisation do
     #we could make this (or sister function) into a stream
     Agent.get(:concretisation, &(&1)) #this returns agent state which is a map containing %{Concretisation} structs keyed on phrase expansions.
   end
+
+# error message key <<0, 0, 0, 251, 0, 0, 0, 129>> not found in Map.update!/3 
+    #in Concretisation.add_concretisation/2>}
 
 end
