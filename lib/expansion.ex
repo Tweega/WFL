@@ -7,7 +7,7 @@ defmodule Expansion do
   #map is populated when we expand all frequent phrases.  the expanded phrase is put here as key, the value a %Expansion struct.
   # the expansions field of the struct is populated in a second phase as we disassemble phrases with lose_one()
   
-  defstruct([:root_wfl_pid, :colloc_wfl_pid, :expansion_map, :phrase_map]) #phrase is always 2 tokens, expansion has a token per word in the phrase
+  defstruct([:root_wfl_pid, :root_colloc_pid, :expansion_map, :phrase_map]) #phrase is always 2 tokens, expansion has a token per word in the phrase
   
   @name :expansion
     
@@ -15,10 +15,11 @@ defmodule Expansion do
     Agent.start_link(fn -> %Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: %{}, phrase_map: %{}} end, name: @name)
   end
 
-  def new(phrase_id, phrase_tokens, %ExpansionItem{} = expansion_item) do     
-    Agent.update(:expansion, fn (%Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map} = expansion) -> 
-        new_expansion_map = Map.put(expansion_map, phrase_tokens, expansion_item) 
-        %Expansion{expansion | expansion_map: new_expansion_map}
+  def new(phrase_tokens, %ExpansionItem{phrase_id: phrase_id} = expansion_item) do     
+    Agent.update(:expansion, fn (%Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} = expansion) -> 
+        new_expansion_map = Map.put(expansion_map, phrase_tokens, expansion_item)
+        new_phrase_map = Map.put(phrase_map, phrase_id, phrase_tokens)
+        %Expansion{expansion | expansion_map: new_expansion_map, phrase_map: new_phrase_map}
     end)
   end
 
@@ -36,7 +37,7 @@ defmodule Expansion do
 
   def add_concretisation(abstraction_tokens, concretisation_id) do
 
-    %Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: %{}, phrase_map: %{}} = 
+    %Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} = 
       Agent.get(:expansion, fn (expansion) -> 
         expansion
       end)
@@ -52,7 +53,7 @@ defmodule Expansion do
 
       _ ->
         # > 2 tokens - look up the expansion to find which wfl to update
-        %Expansion{wfl_pid: wfl_pid, phrase_id: phrase_id} = Map.get(expansion_map, abstraction_tokens)        
+        %ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} = Map.get(expansion_map, abstraction_tokens)        
         WFL.add_concretisation(wfl_pid, phrase_id, concretisation_id, true)
     end    
   end

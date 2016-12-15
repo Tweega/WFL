@@ -103,15 +103,7 @@ defmodule WFLScratch.Server do
 		tok = exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, to_text)
 		{:reply, tok, state}
 	end
-
-	def handle_call({:expand_type_id_with_map, wfl_pid, token_id}, _from, state) do
-		parent_wfl_pid = WFL.get_parent(wfl_pid)
-		root_wfl_pid = Map.get(state, "root_wfl_pid")
-		
-		tok = exp_token_with_map(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid)
-		{:reply, tok, state}
-	end
-
+	
 
 	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, state) do		
 		root_wfl_pid = Map.get(state, "root_wfl_pid")

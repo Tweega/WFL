@@ -275,12 +275,12 @@ defmodule Collocation do
 		#get list/stream from concretisation
 		#for each of these, get abstraction list.
 		#for each item in the abstraction list, add
-		phrases = Expansion.get_map()
+		phrases = Expansion.get_expansion_map()
 		#Parallel.pjob(phrases, [{Collocation, :concretise_phrase_temp, []}])
 
 		#concretise_abstractions(expanded_phrase, %Concretisation{phrase_id: concretiser}) do
 	##Parallel.pjob(phrases, [{Collocation, :concretise_abstractions, []}])
-		Parallel.pjob(phrases, [{Collocation, :translate_expansions, []}])
+		##Parallel.pjob(phrases, [{Collocation, :translate_expansions, []}])
 
 
 		#we can let go of processed_phrases now
@@ -290,6 +290,8 @@ defmodule Collocation do
 
 	def expand_phrases(last_wfl_pid) do
 		#get list of all colloc wfls
+		#we are going to go through these in order from smalles to largest, look up smallest and stick on the rhs.
+		#having a bit of trouble with this.
 		parent_wfl_pid = WFL.get_parent(last_wfl_pid)
 		wfl_chain = get_wfl_chain(last_wfl_pid, parent_wfl_pid, [])
 
@@ -316,6 +318,7 @@ defmodule Collocation do
 	def exp_phrases([colloc_pid | rest_pids]) do		
 		#for each type in colloc_pid wfl with freq > c/o
 		#get lhs/rhs - look up lhs in parent, and append to rhs
+		#we actually need to look up lhs in Expansion, and if it is not there then we have the root colloc wfl, in which case we look there
 		
 		{wfl, parent_pid} = WFL.get_wfl_state(colloc_pid)
 		#grandparent_pid = WFL.get_parent(parent_pid)
@@ -325,8 +328,16 @@ defmodule Collocation do
 				IO.inspect({:token_key, token_key})
 				<<lhs :: binary-size(4),  rhs :: binary-size(4)>> = token_key
 				#the lhs should never have any spaces embedded in it
+
+				expansion = Expansion.get_phrase(lhs)
+				lhs_phrase = if is_nil(expansion) do
+					#lhs_phrase must be from root colloc
+					{phrase, _grandparent_pid} = WFL.get_token_from_id(parent_pid, lhs)
+					phrase
+				else
+					expansion
+				end
 			
-				{lhs_phrase, _grandparent_pid} = WFL.get_token_from_id(parent_pid, lhs)
 				xp_phrase = <<lhs_phrase :: binary, rhs :: binary>>
 				#as we 'lose_one' from phrases to create abstractions, we want to be able to find the token_info for those abstractions,
 				#but the abstractions are stored in compact form so we need to create new index for them
@@ -334,8 +345,9 @@ defmodule Collocation do
 		####    defstruct([:type_id, concretisations: MapSet.new()])	#concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat
 	
 				Expansion.new(xp_phrase, %ExpansionItem{:wfl_pid => colloc_pid, :phrase_id => wfl_type.type_id})
-				p = Expansion.get(xp_phrase)
-				#IO.inspect(p)
+				#p = Expansion.get_phrase_id(xp_phrase)
+				p = Expansion.get_phrase(wfl_type.type_id)
+				IO.inspect({:phrase, xp_phrase, :p, p})
 			end
 		end)
 
@@ -390,13 +402,13 @@ defmodule Collocation do
 		IO.inspect({:phrase, phrase})
 	end
 
-	def translate_expansions({expanded_phrase, %Expansion{phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
+	def translate_expansions({expanded_phrase, %ExpansionItem{phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
 
 		IO.inspect({:expanded_phrase, expanded_phrase})
 	end
 
 
-	def concretise_abstractions({expanded_phrase, %Expansion{phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
+	def concretise_abstractions({expanded_phrase, %ExpansionItem{phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
 
 		if ProcessedPhrases.contains(expanded_phrase) == false do
 			abstractions = lose_one_bin(expanded_phrase)
