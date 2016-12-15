@@ -38,7 +38,6 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, {:get_token_from_id, token_id})
 	end
 	
-
 	def get_parent(wfl_pid) do		
 		:gen_server.call(wfl_pid, :get_parent)
 	end
@@ -49,6 +48,10 @@ defmodule WFL do
 
 	def translate_phrase(wfl_pid, phrase) do		
 		:gen_server.call(wfl_pid, {:translate_phrase, phrase})
+	end
+
+	def add_concretisation(wfl_pid, phrase, concretisation_id, is_phrase_id) do	
+		:gen_server.cast(wfl_pid, {:add_concretisation, {phrase, concretisation_id, is_phrase_id}})
 	end
 
 	def start_link(parent_wfl_pid \\ nil) do		#pass in an initial wfl?
@@ -113,13 +116,18 @@ defmodule WFL do
 		translation = translate_phrase(phrase, wfl, [])
 		{:reply, translation, state}
 	end
+
 	
-
-
-	#{<<"first_off">>, <<"last_off">>, <<1, 0, 0, 130, 2, 0, 0, 120, 0, 0, 0, 109>>}
+	def handle_cast({:add_concretisation, concretisation_info}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+		#handle_cast?  we're not returning anything here.  we just need to know that the concretisation process is finished before we start using it.
+		#this might be achieved by putting in a dummy call to WFL at the end which will only be processed when all other messages already on the stack are dealt with
+		%WFL_Data{} = new_wfl = add_concretisation(wfl_data, concretisation_info)
+		{:noreply, {new_wfl, parent_wfl_pid}}
+	end
 
 	
 	def handle_cast({:add_tokens, sentences}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do	
+		#this function is not part of the api for some reason. tk
 		#at the end of this process
 			#ok - all sentences in sentences should be saved somewhere keyed on sentence_id
 			#ok  jut to be added to map - all tokens in a sentence should be merged into a binary format containing the token ids only, 4 bytes per token
@@ -135,7 +143,6 @@ defmodule WFL do
 			#save the sentence somewhere - we don't need it for a while.  We could even store only offset and length in a filename bucket
 			#this could/should be in a different process
 
-			
 			Sentences.new(sentence_id, sentence)
 			
 			{_token_offset, tokens_binary, offset_map, wfl_data2} = process_tokens(tokens, sentence_id, wfl_data1)
@@ -191,7 +198,7 @@ defmodule WFL do
 			new_type_info = case type_info do				
 				%WFL_Type{freq: freq, instances: instances} ->					
 					#existing type
-					%WFL_Type{type_info | freq: freq + 1, instances: [new_instance | instances]}			
+					%WFL_Type{type_info | freq: freq + 1, instances: [new_instance | instances]}
 				_ ->
 					#token not seen before
 					new_type_id = TokenCounter.get_token_id()				
@@ -238,6 +245,25 @@ defmodule WFL do
 		
 	end
 
+	def add_concretisation(wfl, {phrase_id, concretisation_id, is_phrase_id}) do		
+
+		phrase_type = if is_phrase_id == true do
+			Map.get(wfl.type_ids, phrase_id)
+		else
+			phrase_id
+		end
+
+#IO.inspect({:phrase_type, phrase_type, :phrase_id, phrase_id, :is_phrase_id, is_phrase_id})
+
+
+
+		new_wfl_types = Map.update!(wfl.types, phrase_type, fn %WFL_Type{concretisations: concretisations} = wfl_type -> 	
+			#get_and_update returns a tuple of {the current value, and the value to be stored under the key, which in this case is phrase_type}
+			{:ok, %WFL_Type{wfl_type | concretisations: [concretisation_id | concretisations]}}
+		end)
+
+		%WFL_Data{wfl | types: new_wfl_types}
+	end
 
 	def translate_phrase(<<>>, wfl, phrase) do
 		IO.inspect({:final_phrase, phrase})
@@ -269,6 +295,5 @@ defmodule WFL do
 	def space_out(phrase, space_count) do
 		space_out([<<"_">> | phrase], space_count - 1)
 	end
-
 
 end

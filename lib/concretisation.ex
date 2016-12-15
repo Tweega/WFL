@@ -11,22 +11,22 @@ defmodule Concretisation do
     Agent.start_link(fn -> %{} end, name: @name)
   end
 
-  def new(phrase_tokens, %Concretisation{} = concretisation_info) do     
+  def xnew(phrase_tokens, %Concretisation{} = concretisation_info) do     
     Agent.update(:concretisation, &Map.put(&1, phrase_tokens, concretisation_info))
   end
 
-  def get(phrase_tokens) do        
+  def xget(phrase_tokens) do        
     Agent.get(:concretisation, &Map.get(&1, phrase_tokens))
   end
 
-  def add_concretisation(abstraction_tokens, concretisation_id) do  
+  def xadd_concretisation(abstraction_tokens, concretisation_id) do  
     Agent.update(:concretisation, &Map.update!(&1, abstraction_tokens, fn(%Concretisation{concretisations: concretisations} = conc) ->
         new_concretisations = MapSet.put(concretisations, concretisation_id)
         %Concretisation{conc | concretisations: new_concretisations }
     end))
   end
 
-  def get_map() do
+  def xget_map() do
     #we could make this (or sister function) into a stream
     Agent.get(:concretisation, &(&1)) #this returns agent state which is a map containing %{Concretisation} structs keyed on phrase expansions.
   end

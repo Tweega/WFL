@@ -275,11 +275,13 @@ defmodule Collocation do
 		#get list/stream from concretisation
 		#for each of these, get abstraction list.
 		#for each item in the abstraction list, add
-		phrases = Concretisation.get_map()
+		phrases = Expansion.get_map()
 		#Parallel.pjob(phrases, [{Collocation, :concretise_phrase_temp, []}])
 
 		#concretise_abstractions(expanded_phrase, %Concretisation{phrase_id: concretiser}) do
-		Parallel.pjob(phrases, [{Collocation, :concretise_abstractions, []}])
+	##Parallel.pjob(phrases, [{Collocation, :concretise_abstractions, []}])
+		Parallel.pjob(phrases, [{Collocation, :translate_expansions, []}])
+
 
 		#we can let go of processed_phrases now
 
@@ -291,12 +293,18 @@ defmodule Collocation do
 		parent_wfl_pid = WFL.get_parent(last_wfl_pid)
 		wfl_chain = get_wfl_chain(last_wfl_pid, parent_wfl_pid, [])
 
-		colloc_chain = case wfl_chain do
-			[_root_wfl_pid | rest_chain] -> rest_chain
-			_ -> []
+		{wfl_pid, colloc_pid, colloc_chain} = case wfl_chain do
+			[root_wfl_pid, root_colloc_pid | rest_chain] -> {root_wfl_pid, root_colloc_pid, rest_chain}
+			_ -> {nil, []}
 		end
-			
-		exp_phrases(colloc_chain)
+		unless is_nil(colloc_pid) do
+			#for each frequent phrase in the root colloc (token pairs) add to concretisation dictionary
+			#for the incremental approach to concretisation, we are going to have to be able to look up concretisation by token id
+			#start Expansion gen_server
+			{:ok, pid} = Expansion.start_link(wfl_pid, colloc_pid)
+
+			exp_phrases(colloc_chain)
+		end
 		
 		colloc_chain
 	end
@@ -314,24 +322,20 @@ defmodule Collocation do
 		IO.puts("here we are")
 		Enum.each(wfl.types, fn({token_key, %WFL_Type{} = wfl_type})  ->
 			if wfl_type.freq > 1 do 
-				#if we have the root colloc (two tokens) we already have the expansion in token_key
-				xp_phrase = case token_key do
-					<<_ :: binary-size(8)>> ->
-						IO.puts("jojo was a man who thought he was a loner...")
-						token_key
-					_ ->
-
-						<<lhs :: binary-size(4),  rhs :: binary-size(4)>> = token_key
-
-						#the lhs should never have any spaces embedded in it
-					
-						{lhs_phrase, _grandparent_pid} = WFL.get_token_from_id(parent_pid, lhs)
-						IO.inspect({:lhs, lhs, :rhs, rhs, :lhs_phrase, lhs_phrase})
-						<<lhs_phrase :: binary, rhs :: binary>>
-				end
-				Concretisation.new(xp_phrase, %Concretisation{:wfl_pid => colloc_pid, :phrase_id => wfl_type.type_id})
-				p = Concretisation.get(xp_phrase)
-				IO.inspect({:p, p})
+				IO.inspect({:token_key, token_key})
+				<<lhs :: binary-size(4),  rhs :: binary-size(4)>> = token_key
+				#the lhs should never have any spaces embedded in it
+			
+				{lhs_phrase, _grandparent_pid} = WFL.get_token_from_id(parent_pid, lhs)
+				xp_phrase = <<lhs_phrase :: binary, rhs :: binary>>
+				#as we 'lose_one' from phrases to create abstractions, we want to be able to find the token_info for those abstractions,
+				#but the abstractions are stored in compact form so we need to create new index for them
+				#save this concretisation to the token_info
+		####    defstruct([:type_id, concretisations: MapSet.new()])	#concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat
+	
+				Expansion.new(xp_phrase, %ExpansionItem{:wfl_pid => colloc_pid, :phrase_id => wfl_type.type_id})
+				p = Expansion.get(xp_phrase)
+				#IO.inspect(p)
 			end
 		end)
 
@@ -386,13 +390,19 @@ defmodule Collocation do
 		IO.inspect({:phrase, phrase})
 	end
 
-	def concretise_abstractions({expanded_phrase, %Concretisation{concretisations: concretisations, phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
-		IO.inspect({:look, expanded_phrase})
+	def translate_expansions({expanded_phrase, %Expansion{phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
+
+		IO.inspect({:expanded_phrase, expanded_phrase})
+	end
+
+
+	def concretise_abstractions({expanded_phrase, %Expansion{phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
+
 		if ProcessedPhrases.contains(expanded_phrase) == false do
 			abstractions = lose_one_bin(expanded_phrase)
 			make_concrete(abstractions, expanded_phrase)
 			ProcessedPhrases.new(phrase_id)
-			#IO.puts("hello")
+			IO.puts("hello")
 		end
 		IO.puts("there")
 	end
@@ -430,7 +440,7 @@ defmodule Collocation do
 		#we are going to have to find the tokens at some point.
 
 		
-		jj = Concretisation.add_concretisation(next_abstraction, concretiser)
+		jj = Expansion.add_concretisation(next_abstraction, concretiser)
 		IO.inspect({:jj, jj})
 		make_concrete(rest_abstractions, concretiser)
 	end

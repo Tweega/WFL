@@ -104,8 +104,16 @@ defmodule WFLScratch.Server do
 		{:reply, tok, state}
 	end
 
-	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, state) do
+	def handle_call({:expand_type_id_with_map, wfl_pid, token_id}, _from, state) do
+		parent_wfl_pid = WFL.get_parent(wfl_pid)
+		root_wfl_pid = Map.get(state, "root_wfl_pid")
 		
+		tok = exp_token_with_map(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid)
+		{:reply, tok, state}
+	end
+
+
+	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, state) do		
 		root_wfl_pid = Map.get(state, "root_wfl_pid")
 		#add a check to see if wfl_pid is the root wfl pid, in which case we just want a dump of the wfl - or at least the types.
 		{wfl, parent_pid} = WFL.get_wfl_state(wfl_pid)
@@ -313,6 +321,5 @@ defmodule WFLScratch.Server do
 		new_stack = [{lhs, parent_wfl_pid, grandparent_wfl_pid} | [{rhs, root_wfl_pid, nil} | rest_tokens]]
 		xp_token(new_stack, root_wfl_pid, phrase)
 	end
-
 
 end
