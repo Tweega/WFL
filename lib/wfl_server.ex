@@ -127,16 +127,15 @@ defmodule WFLScratch.Server do
 		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line 		
 		spawn fn -> (
             #send result_pid, {self, function.(elem)}) 
-            wfl_chain = Collocation.expand_phrases(last_wfl_pid)
-           
+            {wfl_pid, colloc_pid, colloc_chain} = Collocation.expand_phrases(last_wfl_pid)	#expand_phrases needs to include root_colloc 
+           Collocation.check_expansions(colloc_chain)
             spawn fn -> (
-				free_hapax(wfl_chain)           
+				free_hapax([colloc_pid | colloc_chain]) #may also want to get rid of singletons from the root wfl
 			)
 			#while happax are being freed, go through all the items in the expansion list and add to the concretisation sets
 			#so lose_one(ABC) -> [AB, BC, AC].
 			#look up each of the abstractions in the expansion map and add concretisation to their concretisation_map.
-			Collocation.konkret_machen()
-
+		###Collocation.konkret_machen()
          end
 			#Collocation.concretise_phrases(last_wfl_pid)
 			)

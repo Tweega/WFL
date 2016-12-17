@@ -69,7 +69,7 @@ defmodule WFL do
 		{:reply, state, state}
 	end
 
-	def handle_call(:get_wfl, _from, {wfl, _parent} = state) do
+	def handle_call(:get_wfl, _from, {wfl, _parent} = state) do 	#why does this return the same value as get_state?
 		{:reply, wfl, state}
 	end
 
@@ -255,11 +255,9 @@ defmodule WFL do
 
 #IO.inspect({:phrase_type, phrase_type, :phrase_id, phrase_id, :is_phrase_id, is_phrase_id})
 
-
-
 		new_wfl_types = Map.update!(wfl.types, phrase_type, fn %WFL_Type{concretisations: concretisations} = wfl_type -> 	
 			#get_and_update returns a tuple of {the current value, and the value to be stored under the key, which in this case is phrase_type}
-			{:ok, %WFL_Type{wfl_type | concretisations: [concretisation_id | concretisations]}}
+			%WFL_Type{wfl_type | concretisations: [concretisation_id | concretisations]}
 		end)
 
 		%WFL_Data{wfl | types: new_wfl_types}

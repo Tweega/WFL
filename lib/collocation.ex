@@ -1,3 +1,6 @@
+#	Note on gaps.  Phrases are stored as 2 sets of 4 bytes (LHS and RHS), the first of which stores the number of spaces (this may be reduced to smaller number of bits)
+#	the gap integer is stored on the RHS.  LHS in turn is either a key to another <<LHS, RHS>> pair or an actual token, such as "cat".
+
 defmodule TokenInput do
 		defstruct([:token, :instance])
 	end
@@ -275,12 +278,13 @@ defmodule Collocation do
 		#get list/stream from concretisation
 		#for each of these, get abstraction list.
 		#for each item in the abstraction list, add
-		phrases = Expansion.get_expansion_map()
+		expansion_phrases = Expansion.get_expansion_map()
 		#Parallel.pjob(phrases, [{Collocation, :concretise_phrase_temp, []}])
 
 		#concretise_abstractions(expanded_phrase, %Concretisation{phrase_id: concretiser}) do
-	##Parallel.pjob(phrases, [{Collocation, :concretise_abstractions, []}])
-		##Parallel.pjob(phrases, [{Collocation, :translate_expansions, []}])
+	Parallel.pjob(expansion_phrases, [{Collocation, :concretise_abstractions, []}])
+	###root_colloc_phrases = #we need the root_colloc_pid here.
+		#Parallel.pjob(phrases, [{Collocation, :translate_expansions, []}])
 
 
 		#we can let go of processed_phrases now
@@ -308,7 +312,7 @@ defmodule Collocation do
 			exp_phrases(colloc_chain)
 		end
 		
-		colloc_chain
+		{wfl_pid, colloc_pid, colloc_chain}
 	end
 
 	def exp_phrases([]) do
@@ -325,7 +329,6 @@ defmodule Collocation do
 		IO.puts("here we are")
 		Enum.each(wfl.types, fn({token_key, %WFL_Type{} = wfl_type})  ->
 			if wfl_type.freq > 1 do 
-				IO.inspect({:token_key, token_key})
 				<<lhs :: binary-size(4),  rhs :: binary-size(4)>> = token_key
 				#the lhs should never have any spaces embedded in it
 
@@ -345,9 +348,7 @@ defmodule Collocation do
 		####    defstruct([:type_id, concretisations: MapSet.new()])	#concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat
 	
 				Expansion.new(xp_phrase, %ExpansionItem{:wfl_pid => colloc_pid, :phrase_id => wfl_type.type_id})
-				#p = Expansion.get_phrase_id(xp_phrase)
-				p = Expansion.get_phrase(wfl_type.type_id)
-				IO.inspect({:phrase, xp_phrase, :p, p})
+				
 			end
 		end)
 
@@ -355,6 +356,29 @@ defmodule Collocation do
 
 	end
 
+	def check_expansions([]) do
+		
+	end
+
+	def check_expansions([wfl_pid | rest_wfls]) do
+		#the id is in phrase map
+		#the expansion is in expansion map
+		%WFL_Data{type_ids: type_ids} = WFL.get_wfl(wfl_pid)
+		Enum.each(type_ids, fn({phrase_id, short_phrase}) -> 
+			token_info = WFL.get_token_info_from_id(wfl_pid, phrase_id)
+			if token_info.freq > 1 do
+				#we should be able to find phrase_id in Expansion.phrase_map
+				z = Expansion.get_phrase(phrase_id)
+				#IO.inspect({phrase_id, z})
+				expanded_phrase = WFLScratch.Server.expand_type_id(wfl_pid, phrase_id, false)
+				#IO.inspect({:xp, expanded_phrase})
+				phrase_id2 = Expansion.get_phrase_id(expanded_phrase)
+				IO.inspect({:phrase_id, phrase_id2})
+			end
+			
+		end)
+		check_expansions(rest_wfls)
+	end
 
 	def get_wfl_chain(wfl_pid, parent_wfl_pid, acc) when is_nil(parent_wfl_pid)  do
 		[wfl_pid | acc]
@@ -404,12 +428,10 @@ defmodule Collocation do
 
 	def translate_expansions({expanded_phrase, %ExpansionItem{phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
 
-		IO.inspect({:expanded_phrase, expanded_phrase})
+		IO.inspect({:expanded_phrase, expanded_phrase, phrase_id: phrase_id, wfl_pid: wfl_pid})
 	end
 
-
 	def concretise_abstractions({expanded_phrase, %ExpansionItem{phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
-
 		if ProcessedPhrases.contains(expanded_phrase) == false do
 			abstractions = lose_one_bin(expanded_phrase)
 			make_concrete(abstractions, expanded_phrase)
@@ -438,7 +460,6 @@ defmodule Collocation do
 		end
 	end
 
-
 	
 	def make_concrete([], _concretiser) do
 	end
@@ -450,10 +471,11 @@ defmodule Collocation do
 		#we could do a series of searches - initially for the first 2 tokens, then for that token plus the third, and so on.
 		#not excellent...but are there other options?
 		#we are going to have to find the tokens at some point.
-
-		
-		jj = Expansion.add_concretisation(next_abstraction, concretiser)
-		IO.inspect({:jj, jj})
+		size_abstraction = size_bin = byte_size(next_abstraction)
+		if size_abstraction > 0 do
+			jj = Expansion.add_concretisation(next_abstraction, concretiser)
+			IO.inspect({:jj, jj})		
+		end
 		make_concrete(rest_abstractions, concretiser)
 	end
 
@@ -480,18 +502,26 @@ defmodule Collocation do
 		#space_count are spaces before the owning token.  i.e. I am so many spaces plus 'cat'
 		#phrase-less-one - for all instances other than the first, when bin2 is empty, we need to add a space to the first of rest.
 		#this additional space should only apply once - so should not be part of the rest that is passed on in recursion..
-
+		
 		{new_bin, new_rest} = 
 			if size_bin == 0 do
-				{bin2, rest}
+				<<_space_count :: integer-unit(8)-size(1), rest_rest :: binary>> = rest	#rest may have a leading space - we have dropped the first token
+				spaceless_token = <<0>> <> rest_rest
+				{bin2, rest_rest} # bin2 is empty
 			else
 				rev_b = Utils.rev_bin4(bin2)
 				if size_rest == 0 do
-					{rev_b, rest}
+					{rev_b, rest} 
 				else
-					<<space_count :: integer-unit(8)-size(1), rest2 :: binary>> = rest		
-					spaced_rest = << space_count + 1 >> <> rest2
-					{rev_b, spaced_rest}
+					<<space_count :: integer-unit(8)-size(1), rest2 :: binary>> = rest
+					#if space count is now too high, return an empty abstraction
+					if space_count > 1 do
+						{<<>>, <<>>}
+					else
+						spaced_rest = << space_count + 1 >> <> rest2
+						{rev_b, spaced_rest}	
+					end
+					
 				end
 				
 			end

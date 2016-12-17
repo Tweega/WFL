@@ -52,9 +52,20 @@ defmodule Expansion do
         WFL.add_concretisation(root_colloc_pid, abstraction_tokens, concretisation_id, false)
 
       _ ->
-        # > 2 tokens - look up the expansion to find which wfl to update
-        %ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} = Map.get(expansion_map, abstraction_tokens)        
-        WFL.add_concretisation(wfl_pid, phrase_id, concretisation_id, true)
+        # more than 2 tokens - look up the expansion to find which wfl to update
+        #IO.inspect({:abstraction_tokens, abstraction_tokens})
+        #%ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} = Map.get(expansion_map, abstraction_tokens)
+        case Map.get(expansion_map, abstraction_tokens) do
+          nil ->
+            IO.inspect({:not_found, abstraction_tokens})
+          :not_found
+
+        %ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} ->
+          WFL.add_concretisation(wfl_pid, phrase_id, concretisation_id, true)
+
+        _ ->
+          :hmmm
+        end
     end    
   end
 
