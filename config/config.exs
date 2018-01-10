@@ -29,4 +29,4 @@ use Mix.Config
 #
 #     import_config "#{Mix.env}.exs"ex
 
-IEx.configure(colors: [stack_info: [:white]])
+#IEx.configure(colors: [stack_info: [:white]])

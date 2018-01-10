@@ -3,42 +3,42 @@ defmodule ExpansionItem do
 end
 
 defmodule Expansion do
-  #Here we store expansions for phrase_id, keeping reference to wf_pid also to know where to find token_info for the type.
+  #Here we store expansions for phrase_id, keeping reference to wfl_pid also to know where to find token_info for the type.
   #map is populated when we expand all frequent phrases.  the expanded phrase is put here as key, the value a %Expansion struct.
   # the expansions field of the struct is populated in a second phase as we disassemble phrases with lose_one()
-  
+
   defstruct([:root_wfl_pid, :root_colloc_pid, :expansion_map, :phrase_map]) #phrase is always 2 tokens, expansion has a token per word in the phrase
-  
+
   @name :expansion
-    
-  def start_link(root_wfl_pid, root_colloc_pid) do   
+
+  def start_link(root_wfl_pid, root_colloc_pid) do
     Agent.start_link(fn -> %Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: %{}, phrase_map: %{}} end, name: @name)
   end
 
-  def new(phrase_tokens, %ExpansionItem{phrase_id: phrase_id} = expansion_item) do     
-    Agent.update(:expansion, fn (%Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} = expansion) -> 
+  def new(phrase_tokens, %ExpansionItem{phrase_id: phrase_id} = expansion_item) do
+    Agent.update(:expansion, fn (%Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} = expansion) ->
         new_expansion_map = Map.put(expansion_map, phrase_tokens, expansion_item)
         new_phrase_map = Map.put(phrase_map, phrase_id, phrase_tokens)
         %Expansion{expansion | expansion_map: new_expansion_map, phrase_map: new_phrase_map}
     end)
   end
 
-  def get_phrase_id(phrase_tokens) do        
-    Agent.get(:expansion, fn (%Expansion{expansion_map: expansion_map}) -> 
+  def get_phrase_id(phrase_tokens) do
+    Agent.get(:expansion, fn (%Expansion{expansion_map: expansion_map}) ->
       Map.get(expansion_map, phrase_tokens)
     end)
   end
 
-  def get_phrase(phrase_id) do        
-    Agent.get(:expansion, fn (%Expansion{phrase_map: phrase_map}) -> 
+  def get_phrase(phrase_id) do
+    Agent.get(:expansion, fn (%Expansion{phrase_map: phrase_map}) ->
       Map.get(phrase_map, phrase_id)
     end)
   end
 
   def add_concretisation(abstraction_tokens, concretisation_id) do
 
-    %Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} = 
-      Agent.get(:expansion, fn (expansion) -> 
+    %Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} =
+      Agent.get(:expansion, fn (expansion) ->
         expansion
       end)
 
@@ -48,7 +48,7 @@ defmodule Expansion do
         WFL.add_concretisation(root_wfl_pid, abstraction_tokens, concretisation_id, false)
 
       <<_ :: binary-size(8)>> ->
-        #2 tokens - update concretisations in root collocation wfl        
+        #2 tokens - update concretisations in root collocation wfl
         WFL.add_concretisation(root_colloc_pid, abstraction_tokens, concretisation_id, false)
 
       _ ->
@@ -66,12 +66,12 @@ defmodule Expansion do
         _ ->
           :hmmm
         end
-    end    
+    end
   end
 
   def get_expansion_map() do
     #we could make this (or sister function) into a stream
-    Agent.get(:expansion, fn (%Expansion{expansion_map: expansion_map}) -> 
+    Agent.get(:expansion, fn (%Expansion{expansion_map: expansion_map}) ->
       expansion_map
     end)
   end
@@ -79,7 +79,7 @@ defmodule Expansion do
   #get_phrase_map?
 
 
-# error message key <<0, 0, 0, 251, 0, 0, 0, 129>> not found in Map.update!/3 
+# error message key <<0, 0, 0, 251, 0, 0, 0, 129>> not found in Map.update!/3
     #in Expansion.add_expansion/2>}
 
 end

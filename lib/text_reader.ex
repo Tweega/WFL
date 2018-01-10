@@ -7,7 +7,7 @@
 		defstruct([depth: 0, types: %{}, type_ids: %{}])	#both types and type_ids map into the same WFL_Type collections
 	end
 
-defmodule SentenceInfo do	
+defmodule SentenceInfo do
 		#this struct is used when reading text file initially
 		defstruct([tokens: [], sentence: <<>>])
 	end
@@ -18,26 +18,26 @@ defmodule SentenceInfo do
 
 defmodule ReaderInfo do
 		defstruct([token_info: %TokenInfo{}, sentence_info: %SentenceInfo{}, sentences: []])  #sentences is an array of %SentenceInfo
-	end	
+	end
 #end wfl_types.ex
 
 defmodule TextReader do
 	require Logger
 
 	defstruct([reader_info: %ReaderInfo{}, handler: &TextReader.cx_new_token/3])
-	
+
 	#API
-	def processText(filePath, char_def_tree, server, wfl_pid) do		
-		#spawn a process that will start reader and listen out for completion		
+	def processText(filePath, char_def_tree, server, wfl_pid) do
+		#spawn a process that will start reader and listen out for completion
 		spawn(fn -> process_file(filePath, wfl_pid, char_def_tree, server) end)	#this function is being called on client thread so don't spawn link here
 		:ok
 	end
 
-	
+
 	defp process_file(filePath, wfl_pid, char_def_tree, server) do
 		#start monitored process to read file
 		res = spawn_monitor(fn ->read_file(filePath, wfl_pid, char_def_tree) end)
-		
+
 		#now wait for the processing to finish and alert wfl_server
 		#IO.puts inspect res
 		receive do
@@ -51,7 +51,7 @@ defmodule TextReader do
 			msg ->
 				IO.puts "File read: Something else"
 				IO.inspect(msg)
-				send(server, {:file_complete, filePath})					
+				send(server, {:file_complete, filePath})
 		end
 	end
 
@@ -64,7 +64,7 @@ defmodule TextReader do
 		File.stream!(filePath) |> Enum.each(fn (line) ->
 			process_line(line, wfl_pid, char_def_tree)
 		end)
-		
+
 	end
 
 
@@ -75,6 +75,11 @@ def process_line(str, wfl_pid, char_tree) when is_binary(str) do
 		|> handleEndline()	#handleToken and handleEndline are only called once after line has been processed to mop up last word/sentence
 
 	#IO.inspect(sentences)
+
+	#sample_sentenceInfo = [%SentenceInfo{sentence: "yad ykcul ruoy eb thgim tI",
+  										#tokens: ["day", "lucky", "your", "be", "might", "it"]}]
+	#note that the full stop is missing here, perhaps because it coincides with an endline.
+
 	GenServer.cast(wfl_pid, {:add_tokens, sentences})	#this should accept spawn acknowledge
 end
 
@@ -90,13 +95,13 @@ end
 def _each_char(<<char :: utf8, rest :: binary>>, char_tree, %TextReader{reader_info: %ReaderInfo{} = reader_info, handler: handler}) do
 	#classify char
 
-	char_def = BTree2.find(char_tree, char)	
+	char_def = BTree2.find(char_tree, char)
 	char_type = char_def[:type]
 
 	if char_type == :unknown do
 		Logger.debug("we have an unknown: #{char}")
 	end
-	
+
 	grapheme = List.to_string([char])	#yuck
 	new_text_reader = handler.(grapheme, char_type, reader_info)
 	#new_text_reader = %ReaderInfo{reader_info: %ReaderInfo{reader_info | token_info: | token_data: res.token_data}
@@ -123,7 +128,7 @@ def handleToken(%ReaderInfo{token_info: %TokenInfo{token: token, token_count: to
 	toke = get_token(token, defs, period_count)		#if we want to canonicalise tokens we need to return an indicator that this has happened so we don't compare token length with def length.
 	toke_len = String.length(toke)
 
-	{new_tokens, new_token_count} = 
+	{new_tokens, new_token_count} =
 		if toke_len > 0 do
 			{[toke | tokens], token_count + 1}
 		else
@@ -148,7 +153,7 @@ def handleSentence(%ReaderInfo{token_info: %TokenInfo{token: token, defs: [next_
 	post_sent_defs = Enum.take_while(defs, fn x -> x != :ws end)
 	len_post_defs = length(post_sent_defs)
 
-	sent_start = if len_post_defs > 0 do 
+	sent_start = if len_post_defs > 0 do
 		String.slice(sentence, 0..length(post_sent_defs) - 1)
 	else
 		""
@@ -157,10 +162,10 @@ def handleSentence(%ReaderInfo{token_info: %TokenInfo{token: token, defs: [next_
 	new_sent = trimSent(sentence, trim_len)	#this is trimmed sentence - we either need access to the wfl now.. or we store back into sentence
 	#Logger.debug("new sent: #{new_sent}")
 	#could do a merge with a defaults object - here we repeat period_count and punct_len default values.
-	
+
 	%ReaderInfo{
-		token_info: %TokenInfo{token: token, defs: [next_char_type]}, 
-		sentence_info: %SentenceInfo{sentence_info | tokens: [], sentence: <<token <> sent_start>>}, 
+		token_info: %TokenInfo{token: token, defs: [next_char_type]},
+		sentence_info: %SentenceInfo{sentence_info | tokens: [], sentence: <<token <> sent_start>>},
 		sentences: [%SentenceInfo{tokens: tokens, sentence: new_sent}  | sentence_infos]
 	}
 
@@ -168,16 +173,16 @@ end
 
 def handleEndline(%TextReader{reader_info: %ReaderInfo{token_info: %TokenInfo{defs: defs} = token_info} = reader_info}) do
 	#{token, _token_count, tokens, defs, sentence, sentences, punct_len} = token_data
-	
+
 	case token_info.token_count do
-		token_count when token_count > 0 ->			
+		token_count when token_count > 0 ->
 			new_token_info = %TokenInfo{token_info | defs: [:end | defs]}
-			new_reader_info = %ReaderInfo{reader_info | token_info: new_token_info}				
+			new_reader_info = %ReaderInfo{reader_info | token_info: new_token_info}
 			handleSentence(new_reader_info)
-		
+
 		_ -> %ReaderInfo{}
 	end
-	
+
 end
 
 def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: token, defs: defs} = token_info, sentence_info: %SentenceInfo{sentence: sentence} = sentence_info, sentences: sentence_infos }) do
@@ -185,15 +190,15 @@ def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: toke
 
 	case char_type do
 		y when y == :letter or y == :number ->  #use binary attributes?
-	
+
 		# check if we have crossed a sentence boundary in the process
 		rev_defs = Enum.reverse(defs)
 
 		{result, punct_len} = isSentence?(rev_defs, token)
 
-		if result == true do	
+		if result == true do
 			#we have the start of a new token (in a new sentence)
-			#s_id = SentenceCounter.get_sentence_id(:sent_id_gen)			
+			#s_id = SentenceCounter.get_sentence_id(:sent_id_gen)
 			new_reader_info = handleSentence(%ReaderInfo{token_info: %TokenInfo{token_info |  token: char, defs: [char_type | defs], punct_len: punct_len}, sentence_info: sentence_info, sentences: sentence_infos})
 			%TextReader{reader_info: new_reader_info,  handler: &TextReader.cx_read_token/3}
 		else
@@ -202,11 +207,11 @@ def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: toke
 		end
 
 	_ ->
-		#add token info to idefs, and continue to look for token start		
-		new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | defs: [char_type|defs]}, sentence_info: %SentenceInfo{sentence_info | sentence: <<char <> sentence>>}, sentences: sentence_infos} 
+		#add token info to idefs, and continue to look for token start
+		new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | defs: [char_type|defs]}, sentence_info: %SentenceInfo{sentence_info | sentence: <<char <> sentence>>}, sentences: sentence_infos}
 		%TextReader{reader_info: new_reader_info, handler: &TextReader.cx_new_token/3}
 
-	end	
+	end
 end
 
 
@@ -224,14 +229,14 @@ def cx_read_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{} = token_
 
 		:period ->
 			new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | token: <<char <> token_info.token>>, defs: new_defs, period_count: token_info.period_count + 1}, sentence_info: %SentenceInfo{sentence_info | sentence: new_sentence}, sentences: sentence_infos}
-			%TextReader{reader_info: new_reader_info, handler: &TextReader.cx_read_token/3}	
+			%TextReader{reader_info: new_reader_info, handler: &TextReader.cx_read_token/3}
 
 		_ ->
 			#add this character to the token queue
 			new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | token: <<char <> token_info.token>>, defs: new_defs}, sentence_info: %SentenceInfo{sentence_info | sentence: new_sentence}, sentences: sentence_infos}
-			%TextReader{reader_info: new_reader_info, handler: &TextReader.cx_read_token/3}		
+			%TextReader{reader_info: new_reader_info, handler: &TextReader.cx_read_token/3}
 	end
-	
+
 end
 
 
@@ -255,7 +260,7 @@ def checkSent([:punct | _rest], _token) do
 	true
 end
 
-def checkSent(_defs, _token) do	
+def checkSent(_defs, _token) do
 	false
 end
 
@@ -269,28 +274,28 @@ def isSentence?(idefs, token) do
 	_isSentence?(idefs, token)
 end
 
-def _isSentence?([], _token) do 
+def _isSentence?([], _token) do
 	{false, 0}
 end
 
 def _isSentence?([:period | idefs], token) do
 	#returns number of chars to include with sentence
-	
+
 	if checkSent(idefs, token) == true do
-		punct_defs = extra_punct(idefs)			
+		punct_defs = extra_punct(idefs)
 		{true, length(punct_defs) + 1}
 	else
 		_isSentence?(idefs, token)
-	end	
+	end
 end
 
 
 def _isSentence?([:stop | idefs], _token) do
-	punct_defs = extra_punct(idefs)				
+	punct_defs = extra_punct(idefs)
 	{true, length(punct_defs) + 1}
 end
 
-def _isSentence?([_idef | idefs], token) do 
+def _isSentence?([_idef | idefs], token) do
 	_isSentence?(idefs, token)
 end
 
@@ -299,7 +304,7 @@ def isKnownAbbrev?(_token) do
 end
 
 
-def get_token(token, defs, pc) do 
+def get_token(token, defs, pc) do
 	#can we search for sentence boundary at the same time?
 	toke_defs = extract_token(defs, pc)
 	toke_len = length(toke_defs)
@@ -329,8 +334,8 @@ def extract_token([:letter | _defs] = char_defs, _pc)  do
 end
 
 def extract_token([:period | [:letter | _]] = char_defs, pc)  when pc > 1 do
-		
-	#alpha followed by period and there is more than one period so assume token is abbreviation such as a.m. 
+
+	#alpha followed by period and there is more than one period so assume token is abbreviation such as a.m.
 	char_defs
 
 end
@@ -344,18 +349,18 @@ end
 
 
 def extract_token([:number | _defs] = char_defs, _pc)  do
-	#this is the word boundary 
+	#this is the word boundary
 	char_defs
 end
 
 
-def extract_token([_char_type | defs], pc) do 
+def extract_token([_char_type | defs], pc) do
 	#we have something that is not a letter, number, period  or white-space - so ignore
 	extract_token(defs, pc)
 end
 
 
-def extract_token([], _pc) do 
+def extract_token([], _pc) do
 	#no numbers or letters encountered (presumably at line end)
 	[]
 end
@@ -368,7 +373,7 @@ end
 
 #test
 def get_tok(token, defs, pc) do
-	get_token(token, defs, pc) 
+	get_token(token, defs, pc)
 end
 
 def handle_tok({token, tokens, defs, sentence, sentences, period_count}) do
