@@ -45,7 +45,11 @@ defmodule Expansion do
     case abstraction_tokens do
       <<_ :: binary-size(4)>> ->
         #single token - update concretisations in root wfl
-        WFL.add_concretisation(root_wfl_pid, abstraction_tokens, concretisation_id, false)
+        #we have a binary token - but for the root wfl we need the actual text
+
+        {token, _parent} = WFL.get_token_from_id(root_wfl_pid, abstraction_tokens)
+        WFL.add_concretisation(root_wfl_pid, token, concretisation_id, false)
+        #IO.puts("Do nothing here")
 
       <<_ :: binary-size(8)>> ->
         #2 tokens - update concretisations in root collocation wfl
