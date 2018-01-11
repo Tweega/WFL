@@ -460,6 +460,24 @@ IO.puts("dcp")
 	# 	IO.puts("there")
 	# end
 
+	defp get_concretiser(wfl_pid, token_id) do
+		#if this phrase is only concretised by one other phrase then pass on the longer concretiser instead of this phrase
+		#we may want to change these rules, and also to be able to pass up more than one single extended concretiser - in which case we would have to return a list
+		case WFL.get_token_info_from_id(wfl_pid, token_id) do
+
+			%WFL_Type {concretisations: [_first, _second | _rest]} ->
+				#at least 2 concretisations
+				token_id
+			%WFL_Type {concretisations: [extended_concretiser | _rest]} ->
+				#single concretiser
+				IO.inspect({:replace, token_id, :with, extended_concretiser})
+				extended_concretiser
+			_ ->
+				#none
+				token_id
+		end
+	end
+
 	def concretise_phrase(phrase, wfl_pid) do
 		{_key, type} = phrase
 		#IO.inspect({type.type_id})
@@ -471,38 +489,45 @@ IO.puts("dcp")
 		#may not be so simple.  I think we are going to have to find a way not to start this exercise from inside WFLScratch.Server
 		#IO.inspect({:expanded_phrase, expanded_phrase})
 
-		if ProcessedPhrases.contains(type.type_id) == false do
+
+
+
+		#if ProcessedPhrases.contains(type.type_id) == false do
 			abstractions = lose_one_bin(expanded_phrase)
-			IO.inspect(expanded_phrase)
-			IO.inspect(abstractions)
+			# IO.inspect(expanded_phrase)
+			# IO.inspect(abstractions)
 			parent_wfl_pid = WFL.get_parent(wfl_pid)
-			make_concrete(abstractions, expanded_phrase)
-			ProcessedPhrases.new(type.type_id)
-		end
+			concretiser_id = get_concretiser(wfl_pid, type.type_id)
+			make_concrete(abstractions, concretiser_id)
+			#ProcessedPhrases.new(type.type_id)
+		#else
+			#IO.puts("Do we ever encounter a situation where a phrase has already been processed?")
+		#end
+
 	end
 
 
-	def make_concrete([], _concretiser) do
+	def make_concrete([], _concretiser_id) do
 	end
 
-	def make_concrete([next_abstraction | rest_abstractions], concretiser) do
+	def make_concrete([next_abstraction | rest_abstractions], concretiser_id) do
 		#here find the abstraction in its wfl and add phrase to its concretisation list.
 		#problem here is that phrases are only ever two tokens long..a token for the phrase so far (lhs) and one for the additional token (rhs)
 		#we cannot use the expanded token as the key... so how to find the entry so as to set its concretisations
 		#we could do a series of searches - initially for the first 2 tokens, then for that token plus the third, and so on.
 		#not excellent...but are there other options?
 		#we are going to have to find the tokens at some point.
-		IO.inspect({:next_abstraction, next_abstraction})
+		#IO.inspect({:next_abstraction, next_abstraction})
 		size_abstraction = byte_size(next_abstraction)
 		if size_abstraction > 0 do
-			jj = Expansion.add_concretisation(next_abstraction, concretiser)
-			#IO.inspect({:jj, jj})
+			jj = Expansion.add_concretisation(next_abstraction, concretiser_id)
+			IO.inspect({:jj, concretiser_id})
 
 		else
 			Logger.debug("How can next abstraction size be zero?")
 			IO.inspect(next_abstraction)
 		end
-		make_concrete(rest_abstractions, concretiser)
+		make_concrete(rest_abstractions, concretiser_id)
 	end
 
 
@@ -522,7 +547,7 @@ IO.puts("dcp")
 	end
 
 
-	def lose_one_bin(<<byte4 :: binary-size(4), rest :: binary>> = xx, bin2, acc) do
+	def lose_one_bin(<<byte4 :: binary-size(4), rest :: binary>>, bin2, acc) do
 		size_bin = byte_size(bin2)
 		size_rest = byte_size(rest)
 
@@ -537,9 +562,6 @@ IO.puts("dcp")
 				<<_space_count :: integer-unit(8)-size(1), rest_rest :: binary>> = rest	#rest may have a leading space - we have dropped the first token
 				spaceless_token = <<0>> <> rest_rest
 				#{bin2, spaceless_token} # bin2 is empty
-				if << spaceless_token :: binary >> == <<0, 0, 0, 51, 0, 0, 0, 7, 1, 0, 0, 130, 0, 0, 0, 129>> do
-					IO.puts("fruit pastilles")
-				end
 				[<<spaceless_token :: binary >> | acc]
 			else
 				#bin2 will now have at least A in it, perhaps BA, or CBA, while rest will have  BC or C or empty
@@ -547,9 +569,6 @@ IO.puts("dcp")
 				if size_rest == 0 do
 					#bin2 will have CBA
 					#{rev_b, rest}
-					if << rev_b :: binary, rest :: binary >> == <<0, 0, 0, 51, 0, 0, 0, 7, 1, 0, 0, 130, 0, 0, 0, 129>> do
-						IO.puts("Jaffa cakes")
-					end
 					[<< rev_b :: binary, rest :: binary >> | acc]
 				else
 					#rest has either D or CD while bin2 will have or AB or A so we will end up with either ABD or ACD
@@ -571,21 +590,11 @@ IO.puts("dcp")
 					else
 						spaced_rest = << space_count + 1 >> <> rest2
 						#{rev_b, spaced_rest}
-						if << rev_b :: binary, spaced_rest :: binary >> == <<0, 0, 0, 51, 0, 0, 0, 7, 1, 0, 0, 130, 0, 0, 0, 129>> do
-							IO.puts("Smarties")
-						end
 						[<< rev_b :: binary, spaced_rest :: binary >> | acc]
 					end
 
 				end
-
 			end
-		[h | _t] = new_acc
-		if h == <<0, 0, 0, 51, 0, 0, 0, 7, 1, 0, 0, 130, 0, 0, 0, 129>> do
-			IO.puts("Jelly baby")
-		end
-
-		IO.inspect({:xx, xx, :h, h})
 
 		#new_acc = [<< new_bin :: binary, new_rest :: binary >> | acc]
 		lose_one_bin(rest, << byte4 :: binary, <<bin2 :: binary>> >>, new_acc)

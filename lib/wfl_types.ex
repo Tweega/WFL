@@ -1,4 +1,4 @@
-	defmodule SentenceInfo do	
+	defmodule SentenceInfo do
 		#this struct is used when reading text file initially
 		defstruct([tokens: [], sentence: <<>>])
 	end
@@ -22,7 +22,7 @@
 	end
 
 	defmodule WFL_Type do
-		defstruct([:type, :type_id, :freq, is_common: false, instances: [], concretisations: MapSet.new()])  #concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat])
+		defstruct([:type, :type_id, :freq, is_common: false, instances: [], concretisations: []])  #concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat])
 	end
 
 	defmodule TokenInstance do
@@ -37,7 +37,7 @@
 		defstruct([depth: 0, types: %{}, type_ids: %{}])	#both types and type_ids map into the same WFL_Type collections
 	end
 
-	defmodule Check_Type do		
+	defmodule Check_Type do
 		def check(%TokenInput{} = struc) do
 			IO.puts("TokenInput")
 			struc
