@@ -2,7 +2,7 @@ defmodule WFLScratch.Server do
 	use GenServer
 	@name :WFL
 
-	#API
+	#API test change
 	#we only have one of these? this creates a text reader for each file (could be handed an array of files or a wildcard file path)
 	#and then collates all the results
 
