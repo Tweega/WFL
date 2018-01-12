@@ -463,6 +463,8 @@ IO.puts("dcp")
 	defp get_concretiser(wfl_pid, token_id) do
 		#if this phrase is only concretised by one other phrase then pass on the longer concretiser instead of this phrase
 		#we may want to change these rules, and also to be able to pass up more than one single extended concretiser - in which case we would have to return a list
+		#if ABC only concretised by ABCD, then AB, AC, BC are concretised by ABCD, not by ABC"
+
 		case WFL.get_token_info_from_id(wfl_pid, token_id) do
 
 			%WFL_Type {concretisations: [_first, _second | _rest]} ->
