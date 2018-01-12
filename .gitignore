@@ -6,3 +6,4 @@ erl_crash.dump
 *.beam
 /temp
 mix.lock
+wfl.txt
