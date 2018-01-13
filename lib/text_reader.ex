@@ -1,25 +1,25 @@
-#wfl_types.ex
-	defmodule WFL_Type do
-		defstruct([:type, :type_id, :freq, is_common: false, instances: [], concretisations: []])	#concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat
-	end
-
-	defmodule WFL_Data do
-		defstruct([depth: 0, types: %{}, type_ids: %{}])	#both types and type_ids map into the same WFL_Type collections
-	end
-
-defmodule SentenceInfo do
-		#this struct is used when reading text file initially
-		defstruct([tokens: [], sentence: <<>>])
-	end
-
-	defmodule TokenInfo do
-		defstruct([token: "" , token_count: 0, char_type: :none, defs: [], period_count: 0, punct_len: 0])
-	end
-
-defmodule ReaderInfo do
-		defstruct([token_info: %TokenInfo{}, sentence_info: %SentenceInfo{}, sentences: []])  #sentences is an array of %SentenceInfo
-	end
-#end wfl_types.ex
+# #wfl_types.ex
+# 	defmodule WFL_Type do
+# 		defstruct([:type, :type_id, :freq, is_common: false, instances: [], concretisations: []])	#concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat
+# 	end
+#
+# 	defmodule WFL_Data do
+# 		defstruct([depth: 0, types: %{}, type_ids: %{}])	#both types and type_ids map into the same WFL_Type collections
+# 	end
+#
+# defmodule SentenceInfo do
+# 		#this struct is used when reading text file initially
+# 		defstruct([tokens: [], sentence: <<>>])
+# 	end
+#
+# 	defmodule TokenInfo do
+# 		defstruct([token: "" , token_count: 0, char_type: :none, defs: [], period_count: 0, punct_len: 0])
+# 	end
+#
+# defmodule ReaderInfo do
+# 		defstruct([token_info: %TokenInfo{}, sentence_info: %SentenceInfo{}, sentences: []])  #sentences is an array of %SentenceInfo
+# 	end
+# #end wfl_types.ex
 
 defmodule TextReader do
 	require Logger

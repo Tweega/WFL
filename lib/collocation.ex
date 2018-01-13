@@ -1,15 +1,15 @@
 #	Note on gaps.  Phrases are stored as 2 sets of 4 bytes (LHS and RHS), the first of which stores the number of spaces (this may be reduced to smaller number of bits)
 #	the gap integer is stored on the RHS.  LHS in turn is either a key to another <<LHS, RHS>> pair or an actual token, such as "cat".
 
-defmodule TokenInput do
-		defstruct([:token, :instance])
-	end
-
-
-defmodule TokenInstance do
-		defstruct([:sentence_id, :offset])
-	end
-
+# defmodule TokenInput do
+# 		defstruct([:token, :instance])
+# 	end
+#
+#
+# defmodule TokenInstance do
+# 		defstruct([:sentence_id, :offset])
+# 	end
+#
 defmodule TokenFreq do
 	defstruct([token_id: <<>>, freq: 0, index: -1, offset: -1, is_common: false])
 end

@@ -1,3 +1,9 @@
+defmodule Person do
+  @derive [Poison.Encoder]
+  defstruct [:name, :age]
+end
+
+
 defmodule Scratch do
 require Logger
 #to do - review use of <> which is equiv to ++ .  Use <<a, b>> form where possible
@@ -338,5 +344,53 @@ def test_wfl_stream(wfl_pid) do
 
 end
 
+def test_json(wfl_pid) do
+	wfl = WFL.get_wfl(wfl_pid)
+	Check_Type.check(wfl)
+	{:ok, wfl_json} = Poison.encode(wfl)
 
+	{:ok, file} = File.open "wfl.txt", [:write]
+IO.binwrite file, wfl_json
+File.close file
+ #File.read "wfl.txt"
+end
+
+
+def test_json2(wfl_pid) do
+	wfl = WFL.get_wfl(wfl_pid)
+	Check_Type.check(wfl)
+	{:ok, wfl_json} = Poison.encode([1, 2, 3])
+
+	{:ok, file} = File.open "wfl.txt", [:write]
+IO.binwrite file, wfl_json
+File.close file
+ #File.read "wfl.txt"
+end
+
+
+def encode(list) do
+  fun = &[?,, Poison.Encoder.encode(&1, {}) | &2]
+  [?[, tl(:lists.foldr(fun, [], list)), ?]]
+end
+
+
+def encode2(list) do
+  fun = fn a, b -> [44, Poison.Encoder.encode(a, {}) | b] end
+  [91, tl(List.foldr(list, [], fun)), 93]
+end
+
+def encode_types(wfl_pid) do
+	wfl_types = WFL.get_wfl(wfl_pid).types
+
+	fun = fn {k, v}, b ->
+		IO.inspect(v)
+		[44, Poison.Encoder.encode(v, []) | b]
+	end
+  wfl_json = [91, tl(Enum.reduce(wfl_types, [], fun)), 93]
+
+	{:ok, file} = File.open "wfl.txt", [:write]
+	IO.binwrite file, wfl_json
+	File.close file
+	 #File.read "wfl.txt"
+	end
 end
