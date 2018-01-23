@@ -380,8 +380,9 @@ def encode2(list) do
 end
 
 def encode_types(wfl_pid) do
-	wfl_types = WFL.get_wfl(wfl_pid).types
+	#wfl_types = WFL.get_wfl(wfl_pid).types
 
+wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
 	fun = fn {k, v}, b ->
 		IO.inspect(v)
 		[44, Poison.Encoder.encode(v, []) | b]
@@ -392,5 +393,128 @@ def encode_types(wfl_pid) do
 	IO.binwrite file, wfl_json
 	File.close file
 	 #File.read "wfl.txt"
-	end
+end
+
+def test_stream(wfl_pid) do
+	file = File.stream!("wfl.txt")
+
+	#s = WFLStream.get_wfl_stream(wfl_pid)
+	#Stream.map(WFL.get_wfl(wfl_pid).types, fn (k) ->
+	#after all this faffing around with streams - I actually want to sort the wfl by freq.
+	#Stream.map(WFL.get_wfl(wfl_pid).types, fn ({k, v}) ->
+
+  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
+
+  Stream.transform(wfl_types, [], fn (v, acc) ->
+	IO.inspect(v)
+  case v do
+    [] -> {:halt, acc}
+  end
+		#{}"{" <> k <> ":" <> "\"" v.freq <> "}"
+		# "{#{k}: #{v.freq}}"
+    {tl(v), acc}
+	end)
+  # i don't think that we want stream.transform.
+  # we want to forward a single wfl_type
+  # may want to forget streaming just for the moment.
+	#File.close(file)
+
+#   stream = File.stream!("code")
+# |> Stream.map(&String.replace(&1, "#", "%"))
+# |> Stream.into(File.stream!("new"))
+# |> Stream.run
+
+end
+
+def save_tokens([token | tokens], f) do
+  save_token(token, f, false)
+  #IO.inspect({:instances, token.instances})
+  #{_k, info} = token
+  save_rest(tokens, f)
+end
+
+def save_rest(tokens, f) do
+  Enum.each(tokens, fn (x) ->
+#IO.puts("Hello")
+  #"{#{k}: #{v.freq}}"
+#    IO.inspect(v)
+    save_token(x, f)
+  end )
+
+end
+
+def save_token({k, v}, file, leading_comma \\true) do
+
+  b = [?,, 34, "sentences", 34, ?:, 32, ?[, ?[, "#{10}", ?,, "#{2}", ?], ?], 125]
+  a = [123, 34, "type", 34, ?:, 32, 34, k, 34, ?,, 34, "freq", 34, ?:, 32, "#{v.freq}", 10, 13]
+
+  aa = case leading_comma do
+    false ->
+      IO.puts("hhkjh")
+      a
+    _ ->
+      [?, | a]
+
+  end
+  [aa | b]
+
+  IO.binwrite file, aa
+
+  save_sents(v.instances, file)
+  cc = [?}]
+  IO.binwrite file, cc
+
+end
+
+def save_sents([sent | sents], f) do
+  #wrapper for sents here
+  bb = [?,, 34, "sentences", 34, ?:, 32, ?[]
+  IO.binwrite f, bb
+  save_sent(sent, f, false)
+  save_rest_sents(sents, f)
+  cc = [?]]
+  IO.binwrite f, cc
+end
+
+def save_rest_sents(sents, f) do
+  Enum.each(sents, fn (x) ->
+    save_sent(x, f)
+  end )
+
+end
+
+def save_sent({s, {o1, o2}}, file, leading_comma \\true) do
+
+#b = [?,, 34, "sentences", 34, ?:, 32, ?[, ?[, "#{10}", ?,, "#{2}", ?], ?], 125]
+IO.inspect(s)
+IO.inspect(o1)
+IO.inspect(o2)
+#{2, {30, 30}} --> {"s":2, "o":[30,30]}
+b = [?[, "#{s}", ?,, "#{o1}", ?,, "#{o2}", ?]]
+
+  bb = case leading_comma do
+    false ->
+      b
+    _ ->
+      [?, | b]
+
+  end
+  IO.binwrite file, bb
+end
+
+def save_wfl(wfl_pid) do
+
+  {:ok, file} = File.open "wfl.txt", [:write]
+IO.binwrite file, [?{, 34, "wfl", 34,   ?:, 32, ?[]
+  types = WFL.get_wfl(wfl_pid).types
+  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
+#IO.inspect(types)
+IO.puts("Bonjour")
+save_tokens(wfl_types, file)
+
+  IO.binwrite file, [?], ?}]
+
+  File.close(file)
+end
+
 end
