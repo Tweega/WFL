@@ -388,45 +388,51 @@ end
 
 def save_token({k, v}, file, leading_comma \\true) do
 
-  b = [?,, 34, "sentences", 34, ?:, 32, ?[, ?[, "#{10}", ?,, "#{2}", ?], ?], 125]
-  a = [123, 34, "type", 34, ?:, 32, 34, k, 34, ?,, 34, "freq", 34, ?:, 32, "#{v.freq}", 10, 13]
+	iolist = [?}]
+
+	iolist2 = save_sents(v.instances, iolist)
+	iolist3 =
+		if v.is_common == true do
+			[?,, 32, 34, "common", 34, ?:, "#{1}" | iolist2]
+		else
+			iolist2
+		end
+
+  a = [123, 34, "type", 34, ?:, 34, k, 34, ?,, 34, "freq", 34, ?:, "#{v.freq}", 10, 13]
 
   aa = case leading_comma do
     false ->
-      IO.puts("hhkjh")
       a
     _ ->
       [?, | a]
 
   end
-  [aa | b]
 
-  IO.binwrite file, aa
-
-  save_sents(v.instances, file)
-  cc = [?}]
-  IO.binwrite file, cc
+	iolist4 = [aa | iolist3]
+	#iolist4 = [?S | iolist3]
+  IO.binwrite file, iolist4
 
 end
 
-def save_sents([sent | sents], f) do
+def save_sents([sent | sents], iolist) do
   #wrapper for sents here
-  bb = [?,, 34, "sentences", 34, ?:, 32, ?[]
-  IO.binwrite f, bb
-  save_sent(sent, f, false)
-  save_rest_sents(sents, f)
-  cc = [?]]
-  IO.binwrite f, cc
+
+  bb = [?,, 34, "sentences", 34, ?:, ?[]
+  ##IO.binwrite f, bb
+  iolist2 = save_sent(sent, [?] | iolist], false)
+  iolist3 = save_rest_sents(sents, iolist2)
+	[[?,, 34, "sentences", 34, ?:, ?[] | iolist3]
+  #cc = [?]]
+  #IO.binwrite f, cc
 end
 
-def save_rest_sents(sents, f) do
-  Enum.each(sents, fn (x) ->
-    save_sent(x, f)
-  end )
-
+def save_rest_sents(sents, iolist) do
+	Enum.reduce(sents, iolist, fn(sent, acc) ->
+    save_sent(sent, acc)
+  end)
 end
 
-def save_sent({s, {o1, o2}}, file, leading_comma \\true) do
+def save_sent({s, {o1, o2}}, iolist, leading_comma \\true) do
 
 #b = [?,, 34, "sentences", 34, ?:, 32, ?[, ?[, "#{10}", ?,, "#{2}", ?], ?], 125]
 IO.inspect(s)
@@ -439,16 +445,16 @@ b = [?[, "#{s}", ?,, "#{o1}", ?,, "#{o2}", ?]]
     false ->
       b
     _ ->
-      [?, | b]
+      [b | [?,]]
 
   end
-  IO.binwrite file, bb
+  [bb | iolist]
 end
 
 def save_wfl(wfl_pid) do
 
   {:ok, file} = File.open "wfl.txt", [:write]
-IO.binwrite file, [?{, 34, "wfl", 34,   ?:, 32, ?[]
+IO.binwrite file, [?{, 34, "wfl", 34,   ?:, ?[]
   types = WFL.get_wfl(wfl_pid).types
   wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
 #IO.inspect(types)
