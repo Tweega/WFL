@@ -48,4 +48,9 @@ defmodule TokensBinary do
   def get_map() do
     Agent.get(:tokens_bin, &(&1)) #this returns agent state.
   end
+
+  def get_stream() do
+    sent_map = Agent.get(:tokens_bin, &(&1)) #this returns agent state.
+    sent_map |> Stream.map(&(&1))
+  end
 end

@@ -7,3 +7,4 @@ erl_crash.dump
 /temp
 mix.lock
 wfl.txt
+sent_tokens.txt

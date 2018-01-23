@@ -466,4 +466,56 @@ save_tokens(wfl_types, file)
   File.close(file)
 end
 
+def save_sentence_tokens() do
+	#at the moment not filtering out non-rich sentences
+	#saving only tokens not punctuation, as an array of tokens
+	#sentences are stored where?
+
+	root_wfl_pid = WFLScratch.Server.get_wfl_pid("root_wfl_pid")
+	{:ok, file} = File.open "sent_tokens.txt", [:write]
+
+
+	#we need to get hold of root_wfl_pid - we will not be passed this in
+	IO.binwrite file, [?[]
+
+	ss = TokensBinary.get_stream()
+
+	Enum.reduce(ss, 0, fn({sent_id, %TokensBinary{bin_tokens: bt }}, item_count) ->
+
+		sx = WFL.translate_phrase(root_wfl_pid, bt)
+
+		iolist = Enum.reduce(sx, [?], ?}], fn(token, acc) ->
+			[[?,, 34, token, 34] | acc]
+		end)
+		#IO.inspect(iolist)
+		[h | t] = iolist
+	#	IO.inspect({:h, h})
+		[_comma | rest_head] = h
+#IO.inspect(rest_head)
+		iolist2 = [rest_head | t]
+		iolist3 = [[?{, 34, "id", 34, ?:, "#{sent_id}", ?,, 34, "tokens", 34, ?:, ?[] | iolist2]
+		iolist4 = case item_count do
+			0 ->
+				iolist3
+			_ ->
+			[?, | iolist3]
+		end
+
+		IO.binwrite file, iolist4
+		#IO.inspect({:sx, sx})
+		item_count + 1
+	end)
+		IO.binwrite file, [?]]
+	  File.close(file)
+end
+
+
+def save_sentences_with_punctuation() do
+	ss = Sentences.get_stream()
+	#sentences need reversing
+	Enum.each(ss, fn(s) ->
+		IO.inspect(s)   #{24, ".eerht owt eno"}
+	end)
+end
+
 end
