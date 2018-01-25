@@ -16,6 +16,7 @@ defmodule Expansion do
   end
 
   def new(phrase_tokens, %ExpansionItem{phrase_id: phrase_id} = expansion_item) do
+    #IO.inspect({:item, expansion_item})
     Agent.update(:expansion, fn (%Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} = expansion) ->
         new_expansion_map = Map.put(expansion_map, phrase_tokens, expansion_item)
         new_phrase_map = Map.put(phrase_map, phrase_id, phrase_tokens)
@@ -34,6 +35,25 @@ defmodule Expansion do
       Map.get(phrase_map, phrase_id)
     end)
   end
+
+
+  def get_phrase_info(phrase_id) do
+    tokens = get_phrase(phrase_id)
+
+    %Expansion{expansion_map: expansion_map, phrase_map: phrase_map} =
+      Agent.get(:expansion, &(&1))
+
+      case Map.get(expansion_map, tokens) do
+        nil ->
+          #IO.inspect({:not_foundss, phrase_id})
+        {:not_found, tokens}
+
+      %ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} ->
+        {wfl_pid, tokens}
+
+      end
+  end
+
 
   def add_concretisation(abstraction_tokens, concretisation_id) do
 
@@ -59,8 +79,8 @@ defmodule Expansion do
         #%ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} = Map.get(expansion_map, abstraction_tokens)
         case Map.get(expansion_map, abstraction_tokens) do
           nil ->
-            IO.inspect({:not_found, abstraction_tokens})
-          :not_found
+            #IO.inspect({:not_foundqq, abstraction_tokens})
+          :not_founddd
 
         %ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} ->
           WFL.add_concretisation(wfl_pid, phrase_id, concretisation_id, true)

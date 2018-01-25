@@ -435,9 +435,6 @@ end
 def save_sent({s, {o1, o2}}, iolist, leading_comma \\true) do
 
 #b = [?,, 34, "sentences", 34, ?:, 32, ?[, ?[, "#{10}", ?,, "#{2}", ?], ?], 125]
-IO.inspect(s)
-IO.inspect(o1)
-IO.inspect(o2)
 #{2, {30, 30}} --> {"s":2, "o":[30,30]}
 b = [?[, "#{s}", ?,, "#{o1}", ?,, "#{o2}", ?]]
 
@@ -452,13 +449,12 @@ b = [?[, "#{s}", ?,, "#{o1}", ?,, "#{o2}", ?]]
 end
 
 def save_wfl(wfl_pid) do
-
+#once we have a sorted main wfl - may be an idea to hang onto it until done
+#also - check where we get rid of happax legomena.
   {:ok, file} = File.open "wfl.txt", [:write]
 IO.binwrite file, [?{, 34, "wfl", 34,   ?:, ?[]
   types = WFL.get_wfl(wfl_pid).types
-  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
-#IO.inspect(types)
-IO.puts("Bonjour")
+  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)
 save_tokens(wfl_types, file)
 
   IO.binwrite file, [?], ?}]
@@ -483,17 +479,17 @@ def save_sentence_tokens() do
 	Enum.reduce(ss, 0, fn({sent_id, %TokensBinary{bin_tokens: bt }}, item_count) ->
 
 		sx = WFL.translate_phrase(root_wfl_pid, bt)
+		sent = Sentences.get(sent_id)
+			|> String.reverse()
 
-		iolist = Enum.reduce(sx, [?], ?}], fn(token, acc) ->
+		iolist = Enum.reduce(sx, [?], ?,, 34, "sent", 34, ?:, 34, "#{sent}", 34, ?}], fn(token, acc) ->
 			[[?,, 34, token, 34] | acc]
 		end)
-		#IO.inspect(iolist)
 		[h | t] = iolist
-	#	IO.inspect({:h, h})
 		[_comma | rest_head] = h
-#IO.inspect(rest_head)
 		iolist2 = [rest_head | t]
 		iolist3 = [[?{, 34, "id", 34, ?:, "#{sent_id}", ?,, 34, "tokens", 34, ?:, ?[] | iolist2]
+
 		iolist4 = case item_count do
 			0 ->
 				iolist3
@@ -502,7 +498,6 @@ def save_sentence_tokens() do
 		end
 
 		IO.binwrite file, iolist4
-		#IO.inspect({:sx, sx})
 		item_count + 1
 	end)
 		IO.binwrite file, [?]]
@@ -513,9 +508,132 @@ end
 def save_sentences_with_punctuation() do
 	ss = Sentences.get_stream()
 	#sentences need reversing
+	#save this alongside tokens?
+
 	Enum.each(ss, fn(s) ->
 		IO.inspect(s)   #{24, ".eerht owt eno"}
 	end)
 end
+
+
+def save_concretisation_tree() do
+	#start with the main wfl and then process all concretisations,depth first
+root_wfl_pid = WFLScratch.Server.get_wfl_pid("root_wfl_pid")
+root_colloc_pid = get_root_colloc_pid()
+		{:ok, file} = File.open "wfl_tree.txt", [:write]
+		IO.binwrite file, [?{, 34, "wfl_tree", 34,   ?:, ?[]
+		#types = WFL.get_wfl(root_wfl_pid).types
+		wfl_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
+
+		x = process_concretisation_types(wfl_types, [], root_wfl_pid, root_colloc_pid)
+		#for each wfl item
+		#we need to be able to recurse
+		File.close(file)
+end
+
+def process_concretisation_types([], iolist, _root_wfl_pid, _root_colloc_pid) do
+	#IO.inspect(iolist)
+	iolist
+
+end
+
+
+def process_concretisation_types([{tok_key, %WFL_Type{is_common: common}} | rest], iolist, root_wfl_pid, root_colloc_pid) when common == true do
+	process_concretisation_types(rest, iolist, root_wfl_pid, root_colloc_pid)
+end
+
+def process_concretisation_types([{tok_key, %WFL_Type{freq: freq}} | rest], iolist, root_wfl_pid, root_colloc_pid) when freq < 2 do
+	process_concretisation_types(rest, iolist, root_wfl_pid, root_colloc_pid)
+end
+
+def process_concretisation_types([{tok_key, %WFL_Type{type: wfl_type, type_id: type_id, concretisations: concset}} | rest], iolist, root_wfl_pid, root_colloc_pid) do
+	#,{type: "cat", concs: [{type: "cat sat", concs:[]}]}
+	IO.inspect({:tok_key, tok_key})
+	concs = case concset do
+		nil ->
+			[]
+		_ ->
+			MapSet.to_list(concset)
+	end
+
+	case concs do
+			[]->
+				process_concretisation_types(rest, iolist, root_wfl_pid, root_colloc_pid)
+			_ ->
+				iolist2 = process_concretisations(concs, [], root_wfl_pid, root_colloc_pid)
+				IO.inspect({tok_key, iolist2})
+				new_list = [[?{, 34, "type", 34, ?:, 34, "#{wfl_type}", 34, ?,, "concs", ?:, 34, "concs go here", 34, ?}] | iolist]
+				process_concretisation_types(rest, new_list, root_wfl_pid, root_colloc_pid)
+	end
+end
+
+
+
+def process_concretisations([], iolist, root_wfl_pid, root_colloc_pid) do
+	#IO.inspect(iolist)
+	iolist
+
+end
+
+
+def process_concretisations([conc | rest], iolist, root_wfl_pid, root_colloc_pid) do
+	#,{type: "cat", concs: [{type: "cat sat", concs:[]}]}
+	#IO.inspect(conc)
+	#hopefully we can use the expansion tree here again
+	#{z, pid} = Expansion.get_phrase_info(conc)
+	{wfl_pid, tokens} = Expansion.get_phrase_info(conc)
+#IO.inspect(wfl_pid)
+#{:not_found, nil}
+#{#PID<0.273.0>, <<0, 0, 0, 89, 0, 0, 0, 75, 0, 0, 0, 88>>}
+
+{phrase, next_concs, w_pid} =
+  case tokens do
+    nil ->
+      #if not in the expansion tree, then should already be exapnded be in the root colloc wfl
+      %WFL_Type{type: tokes, concretisations: concs} = WFL.get_token_info_from_id(root_colloc_pid, conc)
+      {tokes, concs, root_colloc_pid}
+    _ ->
+      %WFL_Type{concretisations: concs2} = WFL.get_token_info_from_id(wfl_pid, conc)
+      {tokens, concs2, wfl_pid}
+  end
+
+conc_list = case next_concs do
+	nil ->
+		[]
+	_ ->
+		MapSet.to_list(next_concs)
+end
+	#IO.inspect({:cpr, phrase, next_concs})
+#IO.inspect({:conc, conc})
+
+  q = WFL.translate_phrase(root_wfl_pid, phrase)
+	r = WFLScratch.Server.expand_type_id(w_pid, conc, true)
+
+	#IO.inspect({:qaz, r, next_concs})
+  #IO.inspect({:phrase, next_concs})
+#IO.inspect({:expansion, q})
+# the phrase represented by r needs to be evaluated for how it entends current abstraction
+j = process_concretisations(conc_list, [], root_wfl_pid, root_colloc_pid)
+IO.inspect({:j, j})
+k = case j do
+	[] ->
+		iolist
+	_ ->
+	[j | iolist]
+end
+process_concretisations(rest, [r | k], root_wfl_pid, root_colloc_pid)
+
+
+	#IO.inspect({wfl_pid, tokens})
+
+end
+
+
+def get_root_colloc_pid() do
+	last_wfl_pid = WFLScratch.Server.get_wfl_pid("last_wfl_pid")
+	[_root, root_colloc_pid | _] = Collocation.get_wfl_chain(last_wfl_pid)
+	root_colloc_pid
+end
+
 
 end

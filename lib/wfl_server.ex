@@ -97,6 +97,7 @@ defmodule WFLScratch.Server do
 	end
 
 	def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, state) do
+		#this should be on wfl, otherwise wfl cannot call it, at least on its own pid, as the wfl process is blocked when calling to get_parent
 		parent_wfl_pid = WFL.get_parent(wfl_pid)
 		root_wfl_pid = Map.get(state, "root_wfl_pid")
 

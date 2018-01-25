@@ -112,7 +112,6 @@ defmodule WFL do
 
 	def handle_call({:translate_phrase, phrase}, _client, {wfl, _parent} = state) do
 		me = self()
-		#IO.inspect({:me, me})
 		translation = translate_phrase(phrase, wfl, [])
 		{:reply, translation, state}
 	end
@@ -149,7 +148,6 @@ defmodule WFL do
 			{_token_offset, tokens_binary, offset_map, wfl_data2} = process_tokens(tokens, sentence_id, wfl_data1)
 
 			_sample_offset_map = %{0 => <<0, 0, 0, 4>>, 1 => <<0, 0, 0, 188>>, 2 => <<0, 0, 0, 158>>}
-			#IO.inspect(offset_map)
 
 			#store tokens binary data - this will be the input 'text' for the next round of tokens.
 			TokensBinary.new(sentence_id, %TokensBinary{bin_tokens: tokens_binary, offset_maps: %OffsetMaps{token_map: offset_map}})
@@ -167,8 +165,6 @@ defmodule WFL do
 		# we also want sentences of the form <<tok_id1 <> tok_id2>>...a binary string - so we are not storing the actual text here - should this be binary string or
 
 		#we want a map of tokens so that we have [97, 123, 554, 98, 222, 27] etc. for e.g. the cat sat on the mat....except we want that as a binary string with 4 bytes per number
-#IO.inspect(tokens)
-
 		#update / create WFL_Type for each token
 		toke_offset = length(tokens) -1 # -1 for 1 based vs 0 based index.  tokens in reverse sentence order, start with count of words in sentence
 		List.foldl(tokens, {toke_offset, <<"">>, %{}, wfl_data}, fn (token, {token_offset, tokens_binary, token_offset_map, wfl_data1}) ->
@@ -254,18 +250,27 @@ defmodule WFL do
 			phrase_id
 		end
 
-#IO.inspect({:phrase_type, phrase_type, :phrase_id, phrase_id, :is_phrase_id, is_phrase_id})
+    IO.inspect({:Concretising, phrase_id, :with, concretisation_id, :is_phrase, is_phrase_id})
 
 		new_wfl_types = Map.update!(wfl.types, phrase_type, fn %WFL_Type{concretisations: concretisations} = wfl_type ->
 			#get_and_update returns a tuple of {the current value, and the value to be stored under the key, which in this case is phrase_type}
-			%WFL_Type{wfl_type | concretisations: [concretisation_id | concretisations]}
+      #IO.inspect(concretisations)
+      c = case concretisations do
+        nil ->
+          MapSet.new()
+        _ ->
+        concretisations
+      end
+      new_concretisations = MapSet.put(c, concretisation_id)
+			%WFL_Type{wfl_type | concretisations: new_concretisations}
 		end)
+
+
 
 		%WFL_Data{wfl | types: new_wfl_types}
 	end
 
 	def translate_phrase(<<>>, wfl, phrase) do
-		IO.inspect({:final_phrase, phrase})
 		phrase
 	end
 
@@ -277,7 +282,6 @@ defmodule WFL do
 
 		#token_info = fetch_token_info_from_id(wfl, spaceless_token)
 		token = Map.get(wfl.type_ids, spaceless_token)
-		IO.inspect({:spaceless_token, token_id, token})
 		new_phrase = [token | phrase]
 		phrase2 = case rest do
 			<<>> -> new_phrase

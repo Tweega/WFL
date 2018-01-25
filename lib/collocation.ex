@@ -402,7 +402,6 @@ IO.puts("That's all folks")
 
 	defp do_concretise_phrases([colloc_pid | rest_pids]) do
 		cutoff = 2
-IO.puts("dcp")
 		#we want to set up a stream here iterating through wfls
 		#for the moment only, process a complete list of phrases from the last wfl
 		phrases = WFL.get_wfl(colloc_pid).types
@@ -440,43 +439,24 @@ IO.puts("dcp")
 
 	end
 
-	def concretise_phrase_temp(phrase) do
-		IO.inspect({:phrase, phrase})
-	end
-
-	def translate_expansions({expanded_phrase, %ExpansionItem{phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
-
-		IO.inspect({:expanded_phrase, expanded_phrase, phrase_id: phrase_id, wfl_pid: wfl_pid})
-	end
-
-	# def concretise_abstractions({expanded_phrase, %ExpansionItem{phrase_id: phrase_id, wfl_pid: wfl_pid}}) do
-	# 	if ProcessedPhrases.contains(expanded_phrase) == false do
-	# 		IO.inspect(expanded_phrase)
-	# 		abstractions = lose_one_bin(expanded_phrase)
-	# 		make_concrete(abstractions, expanded_phrase)
-	# 		ProcessedPhrases.new(phrase_id)
-	# 		IO.puts("hello")
-	# 	end
-	# 	IO.puts("there")
-	# end
-
-	defp get_concretiser(wfl_pid, token_id) do
+	defp get_concretiser(wfl_pid, concretiser) do
 		#if this phrase is only concretised by one other phrase then pass on the longer concretiser instead of this phrase
 		#we may want to change these rules, and also to be able to pass up more than one single extended concretiser - in which case we would have to return a list
 		#if ABC only concretised by ABCD, then AB, AC, BC are concretised by ABCD, not by ABC"
 
-		case WFL.get_token_info_from_id(wfl_pid, token_id) do
+		case WFL.get_token_info_from_id(wfl_pid, concretiser) do
 
 			%WFL_Type {concretisations: [_first, _second | _rest]} ->
 				#at least 2 concretisations
-				token_id
+				concretiser
 			%WFL_Type {concretisations: [extended_concretiser | _rest]} ->
 				#single concretiser
-				IO.inspect({:replace, token_id, :with, extended_concretiser})
+				IO.inspect({:replace, concretiser, :with, extended_concretiser})
 				extended_concretiser
+				#concretiser
 			_ ->
 				#none
-				token_id
+				concretiser
 		end
 	end
 
@@ -490,9 +470,6 @@ IO.puts("dcp")
 		expanded_phrase = WFLScratch.Server.expand_type_id(wfl_pid, type.type_id, false)	#false leaves the expansion as binary token ids
 		#may not be so simple.  I think we are going to have to find a way not to start this exercise from inside WFLScratch.Server
 		#IO.inspect({:expanded_phrase, expanded_phrase})
-
-
-
 
 		#if ProcessedPhrases.contains(type.type_id) == false do
 			abstractions = lose_one_bin(expanded_phrase)
@@ -523,7 +500,7 @@ IO.puts("dcp")
 		size_abstraction = byte_size(next_abstraction)
 		if size_abstraction > 0 do
 			jj = Expansion.add_concretisation(next_abstraction, concretiser_id)
-			IO.inspect({:jj, concretiser_id})
+			#IO.inspect({:owner, next_abstraction, :conc, concretiser_id})
 
 		else
 			Logger.debug("How can next abstraction size be zero?")

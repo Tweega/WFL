@@ -22,7 +22,7 @@
 	end
 
 	defmodule WFL_Type do
-		defstruct([:type, :type_id, :freq, is_common: false, instances: [], concretisations: []])  #concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat])
+		defstruct([:type, :type_id, :freq, is_common: false, instances: [], concretisations: nil])  #concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat])
 	end
 
 	defmodule TokenInstance do
