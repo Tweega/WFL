@@ -524,109 +524,44 @@ root_colloc_pid = get_root_colloc_pid()
 		IO.binwrite file, [?{, 34, "wfl_tree", 34,   ?:, ?[]
 		#types = WFL.get_wfl(root_wfl_pid).types
 		wfl_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
+		Enum.each(wfl_types, fn({_key, wfl_type}) ->
+			IO.inspect(wfl_type)
+			if wfl_type.freq > 1 && wfl_type.is_common != true do
+			#this is where we want to create an iolist and output to disk
+				iolist = process_concretisation_type(root_wfl_pid, wfl_type, [])
+				#now output the iolist to file
+				##IO.binwrite file, iolist
+			end
+		end)
 
-		x = process_concretisation_types(wfl_types, [], root_wfl_pid, root_colloc_pid)
-		#for each wfl item
-		#we need to be able to recurse
 		File.close(file)
 end
 
-def process_concretisation_types([], iolist, _root_wfl_pid, _root_colloc_pid) do
-	#IO.inspect(iolist)
-	iolist
-
-end
-
-
-def process_concretisation_types([{tok_key, %WFL_Type{is_common: common}} | rest], iolist, root_wfl_pid, root_colloc_pid) when common == true do
-	process_concretisation_types(rest, iolist, root_wfl_pid, root_colloc_pid)
-end
-
-def process_concretisation_types([{tok_key, %WFL_Type{freq: freq}} | rest], iolist, root_wfl_pid, root_colloc_pid) when freq < 2 do
-	process_concretisation_types(rest, iolist, root_wfl_pid, root_colloc_pid)
-end
-
-def process_concretisation_types([{tok_key, %WFL_Type{type: wfl_type, type_id: type_id, concretisations: concset}} | rest], iolist, root_wfl_pid, root_colloc_pid) do
+def process_concretisation_type(wfl_pid, %WFL_Type{type: wfl_type, type_id: type_id, concretisations: concSet}, iolist) do
 	#,{type: "cat", concs: [{type: "cat sat", concs:[]}]}
-	IO.inspect({:tok_key, tok_key})
-	concs = case concset do
+
+	#add this token to the iolist pipeline, and recurse over each element in the concretisation map.
+	#is it worth seeing if we can revert back to a list of concretisations as opposed to a map?
+
+	conc_list = case concSet do
 		nil ->
 			[]
 		_ ->
-			MapSet.to_list(concset)
+			MapSet.to_list(concSet)
 	end
 
-	case concs do
-			[]->
-				process_concretisation_types(rest, iolist, root_wfl_pid, root_colloc_pid)
-			_ ->
-				iolist2 = process_concretisations(concs, [], root_wfl_pid, root_colloc_pid)
-				IO.inspect({tok_key, iolist2})
-				new_list = [[?{, 34, "type", 34, ?:, 34, "#{wfl_type}", 34, ?,, "concs", ?:, 34, "concs go here", 34, ?}] | iolist]
-				process_concretisation_types(rest, new_list, root_wfl_pid, root_colloc_pid)
-	end
+	xx = WFLScratch.Server.expand_type_id(wfl_pid, type_id, true)
+
+	new_iolist = [[iolist] | [?{, "#{xx}", ?}]]
+		#for each element in the concretisations list, create a list of associated wfl_items
+		#hopefully we can revert to sing a list instead of a map
+		Enum.reduce(conc_list, new_iolist, fn({key, %Concretisation{pid: conc_pid, token_id: conc_id}}, acc)->
+			conc_info = WFL.get_token_info_from_id(conc_pid, conc_id)
+			iolist = process_concretisation_type(conc_pid, conc_info, [])
+			[[new_iolist] | iolist]
+		end)	#this will output a new iolist
 end
 
-
-
-def process_concretisations([], iolist, root_wfl_pid, root_colloc_pid) do
-	#IO.inspect(iolist)
-	iolist
-
-end
-
-
-def process_concretisations([conc | rest], iolist, root_wfl_pid, root_colloc_pid) do
-	#,{type: "cat", concs: [{type: "cat sat", concs:[]}]}
-	#IO.inspect(conc)
-	#hopefully we can use the expansion tree here again
-	#{z, pid} = Expansion.get_phrase_info(conc)
-	{wfl_pid, tokens} = Expansion.get_phrase_info(conc)
-#IO.inspect(wfl_pid)
-#{:not_found, nil}
-#{#PID<0.273.0>, <<0, 0, 0, 89, 0, 0, 0, 75, 0, 0, 0, 88>>}
-
-{phrase, next_concs, w_pid} =
-  case tokens do
-    nil ->
-      #if not in the expansion tree, then should already be exapnded be in the root colloc wfl
-      %WFL_Type{type: tokes, concretisations: concs} = WFL.get_token_info_from_id(root_colloc_pid, conc)
-      {tokes, concs, root_colloc_pid}
-    _ ->
-      %WFL_Type{concretisations: concs2} = WFL.get_token_info_from_id(wfl_pid, conc)
-      {tokens, concs2, wfl_pid}
-  end
-
-conc_list = case next_concs do
-	nil ->
-		[]
-	_ ->
-		MapSet.to_list(next_concs)
-end
-	#IO.inspect({:cpr, phrase, next_concs})
-#IO.inspect({:conc, conc})
-
-  q = WFL.translate_phrase(root_wfl_pid, phrase)
-	r = WFLScratch.Server.expand_type_id(w_pid, conc, true)
-
-	#IO.inspect({:qaz, r, next_concs})
-  #IO.inspect({:phrase, next_concs})
-#IO.inspect({:expansion, q})
-# the phrase represented by r needs to be evaluated for how it entends current abstraction
-j = process_concretisations(conc_list, [], root_wfl_pid, root_colloc_pid)
-IO.inspect({:j, j})
-k = case j do
-	[] ->
-		iolist
-	_ ->
-	[j | iolist]
-end
-process_concretisations(rest, [r | k], root_wfl_pid, root_colloc_pid)
-
-
-	#IO.inspect({wfl_pid, tokens})
-
-end
 
 
 def get_root_colloc_pid() do
@@ -634,6 +569,5 @@ def get_root_colloc_pid() do
 	[_root, root_colloc_pid | _] = Collocation.get_wfl_chain(last_wfl_pid)
 	root_colloc_pid
 end
-
 
 end

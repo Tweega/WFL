@@ -160,6 +160,10 @@ defmodule Collocation do
 
 								end)
 							_ ->
+									#don't seem to be handling a failure return type
+									#IO.puts("Not handling failure to retrieve value from continuation map.")
+									#we do come here quite a lot.  Need to check if this is expected behaviour.
+									nil
 						end
 					end
 				end)
@@ -440,34 +444,30 @@ IO.puts("That's all folks")
 	end
 
 	defp get_concretiser(wfl_pid, concretiser) do
-		#if this phrase is only concretised by one other phrase then pass on the longer concretiser instead of this phrase
-		#we may want to change these rules, and also to be able to pass up more than one single extended concretiser - in which case we would have to return a list
 		#if ABC only concretised by ABCD, then AB, AC, BC are concretised by ABCD, not by ABC"
+		#concretiser is handed down until abstraction is more frequent than concretiser
 
-		case WFL.get_token_info_from_id(wfl_pid, concretiser) do
+		x = WFL.get_token_info_from_id(wfl_pid, concretiser)
+		#if we have a root_info, use that, otherwise use this
+		%{freq: concretiser_freq, conc: %Concretisation{}} = x.root_info
 
-			%WFL_Type {concretisations: [_first, _second | _rest]} ->
-				#at least 2 concretisations
-				concretiser
-			%WFL_Type {concretisations: [extended_concretiser | _rest]} ->
-				#single concretiser
-				IO.inspect({:replace, concretiser, :with, extended_concretiser})
-				extended_concretiser
-				#concretiser
+		case concretiser_freq do
+			0 ->
+				#use this type's info
+				%{freq: x.freq,  conc: %Concretisation{pid: wfl_pid, token_id: x.type_id}}
 			_ ->
-				#none
-				concretiser
+				x.root_info
 		end
 	end
 
-	def concretise_phrase(phrase, wfl_pid) do
+	def concretise_phrase(phrase, concretiser_pid) do
 		{_key, type} = phrase
 		#IO.inspect({type.type_id})
 
 		#this looks like a blocking call - we are calling back into wflscratch server from a job started there, so neither job can now proceed.
 		# the only way forward for the moment is to call the end function directly so that we stay on this thread.
 		#later we need to review which modules have which functions
-		expanded_phrase = WFLScratch.Server.expand_type_id(wfl_pid, type.type_id, false)	#false leaves the expansion as binary token ids
+		expanded_phrase = WFLScratch.Server.expand_type_id(concretiser_pid, type.type_id, false)	#false leaves the expansion as binary token ids
 		#may not be so simple.  I think we are going to have to find a way not to start this exercise from inside WFLScratch.Server
 		#IO.inspect({:expanded_phrase, expanded_phrase})
 
@@ -475,9 +475,10 @@ IO.puts("That's all folks")
 			abstractions = lose_one_bin(expanded_phrase)
 			# IO.inspect(expanded_phrase)
 			# IO.inspect(abstractions)
-			parent_wfl_pid = WFL.get_parent(wfl_pid)
-			concretiser_id = get_concretiser(wfl_pid, type.type_id)
-			make_concrete(abstractions, concretiser_id)
+			parent_wfl_pid = WFL.get_parent(concretiser_pid)
+			root_info = get_concretiser(concretiser_pid, type.type_id)
+			make_concrete(abstractions, root_info)
+
 			#ProcessedPhrases.new(type.type_id)
 		#else
 			#IO.puts("Do we ever encounter a situation where a phrase has already been processed?")
@@ -486,10 +487,10 @@ IO.puts("That's all folks")
 	end
 
 
-	def make_concrete([], _concretiser_id) do
+	def make_concrete([], _concretiser_info) do
 	end
 
-	def make_concrete([next_abstraction | rest_abstractions], concretiser_id) do
+	def make_concrete([next_abstraction | rest_abstractions], concretiser_info) do
 		#here find the abstraction in its wfl and add phrase to its concretisation list.
 		#problem here is that phrases are only ever two tokens long..a token for the phrase so far (lhs) and one for the additional token (rhs)
 		#we cannot use the expanded token as the key... so how to find the entry so as to set its concretisations
@@ -499,14 +500,14 @@ IO.puts("That's all folks")
 		#IO.inspect({:next_abstraction, next_abstraction})
 		size_abstraction = byte_size(next_abstraction)
 		if size_abstraction > 0 do
-			jj = Expansion.add_concretisation(next_abstraction, concretiser_id)
+			jj = Expansion.add_concretisation(next_abstraction, concretiser_info)
 			#IO.inspect({:owner, next_abstraction, :conc, concretiser_id})
 
 		else
 			Logger.debug("How can next abstraction size be zero?")
 			IO.inspect(next_abstraction)
 		end
-		make_concrete(rest_abstractions, concretiser_id)
+		make_concrete(rest_abstractions, concretiser_info)
 	end
 
 

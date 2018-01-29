@@ -6,15 +6,15 @@ defmodule WFLScratch.Supervisor do
 	end
 
 	def init (stack) do
-		children = [worker(WFLScratch.Server, [stack]), 
+		children = [worker(WFLScratch.Server, [stack]),
 					worker(SentenceCounter, []),
 					worker(Sentences, []),
-					worker(PhraseCounter, []),					
+					worker(PhraseCounter, []),
 					worker(TokensBinary, []),
 					#worker(Expansion, []),
 					worker(ProcessedPhrases, []),
-					worker(TokenCounter, [])]
-		supervise children, strategy: :one_for_one	
+					worker(TokenCounter, []),
+					worker(Concretiser, [])]
+		supervise children, strategy: :one_for_one
 	end
-end	
-
+end

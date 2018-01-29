@@ -50,8 +50,8 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, {:translate_phrase, phrase})
 	end
 
-	def add_concretisation(wfl_pid, phrase, concretisation_id, is_phrase_id) do
-		:gen_server.cast(wfl_pid, {:add_concretisation, {phrase, concretisation_id, is_phrase_id}})
+	def add_concretisation(wfl_pid, phrase, is_phrase_id, concretisation_info) do
+		:gen_server.cast(wfl_pid, {:add_concretisation, {phrase, is_phrase_id, concretisation_info}})
 	end
 
 	def start_link(parent_wfl_pid \\ nil) do		#pass in an initial wfl?
@@ -120,8 +120,10 @@ defmodule WFL do
 	def handle_cast({:add_concretisation, concretisation_info}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
 		#handle_cast?  we're not returning anything here.  we just need to know that the concretisation process is finished before we start using it.
 		#this might be achieved by putting in a dummy call to WFL at the end which will only be processed when all other messages already on the stack are dealt with
+
 		%WFL_Data{} = new_wfl = add_concretisation(wfl_data, concretisation_info)
-		{:noreply, {new_wfl, parent_wfl_pid}}
+#IO.inspect("hello there how are you?")
+    {:noreply, {new_wfl, parent_wfl_pid}}
 	end
 
 
@@ -242,30 +244,50 @@ defmodule WFL do
 
 	end
 
-	def add_concretisation(wfl, {phrase_id, concretisation_id, is_phrase_id}) do
+	def add_concretisation(wfl, {phrase_id, is_phrase_id,
+    %{freq: concretiser_freq,
+      conc: %Concretisation{pid: concretiser_pid, token_id: concretiser_id}} = root_conc }) do
 
-		phrase_type = if is_phrase_id == true do
+    phrase_type = if is_phrase_id == true do
 			Map.get(wfl.type_ids, phrase_id)
 		else
 			phrase_id
 		end
 
-    IO.inspect({:Concretising, phrase_id, :with, concretisation_id, :is_phrase, is_phrase_id})
-
+    #IO.inspect({:Concretising, phrase_id, :with, concretisation_id, :is_phrase, is_phrase_id})
+    #IO.inspect(phrase_type)
+Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
 		new_wfl_types = Map.update!(wfl.types, phrase_type, fn %WFL_Type{concretisations: concretisations} = wfl_type ->
 			#get_and_update returns a tuple of {the current value, and the value to be stored under the key, which in this case is phrase_type}
       #IO.inspect(concretisations)
-      c = case concretisations do
+      #we have the abstraction type thast we are going to concretise
+      #do we have access to the root concretisation if it comes to use that instead of this one?
+      #so if this abstraction is not more expressive, which concretising id do we use?
+      abstractionFreq = wfl_type.freq
+      #get the spacecount on the abstraction
+      spacecount = 0
+      cut_off = 1
+      #{<<0, 0, 3, 32>>, true, %{conc: %Concretisation{pid: #PID<0.341.0>, token_id: <<0, 0, 3, 64>>}, freq: 2}}
+
+
+      %{freq: conc_freq, conc: %Concretisation{pid: conc_pid, token_id: conc_id}} = conc_info =
+        if abstractionFreq > (concretiser_freq + spacecount + cut_off) do
+          %{freq: abstractionFreq, conc: %Concretisation{pid: self(), token_id: wfl_type.type_id}}
+        else
+          root_conc
+        end
+
+      concMap = case concretisations do
         nil ->
           MapSet.new()
         _ ->
         concretisations
       end
-      new_concretisations = MapSet.put(c, concretisation_id)
-			%WFL_Type{wfl_type | concretisations: new_concretisations}
-		end)
+      new_concretisations = MapSet.put(concMap, %Concretisation{pid: conc_pid, token_id: conc_id})
 
+			%WFL_Type{wfl_type | concretisations: new_concretisations, root_info: conc_info}
 
+    end)
 
 		%WFL_Data{wfl | types: new_wfl_types}
 	end

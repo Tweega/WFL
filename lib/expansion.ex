@@ -55,7 +55,7 @@ defmodule Expansion do
   end
 
 
-  def add_concretisation(abstraction_tokens, concretisation_id) do
+  def add_concretisation(abstraction_tokens, concretiser_info) do
 
     %Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} =
       Agent.get(:expansion, fn (expansion) ->
@@ -66,12 +66,14 @@ defmodule Expansion do
       <<_ :: binary-size(4)>> ->
         #single token - update concretisations in root wfl
         #we have a binary token - but for the root wfl we need the actual text
+        #we need the frequency of the abstraction tokens
+
         {token, _parent} = WFL.get_token_from_id(root_wfl_pid, abstraction_tokens)
-        WFL.add_concretisation(root_wfl_pid, token, concretisation_id, false)
+        WFL.add_concretisation(root_wfl_pid, token, false, concretiser_info)
 
       <<_ :: binary-size(8)>> ->
         #2 tokens - update concretisations in root collocation wfl
-        WFL.add_concretisation(root_colloc_pid, abstraction_tokens, concretisation_id, false)
+        WFL.add_concretisation(root_colloc_pid, abstraction_tokens, false, concretiser_info)
 
       _ ->
         # more than 2 tokens - look up the expansion to find which wfl to update
@@ -80,10 +82,10 @@ defmodule Expansion do
         case Map.get(expansion_map, abstraction_tokens) do
           nil ->
             #IO.inspect({:not_foundqq, abstraction_tokens})
-          :not_founddd
+          :not_found
 
         %ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} ->
-          WFL.add_concretisation(wfl_pid, phrase_id, concretisation_id, true)
+          WFL.add_concretisation(wfl_pid, phrase_id, true, concretiser_info)
 
         _ ->
           :hmmm

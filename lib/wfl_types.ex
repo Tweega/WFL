@@ -21,8 +21,12 @@
 		defstruct([token_info: %TokenInfo{}, sentence_info: %SentenceInfo{}, sentences: []])  #sentences is an array of %SentenceInfo
 	end
 
+	defmodule Concretisation do
+		defstruct([pid: nil, token_id: nil])
+	end
+
 	defmodule WFL_Type do
-		defstruct([:type, :type_id, :freq, is_common: false, instances: [], concretisations: nil])  #concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat])
+		defstruct([:type, :type_id, :freq, root_info: %{freq: 0, conc: %Concretisation{}}, is_common: false, instances: [], concretisations: nil])  #concretisations holds token_ids of types that extend the current type ie catsat extends cat and sat])
 	end
 
 	defmodule TokenInstance do
