@@ -273,6 +273,7 @@ Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
       %{freq: conc_freq, conc: %Concretisation{pid: conc_pid, token_id: conc_id}} = conc_info =
         if abstractionFreq > (concretiser_freq + spacecount + cut_off) do
           %{freq: abstractionFreq, conc: %Concretisation{pid: self(), token_id: wfl_type.type_id}}
+          #root_conc
         else
           root_conc
         end
@@ -283,7 +284,7 @@ Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
         _ ->
         concretisations
       end
-      new_concretisations = MapSet.put(concMap, %Concretisation{pid: conc_pid, token_id: conc_id})
+      new_concretisations = MapSet.put(concMap, root_conc.conc)
 
 			%WFL_Type{wfl_type | concretisations: new_concretisations, root_info: conc_info}
 

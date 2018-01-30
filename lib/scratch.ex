@@ -525,9 +525,10 @@ root_colloc_pid = get_root_colloc_pid()
 		#types = WFL.get_wfl(root_wfl_pid).types
 		wfl_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
 		Enum.each(wfl_types, fn({_key, wfl_type}) ->
-			IO.inspect(wfl_type)
+
 			if wfl_type.freq > 1 && wfl_type.is_common != true do
 			#this is where we want to create an iolist and output to disk
+			#IO.inspect(wfl_type)
 				iolist = process_concretisation_type(root_wfl_pid, wfl_type, [])
 				#now output the iolist to file
 				##IO.binwrite file, iolist
@@ -539,7 +540,7 @@ end
 
 def process_concretisation_type(wfl_pid, %WFL_Type{type: wfl_type, type_id: type_id, concretisations: concSet}, iolist) do
 	#,{type: "cat", concs: [{type: "cat sat", concs:[]}]}
-
+IO.inspect({:processing_for, wfl_type})
 	#add this token to the iolist pipeline, and recurse over each element in the concretisation map.
 	#is it worth seeing if we can revert back to a list of concretisations as opposed to a map?
 
@@ -549,14 +550,17 @@ def process_concretisation_type(wfl_pid, %WFL_Type{type: wfl_type, type_id: type
 		_ ->
 			MapSet.to_list(concSet)
 	end
-
+IO.inspect({:conc_list, conc_list})
 	xx = WFLScratch.Server.expand_type_id(wfl_pid, type_id, true)
-
+#process_concretisation_type(1, 2, 3)
 	new_iolist = [[iolist] | [?{, "#{xx}", ?}]]
 		#for each element in the concretisations list, create a list of associated wfl_items
 		#hopefully we can revert to sing a list instead of a map
-		Enum.reduce(conc_list, new_iolist, fn({key, %Concretisation{pid: conc_pid, token_id: conc_id}}, acc)->
+		#IO.inspect({:hd, hd(conc_list)})
+		io2 = Enum.reduce(conc_list, new_iolist, fn(%Concretisation{pid: conc_pid, token_id: conc_id}, acc)->
+			IO.inspect(IO.iodata_length(acc))
 			conc_info = WFL.get_token_info_from_id(conc_pid, conc_id)
+			IO.inspect(conc_info.type)
 			iolist = process_concretisation_type(conc_pid, conc_info, [])
 			[[new_iolist] | iolist]
 		end)	#this will output a new iolist
