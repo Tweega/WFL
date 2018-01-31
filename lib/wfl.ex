@@ -50,8 +50,8 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, {:translate_phrase, phrase})
 	end
 
-	def add_concretisation(wfl_pid, phrase, is_phrase_id, concretisation_info) do
-		:gen_server.cast(wfl_pid, {:add_concretisation, {phrase, is_phrase_id, concretisation_info}})
+	def add_concretisation(wfl_pid, phrase, is_phrase_id, concretisation_info, new_spaces) do
+		:gen_server.cast(wfl_pid, {:add_concretisation, {phrase, is_phrase_id, concretisation_info, new_spaces}})
 	end
 
 	def start_link(parent_wfl_pid \\ nil) do		#pass in an initial wfl?
@@ -244,9 +244,9 @@ defmodule WFL do
 
 	end
 
-	def add_concretisation(wfl, {phrase_id, is_phrase_id,
+	defp add_concretisation(wfl, {phrase_id, is_phrase_id,
     %{freq: concretiser_freq,
-      conc: %Concretisation{pid: concretiser_pid, token_id: concretiser_id}} = root_conc }) do
+      conc: %Concretisation{pid: concretiser_pid, token_id: concretiser_id}} = root_conc, new_spaces}) do
 
     phrase_type = if is_phrase_id == true do
 			Map.get(wfl.type_ids, phrase_id)
@@ -264,19 +264,24 @@ Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
       #do we have access to the root concretisation if it comes to use that instead of this one?
       #so if this abstraction is not more expressive, which concretising id do we use?
       abstractionFreq = wfl_type.freq
-      #get the spacecount on the abstraction
+      #get the spacecount on the abstraction (and also on concretiser)
       spacecount = 0
       cut_off = 1
       #{<<0, 0, 3, 32>>, true, %{conc: %Concretisation{pid: #PID<0.341.0>, token_id: <<0, 0, 3, 64>>}, freq: 2}}
 
-
+      #if new_spaces and not abs_freq > conc_freq, then flag this abstraction as ineligible as a concretiser
       %{freq: conc_freq, conc: %Concretisation{pid: conc_pid, token_id: conc_id}} = conc_info =
-        if abstractionFreq > (concretiser_freq + spacecount + cut_off) do
-          %{freq: abstractionFreq, conc: %Concretisation{pid: self(), token_id: wfl_type.type_id}}
-          #root_conc
-        else
-          root_conc
+        cond do
+          concretiser_freq == -1 ->
+            %{freq: -1, conc: %Concretisation{}}
+          new_spaces == true && !(abstractionFreq > concretiser_freq) ->
+            %{freq: -1, conc: %Concretisation{}}
+          abstractionFreq > (concretiser_freq + spacecount + cut_off) ->
+            %{freq: abstractionFreq, conc: %Concretisation{pid: self(), token_id: wfl_type.type_id}}
+          true ->
+            root_conc
         end
+
 
       concMap = case concretisations do
         nil ->
@@ -284,7 +289,14 @@ Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
         _ ->
         concretisations
       end
-      new_concretisations = MapSet.put(concMap, root_conc.conc)
+
+      new_concretisations =
+        if concretiser_freq > 0 do 
+          MapSet.put(concMap, root_conc.conc)
+        else
+          concMap
+        end
+
 
 			%WFL_Type{wfl_type | concretisations: new_concretisations, root_info: conc_info}
 

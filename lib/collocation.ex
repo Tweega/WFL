@@ -468,6 +468,7 @@ IO.puts("That's all folks")
 		# the only way forward for the moment is to call the end function directly so that we stay on this thread.
 		#later we need to review which modules have which functions
 		expanded_phrase = WFLScratch.Server.expand_type_id(concretiser_pid, type.type_id, false)	#false leaves the expansion as binary token ids
+		conc_space_count = get_space_count(expanded_phrase)
 		#may not be so simple.  I think we are going to have to find a way not to start this exercise from inside WFLScratch.Server
 		#IO.inspect({:expanded_phrase, expanded_phrase})
 
@@ -475,10 +476,15 @@ IO.puts("That's all folks")
 			abstractions = lose_one_bin(expanded_phrase)
 			# IO.inspect(expanded_phrase)
 			# IO.inspect(abstractions)
-			parent_wfl_pid = WFL.get_parent(concretiser_pid)
+			#parent_wfl_pid = WFL.get_parent(concretiser_pid)
 			root_info = get_concretiser(concretiser_pid, type.type_id)
-			make_concrete(abstractions, root_info)
 
+
+			if hd(abstractions) == <<0,0,0,8>> do
+				IO.inspect({:jaja, type.type_id})
+			end
+
+			make_concrete(abstractions, root_info, conc_space_count)
 			#ProcessedPhrases.new(type.type_id)
 		#else
 			#IO.puts("Do we ever encounter a situation where a phrase has already been processed?")
@@ -487,10 +493,10 @@ IO.puts("That's all folks")
 	end
 
 
-	def make_concrete([], _concretiser_info) do
+	def make_concrete([], _concretiser_info, _conc_space_count) do
 	end
 
-	def make_concrete([next_abstraction | rest_abstractions], concretiser_info) do
+	def make_concrete([next_abstraction | rest_abstractions], concretiser_info, conc_space_count) do
 		#here find the abstraction in its wfl and add phrase to its concretisation list.
 		#problem here is that phrases are only ever two tokens long..a token for the phrase so far (lhs) and one for the additional token (rhs)
 		#we cannot use the expanded token as the key... so how to find the entry so as to set its concretisations
@@ -498,16 +504,39 @@ IO.puts("That's all folks")
 		#not excellent...but are there other options?
 		#we are going to have to find the tokens at some point.
 		#IO.inspect({:next_abstraction, next_abstraction})
+		if next_abstraction == <<0,0,0,8>> do
+			IO.inspect({:kilimanjaro, concretiser_info})
+		end
+
+		abstraction_space_count = get_space_count(next_abstraction)
+
+		new_spaces = abstraction_space_count > conc_space_count
+
 		size_abstraction = byte_size(next_abstraction)
 		if size_abstraction > 0 do
-			jj = Expansion.add_concretisation(next_abstraction, concretiser_info)
+			jj = Expansion.add_concretisation(next_abstraction, concretiser_info, new_spaces)
 			#IO.inspect({:owner, next_abstraction, :conc, concretiser_id})
 
 		else
 			Logger.debug("How can next abstraction size be zero?")
 			IO.inspect(next_abstraction)
 		end
-		make_concrete(rest_abstractions, concretiser_info)
+		make_concrete(rest_abstractions, concretiser_info, conc_space_count)
+	end
+
+	def get_space_count(token_bin) do
+		get_space_count(token_bin, 0)
+	end
+
+
+	defp get_space_count(<<>>, space_count) do
+		space_count
+	end
+
+
+	defp get_space_count(<<byte4 :: binary-size(4), rest :: binary>>, space_count) do
+			<<count :: integer-unit(8)-size(1), _token_bytes :: binary>> = byte4
+			get_space_count(rest, space_count + count)
 	end
 
 

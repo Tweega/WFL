@@ -55,8 +55,11 @@ defmodule Expansion do
   end
 
 
-  def add_concretisation(abstraction_tokens, concretiser_info) do
-
+  def add_concretisation(abstraction_tokens, concretiser_info, new_spaces) do
+    #if we call this from the client thread, of which there may be many, then might we get race conditions?
+    #consider calling this function through an api, which forces us onto the Expansion thread
+    #access to the data is on the expansion process.  Once we have the data we are on the client thread
+    #should we place this code outside this module, then and have only data access code here?
     %Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} =
       Agent.get(:expansion, fn (expansion) ->
         expansion
@@ -69,11 +72,11 @@ defmodule Expansion do
         #we need the frequency of the abstraction tokens
 
         {token, _parent} = WFL.get_token_from_id(root_wfl_pid, abstraction_tokens)
-        WFL.add_concretisation(root_wfl_pid, token, false, concretiser_info)
+        WFL.add_concretisation(root_wfl_pid, token, false, concretiser_info, new_spaces)
 
       <<_ :: binary-size(8)>> ->
         #2 tokens - update concretisations in root collocation wfl
-        WFL.add_concretisation(root_colloc_pid, abstraction_tokens, false, concretiser_info)
+        WFL.add_concretisation(root_colloc_pid, abstraction_tokens, false, concretiser_info, new_spaces)
 
       _ ->
         # more than 2 tokens - look up the expansion to find which wfl to update
@@ -85,7 +88,7 @@ defmodule Expansion do
           :not_found
 
         %ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} ->
-          WFL.add_concretisation(wfl_pid, phrase_id, true, concretiser_info)
+          WFL.add_concretisation(wfl_pid, phrase_id, true, concretiser_info, new_spaces)
 
         _ ->
           :hmmm
