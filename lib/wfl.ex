@@ -245,7 +245,7 @@ defmodule WFL do
 	end
 
 	defp add_concretisation(wfl, {phrase_id, is_phrase_id,
-    %{freq: concretiser_freq,
+    %RootInfo{valid: concretiser_valid, freq: concretiser_freq,
       conc: %Concretisation{pid: concretiser_pid, token_id: concretiser_id}} = root_conc, new_spaces}) do
 
     phrase_type = if is_phrase_id == true do
@@ -264,20 +264,22 @@ Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
       #do we have access to the root concretisation if it comes to use that instead of this one?
       #so if this abstraction is not more expressive, which concretising id do we use?
       abstractionFreq = wfl_type.freq
+
+      if phrase_id == <<0,0,1,38>> do
+        IO.inspect({:concretiser, concretiser_id})
+      end
       #get the spacecount on the abstraction (and also on concretiser)
       spacecount = 0
       cut_off = 1
       #{<<0, 0, 3, 32>>, true, %{conc: %Concretisation{pid: #PID<0.341.0>, token_id: <<0, 0, 3, 64>>}, freq: 2}}
 
       #if new_spaces and not abs_freq > conc_freq, then flag this abstraction as ineligible as a concretiser
-      %{freq: conc_freq, conc: %Concretisation{pid: conc_pid, token_id: conc_id}} = conc_info =
+      %RootInfo{freq: conc_freq, conc: %Concretisation{pid: conc_pid, token_id: conc_id}} = conc_info =
         cond do
-          concretiser_freq == -1 ->
-            %{freq: -1, conc: %Concretisation{}}
           new_spaces == true && !(abstractionFreq > concretiser_freq) ->
-            %{freq: -1, conc: %Concretisation{}}
+            %RootInfo{root_conc | valid: false}
           abstractionFreq > (concretiser_freq + spacecount + cut_off) ->
-            %{freq: abstractionFreq, conc: %Concretisation{pid: self(), token_id: wfl_type.type_id}}
+            %RootInfo{valid: true, freq: abstractionFreq, conc: %Concretisation{pid: self(), token_id: wfl_type.type_id}}
           true ->
             root_conc
         end
@@ -291,7 +293,7 @@ Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
       end
 
       new_concretisations =
-        if concretiser_freq > 0 do 
+        if concretiser_valid == true do
           MapSet.put(concMap, root_conc.conc)
         else
           concMap

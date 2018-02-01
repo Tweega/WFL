@@ -448,13 +448,16 @@ IO.puts("That's all folks")
 		#concretiser is handed down until abstraction is more frequent than concretiser
 
 		x = WFL.get_token_info_from_id(wfl_pid, concretiser)
+		#i think that x is now simply concretiser - how can that be?
+		##IO.inspect({:root_info, x.root_info})
 		#if we have a root_info, use that, otherwise use this
-		%{freq: concretiser_freq, conc: %Concretisation{}} = x.root_info
+
+		%RootInfo{freq: concretiser_freq, conc: %Concretisation{}} = x.root_info
 
 		case concretiser_freq do
 			0 ->
 				#use this type's info
-				%{freq: x.freq,  conc: %Concretisation{pid: wfl_pid, token_id: x.type_id}}
+				%RootInfo{freq: x.freq,  conc: %Concretisation{pid: wfl_pid, token_id: x.type_id}}
 			_ ->
 				x.root_info
 		end
@@ -480,10 +483,6 @@ IO.puts("That's all folks")
 			root_info = get_concretiser(concretiser_pid, type.type_id)
 
 
-			if hd(abstractions) == <<0,0,0,8>> do
-				IO.inspect({:jaja, type.type_id})
-			end
-
 			make_concrete(abstractions, root_info, conc_space_count)
 			#ProcessedPhrases.new(type.type_id)
 		#else
@@ -504,9 +503,6 @@ IO.puts("That's all folks")
 		#not excellent...but are there other options?
 		#we are going to have to find the tokens at some point.
 		#IO.inspect({:next_abstraction, next_abstraction})
-		if next_abstraction == <<0,0,0,8>> do
-			IO.inspect({:kilimanjaro, concretiser_info})
-		end
 
 		abstraction_space_count = get_space_count(next_abstraction)
 
