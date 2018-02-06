@@ -14,32 +14,30 @@ defmodule Concretiser do
     end)
   end
 
+  def get(sentence_id) do
+    Agent.get(:concretiser, &Map.get(&1, sentence_id))
+  end
 
+  def get_stream() do
+    sent_map = Agent.get(:concretiser, &(&1)) #this returns agent state.
+    sent_map |> Stream.map(&(&1))
+  end
 
-    def get(sentence_id) do
-      Agent.get(:concretiser, &Map.get(&1, sentence_id))
-    end
-
-    def get_stream() do
-      sent_map = Agent.get(:concretiser, &(&1)) #this returns agent state.
-      sent_map |> Stream.map(&(&1))
-    end
-
-    def list_concretisations() do
-      Agent.get(:concretiser, fn(list) ->
-        Enum.each(list, fn({abs, abs_pid, concretiser_id, conc_pid} = jj) ->
-            p = WFL.get_parent(abs_pid)
-            abstraction = case p do
-              nil ->
-                abs
-              _ ->
-              abs_id = WFL.get_token_info(abs_pid, abs).type_id
-              WFLScratch.Server.expand_type_id(abs_pid, abs_id)
-            end
-            concretiser = WFLScratch.Server.expand_type_id(conc_pid, concretiser_id)
-            IO.inspect({abstraction, ":",  concretiser})
-        end)
+  def list_concretisations() do
+    Agent.get(:concretiser, fn(list) ->
+      Enum.each(list, fn({abs, abs_pid, concretiser_id, conc_pid} = jj) ->
+          p = WFL.get_parent(abs_pid)
+          abstraction = case p do
+            nil ->
+              abs
+            _ ->
+            abs_id = WFL.get_token_info(abs_pid, abs).type_id
+            X_WFL.expand_type_id(abs_pid, abs_id)
+          end
+          concretiser = X_WFL.expand_type_id(conc_pid, concretiser_id)
+          IO.inspect({abstraction, ":",  concretiser})
       end)
-    end
+    end)
+  end
 
 end

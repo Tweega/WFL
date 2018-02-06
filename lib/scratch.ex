@@ -467,7 +467,7 @@ def save_sentence_tokens() do
 	#saving only tokens not punctuation, as an array of tokens
 	#sentences are stored where?
 
-	root_wfl_pid = WFLScratch.Server.get_wfl_pid("root_wfl_pid")
+	root_wfl_pid = NamedWFL.get_pid_from_name("root_wfl_pid")
 	{:ok, file} = File.open "sent_tokens.txt", [:write]
 
 
@@ -518,7 +518,7 @@ end
 
 def save_concretisation_tree() do
 	#start with the main wfl and then process all concretisations,depth first
-root_wfl_pid = WFLScratch.Server.get_wfl_pid("root_wfl_pid")
+root_wfl_pid = NamedWFL.get_pid_from_name("root_wfl_pid")
 root_colloc_pid = get_root_colloc_pid()
 		{:ok, file} = File.open "wfl_tree.txt", [:write]
 		tree_open = [?{, 34, "wfl_tree", 34,   ?:, ?[]
@@ -546,7 +546,7 @@ end
 
 def process_concretisation_type(wfl_pid, %WFL_Type{type: wfl_type, type_id: type_id, concretisations: concSet}, tally, iolist) do
 	#,{type: "cat", concs: [{type: "cat sat", concs:[]}]}
-IO.inspect({:processing_for, wfl_type})
+#IO.inspect({:processing_for, wfl_type})
 	#add this token to the iolist pipeline, and recurse over each element in the concretisation map.
 	#is it worth seeing if we can revert back to a list of concretisations as opposed to a map?
 
@@ -556,8 +556,8 @@ IO.inspect({:processing_for, wfl_type})
 		_ ->
 			MapSet.to_list(concSet)
 	end
-IO.inspect({:conc_list, conc_list})
-	xx = WFLScratch.Server.expand_type_id(wfl_pid, type_id, true)
+#IO.inspect({:conc_list, conc_list})
+	xx = X_WFL.expand_type_id(wfl_pid, type_id, true)
 	type_op = [?{, 34, "phrase", 34, ?:, 34, "#{xx}", 34, ?,, 34, "concs", 34, ?:, ?[]
 	type_open = if tally == 0 do
 		type_op
@@ -574,7 +574,7 @@ IO.inspect({:conc_list, conc_list})
 		{_, io2} = Enum.reduce(conc_list, {0, []}, fn(%Concretisation{pid: conc_pid, token_id: conc_id}, {tally, acc})->
 			#IO.inspect(IO.iodata_length(acc))
 			conc_info = WFL.get_token_info_from_id(conc_pid, conc_id)
-			IO.inspect(conc_info.type)
+			#IO.inspect(conc_info.type)
 			iolist = process_concretisation_type(conc_pid, conc_info, tally, [])
 			{tally + 1, [[acc] | iolist]}
 		end)	#this will output a new iolist
@@ -584,7 +584,7 @@ end
 
 
 def get_root_colloc_pid() do
-	last_wfl_pid = WFLScratch.Server.get_wfl_pid("last_wfl_pid")
+	last_wfl_pid = NamedWFL.get_pid_from_name("last_wfl_pid")
 	[_root, root_colloc_pid | _] = Collocation.get_wfl_chain(last_wfl_pid)
 	root_colloc_pid
 end

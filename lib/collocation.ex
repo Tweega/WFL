@@ -1,3 +1,6 @@
+#Collocation module is a collection of functions only called by WFL_Server and so is essentially part of that module
+# and always runs in the WFL Server process
+
 #	Note on gaps.  Phrases are stored as 2 sets of 4 bytes (LHS and RHS), the first of which stores the number of spaces (this may be reduced to smaller number of bits)
 #	the gap integer is stored on the RHS.  LHS in turn is either a key to another <<LHS, RHS>> pair or an actual token, such as "cat".
 
@@ -279,24 +282,6 @@ defmodule Collocation do
 
 	end
 
-	def konkret_machen() do
-		#get list/stream from concretisation
-		#for each of these, get abstraction list.
-		#for each item in the abstraction list, add
-		expansion_phrases = Expansion.get_expansion_map()
-		#Parallel.pjob(phrases, [{Collocation, :concretise_phrase_temp, []}])
-
-		#concretise_abstractions(expanded_phrase, %Concretisation{phrase_id: concretiser}) do
-	Parallel.pjob(expansion_phrases, [{Collocation, :concretise_abstractions, []}])
-	###root_colloc_phrases = #we need the root_colloc_pid here.
-		#Parallel.pjob(phrases, [{Collocation, :translate_expansions, []}])
-
-
-		#we can let go of processed_phrases now
-
-		#concretise_phrase(phrase, wfl_pid) does abstraction via lose_one
-	end
-
 	def expand_phrases(last_wfl_pid) do
 		#get list of all colloc wfls
 		#we are going to go through these in order from smallest to largest, look up smallest and stick on the rhs.
@@ -374,11 +359,11 @@ defmodule Collocation do
 				#we should be able to find phrase_id in Expansion.phrase_map
 				z = Expansion.get_phrase(phrase_id)
 				#IO.inspect({phrase_id, z})
-				expanded_phrase = WFLScratch.Server.expand_type_id(wfl_pid, phrase_id, false)
-				expanded_phrase2 = WFLScratch.Server.expand_type_id(wfl_pid, phrase_id, true)
-				IO.inspect({:xp, expanded_phrase2})
+				expanded_phrase = X_WFL.expand_type_id(wfl_pid, phrase_id, false)
+				expanded_phrase2 = X_WFL.expand_type_id(wfl_pid, phrase_id, true)
+				##IO.inspect({:xp, expanded_phrase2})
 				phrase_id2 = Expansion.get_phrase_id(expanded_phrase)
-				IO.inspect({:phrase_id, phrase_id2})
+				##IO.inspect({:phrase_id, phrase_id2})
 			end
 
 		end)
@@ -432,7 +417,7 @@ IO.puts("That's all folks")
 		#create a wfl to hold all the phrases that have already been processed.
 		#process each phrase in the wfl
 
-		processed_phrases = ProcessedPhrases.start_link()	#start this in the supervisor?
+		##processed_phrases = ProcessedPhrases.start_link()	#start this in the supervisor?
 
 		# loop over all the colloc wfls and need to consider
 		wfl_chain =
@@ -443,46 +428,65 @@ IO.puts("That's all folks")
 
 	end
 
-	defp get_concretiser(wfl_pid, concretiser) do
+	defp get_concretiser(wfl_pid, concretiser_id) do
 		#if ABC only concretised by ABCD, then AB, AC, BC are concretised by ABCD, not by ABC"
 		#concretiser is handed down until abstraction is more frequent than concretiser
-
-		x = WFL.get_token_info_from_id(wfl_pid, concretiser)
+		concretiser = WFL.get_token_info_from_id(wfl_pid, concretiser_id)
 		#i think that x is now simply concretiser - how can that be?
-		##IO.inspect({:root_info, x.root_info})
+		##IO.inspect({:root_info, concretiser.root_info})
 		#if we have a root_info, use that, otherwise use this
 
-		%RootInfo{freq: concretiser_freq, conc: %Concretisation{}} = x.root_info
+		%RootInfo{freq: concretiser_freq, conc: %Concretisation{}} = concretiser.root_info
+    #
+		# IO.inspect({:root_info, x.root_info})
+		# IO.inspect(x.type_id == concretiser)
+		# IO.inspect(x)
+		# IO.inspect({:root_info, x.root_info})
+		# IO.inspect({:root_info, x.root_info})
+		# IO.inspect(x.type_id == concretiser)
+		# IO.inspect(x)
+		# IO.inspect({:root_info, x.root_info})
 
-		case concretiser_freq do
+		xx = case concretiser_freq do
 			0 ->
 				#use this type's info
-				%RootInfo{freq: x.freq,  conc: %Concretisation{pid: wfl_pid, token_id: x.type_id}}
+				%RootInfo{freq: concretiser.freq,  conc: %Concretisation{pid: wfl_pid, token_id: concretiser.type_id}}
 			_ ->
-				x.root_info
+				concretiser.root_info
 		end
+
+		if xx.conc.token_id == <<0, 0, 3, 59>> do
+			IO.inspect ({:phrase, X_WFL.expand_type_id(wfl_pid, concretiser_id, true), :root, xx.valid})
+		end
+
+		xx
 	end
 
 	def concretise_phrase(phrase, concretiser_pid) do
 		{_key, type} = phrase
-		#IO.inspect({type.type_id})
+
 
 		#this looks like a blocking call - we are calling back into wflscratch server from a job started there, so neither job can now proceed.
 		# the only way forward for the moment is to call the end function directly so that we stay on this thread.
 		#later we need to review which modules have which functions
-		expanded_phrase = WFLScratch.Server.expand_type_id(concretiser_pid, type.type_id, false)	#false leaves the expansion as binary token ids
+		expanded_phrase = X_WFL.expand_type_id(concretiser_pid, type.type_id, false)	#false leaves the expansion as binary token ids
+
 		conc_space_count = get_space_count(expanded_phrase)
 		#may not be so simple.  I think we are going to have to find a way not to start this exercise from inside WFLScratch.Server
 		#IO.inspect({:expanded_phrase, expanded_phrase})
 
 		#if ProcessedPhrases.contains(type.type_id) == false do
 			abstractions = lose_one_bin(expanded_phrase)
-			# IO.inspect(expanded_phrase)
 			# IO.inspect(abstractions)
 			#parent_wfl_pid = WFL.get_parent(concretiser_pid)
+
 			root_info = get_concretiser(concretiser_pid, type.type_id)
 
+			# if root_info.conc.token_id == <<0, 0, 3, 59>> do
+			# 	IO.inspect({:concretiser, type.root_info.valid, type.type_id})
+			# end
 
+#IO.inspect({:root_info, root_info})
 			make_concrete(abstractions, root_info, conc_space_count)
 			#ProcessedPhrases.new(type.type_id)
 		#else

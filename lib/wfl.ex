@@ -51,9 +51,19 @@ defmodule WFL do
 	end
 
 	def add_concretisation(wfl_pid, phrase, is_phrase_id, concretisation_info, new_spaces) do
-		:gen_server.cast(wfl_pid, {:add_concretisation, {phrase, is_phrase_id, concretisation_info, new_spaces}})
+    #IO.inspect("wfl add concretisation")
+		:gen_server.call(wfl_pid, {:add_concretisation, {phrase, is_phrase_id, concretisation_info, new_spaces}})
+    #IO.inspect("wfl LEAVE concretisation")
 	end
 
+  # def expand_type_id(wfl_pid, type_id, to_text \\ true) do
+	# 	:gen_server.call(wfl_pid, {:expand_type_id, wfl_pid, type_id, to_text})
+	# end
+  #
+	# def expand_wfl(wfl_pid, to_text \\ true) do
+	# 	:gen_server.call(wfl_pid, {:expand_wfl, wfl_pid, to_text})
+	# end
+  #
 	def start_link(parent_wfl_pid \\ nil) do		#pass in an initial wfl?
 		:gen_server.start_link(__MODULE__, {%WFL_Data{}, parent_wfl_pid}, [])
 	end
@@ -117,14 +127,43 @@ defmodule WFL do
 	end
 
 
-	def handle_cast({:add_concretisation, concretisation_info}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+	def handle_call({:add_concretisation, concretisation_info}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
 		#handle_cast?  we're not returning anything here.  we just need to know that the concretisation process is finished before we start using it.
 		#this might be achieved by putting in a dummy call to WFL at the end which will only be processed when all other messages already on the stack are dealt with
-
+#IO.inspect("Do we get here?")
 		%WFL_Data{} = new_wfl = add_concretisation(wfl_data, concretisation_info)
+    #IO.inspect("What about here?")
 #IO.inspect("hello there how are you?")
-    {:noreply, {new_wfl, parent_wfl_pid}}
+    {:reply, :ok, {new_wfl, parent_wfl_pid}}
 	end
+
+
+  # def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, {_, parent_wfl_pid} = state) do
+	# 	#this should be on wfl, otherwise wfl cannot call it, at least on its own pid, as the wfl process is blocked when calling to get_parent
+	# 	#parent_wfl_pid = WFL.get_parent(wfl_pid)
+  #   #we have to remove global data from the main execution code (WFLScratch.Server)
+  #   #for the moment, call a temporary function to
+	# 	root_wfl_pid = NamedWFL.get_pid_from_name("root_wfl_pid")
+  #
+	# 	tok = exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, to_text)
+	# 	{:reply, tok, state}
+	# end
+  #
+  #
+	# def handle_call({:expand_wfl, wfl_pid, to_text}, _from, state) do
+	# 	root_wfl_pid = NamedWFL.get_pid_from_name("root_wfl_pid")
+	# 	#add a check to see if wfl_pid is the root wfl pid, in which case we just want a dump of the wfl - or at least the types.
+	# 	{wfl, parent_pid} = WFL.get_wfl_state(wfl_pid)
+	# 	#grandparent_pid = WFL.get_parent(parent_pid)
+	# 	Enum.each(wfl.type_ids, fn({token_id, _phrase})  ->
+	# 		tok = exp_token(token_id, wfl_pid, parent_pid, root_wfl_pid, to_text)
+	# 		f = WFL.get_token_info_from_id(wfl_pid, token_id).freq
+	# 		IO.inspect({tok, f})
+	# 	end)
+  #
+	# 	{:reply, :ok, state}
+	# end
+  #
 
 
 	def handle_cast({:add_tokens, sentences}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
@@ -240,13 +279,14 @@ defmodule WFL do
 	 <<l :: integer-unit(8)-size(4)>>
 	end
 
+
 	def to_4_bytes(_l) do
 
 	end
 
 	defp add_concretisation(wfl, {phrase_id, is_phrase_id,
     %RootInfo{valid: concretiser_valid, freq: concretiser_freq,
-      conc: %Concretisation{pid: concretiser_pid, token_id: concretiser_id}} = root_conc, new_spaces}) do
+      conc: %Concretisation{pid: concretiser_pid, token_id: concretiser_id}} = concretiser_root, new_spaces}) do
 
     phrase_type = if is_phrase_id == true do
 			Map.get(wfl.type_ids, phrase_id)
@@ -254,36 +294,71 @@ defmodule WFL do
 			phrase_id
 		end
 
+
+    if concretiser_id == <<0,0,2,115>> do
+      IO.inspect({:conc_115, concretiser_valid})
+    end
+
     #IO.inspect({:Concretising, phrase_id, :with, concretisation_id, :is_phrase, is_phrase_id})
     #IO.inspect(phrase_type)
-Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
+#Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
 		new_wfl_types = Map.update!(wfl.types, phrase_type, fn %WFL_Type{concretisations: concretisations} = wfl_type ->
 			#get_and_update returns a tuple of {the current value, and the value to be stored under the key, which in this case is phrase_type}
       #IO.inspect(concretisations)
-      #we have the abstraction type thast we are going to concretise
+      #we have the abstraction type that we are going to concretise
       #do we have access to the root concretisation if it comes to use that instead of this one?
       #so if this abstraction is not more expressive, which concretising id do we use?
       abstractionFreq = wfl_type.freq
 
-      if phrase_id == <<0,0,1,38>> do
-        IO.inspect({:concretiser, concretiser_id})
-      end
       #get the spacecount on the abstraction (and also on concretiser)
       spacecount = 0
       cut_off = 1
       #{<<0, 0, 3, 32>>, true, %{conc: %Concretisation{pid: #PID<0.341.0>, token_id: <<0, 0, 3, 64>>}, freq: 2}}
 
       #if new_spaces and not abs_freq > conc_freq, then flag this abstraction as ineligible as a concretiser
-      %RootInfo{freq: conc_freq, conc: %Concretisation{pid: conc_pid, token_id: conc_id}} = conc_info =
+
+
+
+      #existing abstraction root is wfl_type.root_info
+      %RootInfo{freq: abs_freq, valid: abs_valid} = wfl_type.root_info
+
+      %RootInfo{freq: proposed_abs_freq, valid: proposed_abs_valid} = proposed_abs_root =
         cond do
           new_spaces == true && !(abstractionFreq > concretiser_freq) ->
-            %RootInfo{root_conc | valid: false}
+            if wfl_type.type_id == <<0,0,2,115>> do
+              IO.inspect({:invalid_2_115, abstractionFreq, concretiser_freq})
+            end
+            %RootInfo{concretiser_root | valid: false}
           abstractionFreq > (concretiser_freq + spacecount + cut_off) ->
             %RootInfo{valid: true, freq: abstractionFreq, conc: %Concretisation{pid: self(), token_id: wfl_type.type_id}}
           true ->
-            root_conc
+            if wfl_type.type_id == <<0,0,2,115>> do
+              IO.inspect({:invalid_2_115, concretiser_root})
+            end
+            concretiser_root
         end
 
+        #distinguish between
+          #Existing abstraction Not set
+            #proposed abstration ROOT is valid -> Set abs root to proposed root
+            #proposed abstration ROOT is NOT valid -> Set abs root to proposed root
+          #Existing abstraction valid
+            #proposed abstration ROOT is valid -> set abs root to self - we have multiple roots
+            #proposed abstration ROOT is NOT valid -> leave abs root as is
+          #Existing abstraction NOT valid
+            #proposed abstration ROOT is valid -> set abs root to proposed root.
+            #proposed abstration ROOT is NOT valid -> leave abs root as is
+
+        new_root = cond do
+          # abs_freq == 0 -> proposed_abs_root
+          # abs_valid && proposed_abs_valid -> proposed_abs_root # this should be picked up through abstraction frequency being higher than concretiser
+          # abs_valid && !proposed_abs_valid -> wfl_type.root_info
+          # !abs_valid && proposed_abs_valid -> proposed_abs_root
+          # !abs_valid && !proposed_abs_valid -> wfl_type.root_info
+
+          abs_freq == 0 || proposed_abs_valid -> proposed_abs_root
+          true -> wfl_type.root_info
+        end
 
       concMap = case concretisations do
         nil ->
@@ -294,13 +369,20 @@ Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
 
       new_concretisations =
         if concretiser_valid == true do
-          MapSet.put(concMap, root_conc.conc)
+          #cpr - need to handle 3 states not set valid, invalid
+          if wfl_type.type_id == <<0,0,2,115>> do
+            IO.inspect({:VALID_concretiser, concretiser_id, new_spaces})
+          end
+          MapSet.put(concMap, concretiser_root.conc)
         else
+          if wfl_type.type_id == <<0,0,2,115>> do
+            IO.inspect({:invalid_concretiser, concretiser_id, new_spaces})
+          end
           concMap
         end
 
 
-			%WFL_Type{wfl_type | concretisations: new_concretisations, root_info: conc_info}
+			%WFL_Type{wfl_type | concretisations: new_concretisations, root_info: new_root}
 
     end)
 
@@ -335,5 +417,7 @@ Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
 	def space_out(phrase, space_count) do
 		space_out([<<"_">> | phrase], space_count - 1)
 	end
+
+
 
 end

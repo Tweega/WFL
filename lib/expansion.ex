@@ -16,7 +16,7 @@ defmodule Expansion do
   end
 
   def new(phrase_tokens, %ExpansionItem{phrase_id: phrase_id} = expansion_item) do
-    #IO.inspect({:item, expansion_item})
+    IO.inspect({:item, phrase_tokens})
     Agent.update(:expansion, fn (%Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} = expansion) ->
         new_expansion_map = Map.put(expansion_map, phrase_tokens, expansion_item)
         new_phrase_map = Map.put(phrase_map, phrase_id, phrase_tokens)

@@ -10,38 +10,26 @@ defmodule WFLScratch.Server do
 		:gen_server.cast(:WFL, {:wfl_file, {filePath, readerModule}})
 	end
 
-	def get_wfl_raw(key) do
-		#key identifies an alias for a given wfl.
-		:gen_server.call(:WFL, {:get_wfl_raw, key})
-	end
+	# def get_wfl(key, field \\ :freq, order \\ :desc) do
+	# 	:gen_server.call(:WFL, {:get_wfl, key, field, order})
+	# end
+  #
+	# def get_token_info(key, token) do
+	# 	:gen_server.call(:WFL, {:get_token_info, key, token})
+	# end
 
-	def get_wfl(key, field \\ :freq, order \\ :desc) do
-		:gen_server.call(:WFL, {:get_wfl, key, field, order})
-	end
+	# def get_wfl_stream(key) do
+	# 	:gen_server.call(:WFL, {:get_wfl_stream, key})
+	# end
 
-	def get_token_info(key, token) do
-		:gen_server.call(:WFL, {:get_token_info, key, token})
-	end
+	# def get_wfl_pid(key) do
+	# 	:gen_server.call(:WFL, {:get_wfl_pid, key})
+	# end
+  #
+	# def get_colloc_pid() do
+	# 	:gen_server.call(:WFL, :get_colloc_pid)
+	# end
 
-	def get_wfl_stream(key) do
-		:gen_server.call(:WFL, {:get_wfl_stream, key})
-	end
-
-	def get_wfl_pid(key) do
-		:gen_server.call(:WFL, {:get_wfl_pid, key})
-	end
-
-	def get_colloc_pid() do
-		:gen_server.call(:WFL, :get_colloc_pid)
-	end
-
-	def expand_type_id(wfl_pid, type_id, to_text \\ true) do
-		:gen_server.call(:WFL, {:expand_type_id, wfl_pid, type_id, to_text})
-	end
-
-	def expand_wfl(wfl_pid, to_text \\ true) do
-		:gen_server.call(:WFL, {:expand_wfl, wfl_pid, to_text})
-	end
 
 	def start_link(_x) do 	#we could initialise with an existing wfl or lemma file? if so we could spawn the process that reads those in.
 		:gen_server.start_link({:local, @name}, __MODULE__, %{}, [])
@@ -55,96 +43,67 @@ defmodule WFLScratch.Server do
 
 	def handle_cast( {:wfl_file, {filePath, readerModule}}, state) do
 		{:ok, wfl_pid} = WFL.start_link()	#store this in map with filename as key? we need to have a completed status flag in state
-		new_state = Map.put_new(state, "root_wfl_pid", wfl_pid)	#originally used filename as key but want access to root - need another level to manage mutiple files
+		NamedWFL.new("root_wfl_pid", wfl_pid)
+		yy = NamedWFL.get_map()
+		#IO.inspect(yy)
+		#new_state = Map.put_new(state, "root_wfl_pid", wfl_pid)	#originally used filename as key but want access to root - need another level to manage mutiple files
 		process_file(filePath, readerModule, wfl_pid)	#should process_file be async?  what is the effect of handle_info calls which set state before this call terminates?
 
-		{:noreply, new_state}	#note that new_state will not yet have an up-to-date wfl - we get a handle_info notification when file has been read.
+		{:noreply, state}
 	end
 
-	def handle_call({:get_wfl_raw, key}, _client, state) do
-		wfl_pid = Map.get(state, key)
-		wfl = WFL.get_wfl(wfl_pid)
-		{:reply, wfl, state}
-	end
+	# def handle_call({:get_wfl_pid, key}, _client, state) do
+	# 	#rename this to get_wfl_pid_from_key
+	# 	wfl_pid = Map.get(state, key)
+	# 	{:reply, wfl_pid, state}
+	# end
 
-	def handle_call({:get_wfl_pid, key}, _client, state) do
-		wfl_pid = Map.get(state, key)
-		{:reply, wfl_pid, state}
-	end
+	# def handle_call({:get_token_info, key, token}, _client, state) when is_pid(key) or is_atom(key) do
+	# 	wfl_item = WFL.get_token_info(key, token)
+	# 	{:reply, wfl_item, state}
+	# end
+  #
+	# def handle_call({:get_token_info, key, token}, _client, state) do
+	# 	wfl_pid = Map.get(state, key)
+	# 	wfl_item = WFL.get_token_info(wfl_pid, token)
+	# 	{:reply, wfl_item, state}
+	# end
 
-	def handle_call({:get_token_info, key, token}, _client, state) when is_pid(key) or is_atom(key) do
-		wfl_item = WFL.get_token_info(key, token)
-		{:reply, wfl_item, state}
-	end
-
-	def handle_call({:get_token_info, key, token}, _client, state) do
-		wfl_pid = Map.get(state, key)
-		wfl_item = WFL.get_token_info(wfl_pid, token)
-		{:reply, wfl_item, state}
-	end
-
-	def handle_call({:get_wfl, key, field, order}, _client, state) when is_pid(key) or is_atom(key) do
-		sorted_wfl = get_sorted_wfl(key, field,  order)
-
-		{:reply, sorted_wfl, state}
-	end
-
-	def handle_call({:get_wfl, key, field, order}, _client, state) do
-		wfl_pid = Map.get(state, key)
-		sorted_wfl = get_sorted_wfl(wfl_pid, field,  order)
-
-		{:reply, sorted_wfl, state}
-	end
-
-	def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, state) do
-		#this should be on wfl, otherwise wfl cannot call it, at least on its own pid, as the wfl process is blocked when calling to get_parent
-		parent_wfl_pid = WFL.get_parent(wfl_pid)
-		root_wfl_pid = Map.get(state, "root_wfl_pid")
-
-		tok = exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, to_text)
-		{:reply, tok, state}
-	end
-
-
-	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, state) do
-		root_wfl_pid = Map.get(state, "root_wfl_pid")
-		#add a check to see if wfl_pid is the root wfl pid, in which case we just want a dump of the wfl - or at least the types.
-		{wfl, parent_pid} = WFL.get_wfl_state(wfl_pid)
-		#grandparent_pid = WFL.get_parent(parent_pid)
-		Enum.each(wfl.type_ids, fn({token_id, _phrase})  ->
-			tok = exp_token(token_id, wfl_pid, parent_pid, root_wfl_pid, to_text)
-			f = WFL.get_token_info_from_id(wfl_pid, token_id).freq
-			IO.inspect({tok, f})
-		end)
-
-		{:reply, :ok, state}
-	end
+	# def handle_call({:get_wfl, key, field, order}, _client, state) when is_pid(key) or is_atom(key) do
+	# 	sorted_wfl = get_sorted_wfl(key, field,  order)
+  #
+	# 	{:reply, sorted_wfl, state}
+	# end
+  #
+	# def handle_call({:get_wfl, key, field, order}, _client, state) do
+	# 	wfl_pid = Map.get(state, key)
+	# 	sorted_wfl = get_sorted_wfl(wfl_pid, field,  order)
+  #
+	# 	{:reply, sorted_wfl, state}
+	# end
+  #
 
 
 	def handle_info( {:file_complete, wfl_pid}, state) do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
 		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
 		#if working with multiple files, create common tokens once and clone
+		{:ok, x_wfl_pid} = X_WFL.start_link(wfl_pid)
+		#IO.inspect({:xwfl_pid, x_wfl_pid})
 		WFL.mark_common(wfl_pid, ["the", "a"])
 		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line
-		spawn fn -> (
-			#send result_pid, {self, function.(elem)})
 			{wfl_pid, colloc_pid, colloc_chain} = Collocation.expand_phrases(last_wfl_pid)	#expand_phrases needs to include root_colloc
 			###Collocation.check_expansions(colloc_chain)
-			spawn fn -> (
-				#can remove hapax as soon as colloc is built.
-				free_hapax([colloc_pid | colloc_chain]) #may also want to get rid of singletons from the root wfl
-			) end
 			#while happax are being freed, go through all the items in the expansion list and add to the concretisation sets
 			#so lose_one(ABC) -> [AB, BC, AC].
 			#look up each of the abstractions in the expansion map and add concretisation to their concretisation_map.
 			###Collocation.konkret_machen()
 
-			Collocation.concretise_phrases(last_wfl_pid)
-		) end
+		NamedWFL.new("last_wfl_pid", last_wfl_pid)
+Collocation.concretise_phrases(last_wfl_pid)
 
-		new_state2 = Map.put_new(state, "last_wfl_pid", last_wfl_pid)
-		{:noreply, new_state2}
+		#new_state2 = Map.put_new(state, "last_wfl_pid", last_wfl_pid)
+		{:noreply, state}
 	end
 
 	def handle_info( {:file_error, _filePath}, state) do
@@ -211,7 +170,7 @@ defmodule WFLScratch.Server do
 
 	defp process_collocations2(sent_map, root_sent_map, source_wfl_pid) do
 		cutoff = 2	#this will have to be in config or similar.
-
+#IO.inspect({:parent, source_wfl_pid})
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
 		Parallel.pjob(sent_map, [{Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]}])  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
 
@@ -279,40 +238,5 @@ defmodule WFLScratch.Server do
 		do_phrase_wfls(parent_wfl_pid, root_wfl_pid, deadend_wfl_pid)
 	end
 
-	def exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, to_text) do
-		phrase = xp_token([{token_id, wfl_pid, parent_wfl_pid}], root_wfl_pid, <<>>)
-		if to_text == true do
-			WFL.translate_phrase(root_wfl_pid, phrase)
-		else
-			Utils.rev_bin4(phrase)
-		end
-
-	end
-
-
-	def xp_token([], _root_wfl_pid, phrase) do
-		#we've finished if there are no more tokens to process for this chunk, and there are no remaining chunks left
-		phrase
-	end
-
-	def xp_token([{token_id, _wfl_pid, parent_wfl_pid} | rest], root_wfl_pid, phrase) when is_nil(parent_wfl_pid) do
-		#this token_id is not expandable (points to real word)
-		new_phrase = token_id <> phrase
-		xp_token(rest, root_wfl_pid, new_phrase)
-	end
-
-	def xp_token([{token_id, wfl_pid, parent_wfl_pid} | rest_tokens], root_wfl_pid, phrase) do
-		#this token_id is expandable
-		#mind the gap
-		<<_gap_byte :: binary-size(1),  rest_bytes :: binary-size(3)>> = token_id
-		token_id_without_gap = <<0x00 :: integer-unit(8)-size(1)>> <> rest_bytes
-
-		{token_type, lhs_parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, token_id_without_gap)
-		grandparent_wfl_pid = WFL.get_parent(parent_wfl_pid)
-		<<lhs :: binary-size(4), rhs :: binary-size(4)>> = token_type
-
-		new_stack = [{lhs, parent_wfl_pid, grandparent_wfl_pid} | [{rhs, root_wfl_pid, nil} | rest_tokens]]
-		xp_token(new_stack, root_wfl_pid, phrase)
-	end
 
 end
