@@ -1,6 +1,5 @@
 defmodule X_WFL do
 	use GenServer
-#i think we may as well store named wfls here also
 	#API
 
 	# def translate_phrase(wfl_pid, phrase) do
@@ -16,8 +15,17 @@ defmodule X_WFL do
 		:gen_server.call(:xwfl, {:expand_wfl, wfl_pid, to_text})
 	end
 
-	def start_link(root_wfl_pid \\ nil) do
-    GenServer.start_link(__MODULE__, root_wfl_pid, name: :xwfl)
+	def get_wfl_chain() do
+		:gen_server.call(:xwfl, {:get_wfl_chain})
+	end
+
+	def get_pid_from_name(pid_name) do
+		:gen_server.call(:xwfl, {:get_pid_from_name, pid_name})
+	end
+
+
+	def start_link(first_last_pid) do
+    GenServer.start_link(__MODULE__, first_last_pid, name: :xwfl)
 		#:gen_server.start_link(__MODULE__, [root_wfl_pid], :name :XWFL)
 	end
 
@@ -28,7 +36,7 @@ defmodule X_WFL do
 	end
 
 
-	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, root_wfl_pid) do
+	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, {root_wfl_pid, last_wfl_pid} = pids) do
 
 		#add a check to see if wfl_pid is the root wfl pid, in which case we just want a dump of the wfl - or at least the types.
 		{wfl, parent_pid} = WFL.get_wfl_state(wfl_pid)
@@ -39,18 +47,34 @@ defmodule X_WFL do
 			#IO.inspect({tok, f})
 		end)
 
-		{:reply, :ok, root_wfl_pid}
+		{:reply, :ok, pids}
 	end
 
 
-  def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, root_wfl_pid) do
-
+  def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, {root_wfl_pid, last_wfl_pid} = pids) do
     parent_wfl_pid = WFL.get_parent(wfl_pid)
 
 		tok = exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, to_text)
     #IO.inspect({:exp_tok, tok})
-		{:reply, tok, root_wfl_pid}
+		{:reply, tok, pids}
 	end
+
+	def handle_call({:get_wfl_chain}, _from, {root_wfl_pid, last_wfl_pid} = pids) do  #should also store last_wfl_pid here
+		wfl_chain = get_chain(last_wfl_pid)
+		{:reply, wfl_chain, pids}
+	end
+
+
+	def handle_call({:get_pid_from_name, pid_name}, _from, {root_wfl_pid, last_wfl_pid} = pids) do
+		pid = case pid_name do
+			"last_wfl_pid" ->
+				last_wfl_pid
+			_ ->
+			root_wfl_pid
+		end
+		{:reply, pid, pids}
+	end
+
 
   def exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, to_text) do
 		phrase = xp_token([{token_id, wfl_pid, parent_wfl_pid}], root_wfl_pid, <<>>)
@@ -94,6 +118,21 @@ defmodule X_WFL do
 		temp = xp_token(new_stack, root_wfl_pid, phrase)
     #IO.inspect("exiting")
     temp
+	end
+
+	def get_chain(wfl_pid) do
+		parent_wfl_pid = WFL.get_parent(wfl_pid)
+		get_chain(wfl_pid, parent_wfl_pid, [])
+	end
+
+	defp get_chain(wfl_pid, parent_wfl_pid, acc) when is_nil(parent_wfl_pid)  do
+		[wfl_pid | acc]
+	end
+
+	defp get_chain(wfl_pid, parent_wfl_pid, acc) do
+		grandparent_wfl_pid = WFL.get_parent(parent_wfl_pid)
+		new_acc = [wfl_pid | acc]
+		get_chain(parent_wfl_pid, grandparent_wfl_pid, new_acc)
 	end
 
 

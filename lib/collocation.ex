@@ -282,12 +282,12 @@ defmodule Collocation do
 
 	end
 
-	def expand_phrases(last_wfl_pid) do
+	def expand_phrases() do
 		#get list of all colloc wfls
 		#we are going to go through these in order from smallest to largest, look up smallest and stick on the rhs.
 		#having a bit of trouble with this.
 		#parent_wfl_pid = WFL.get_parent(last_wfl_pid)
-		wfl_chain = get_wfl_chain(last_wfl_pid)
+		wfl_chain = X_WFL.get_wfl_chain()
 		{wfl_pid, colloc_pid, colloc_chain} = case wfl_chain do
 			[root_wfl_pid, root_colloc_pid | rest_chain] -> {root_wfl_pid, root_colloc_pid, rest_chain}
 			_ -> {nil, []}
@@ -370,21 +370,6 @@ defmodule Collocation do
 		check_expansions(rest_wfls)
 	end
 
-	def get_wfl_chain(wfl_pid) do
-		parent_wfl_pid = WFL.get_parent(wfl_pid)
-		get_wfl_chain(wfl_pid, parent_wfl_pid, [])
-	end
-
-	defp get_wfl_chain(wfl_pid, parent_wfl_pid, acc) when is_nil(parent_wfl_pid)  do
-		[wfl_pid | acc]
-	end
-
-	defp get_wfl_chain(wfl_pid, parent_wfl_pid, acc) do
-		grandparent_wfl_pid = WFL.get_parent(parent_wfl_pid)
-		new_acc = [wfl_pid | acc]
-		get_wfl_chain(parent_wfl_pid, grandparent_wfl_pid, new_acc)
-	end
-
 	defp do_concretise_phrases([wfl_pid | []]) do
 IO.puts("That's all folks")
 	end
@@ -413,7 +398,7 @@ IO.puts("That's all folks")
 		do_concretise_phrases(rest_pids)
 	end
 
-	def concretise_phrases(last_wfl_pid) do
+	def concretise_phrases() do
 		#create a wfl to hold all the phrases that have already been processed.
 		#process each phrase in the wfl
 
@@ -421,7 +406,7 @@ IO.puts("That's all folks")
 
 		# loop over all the colloc wfls and need to consider
 		wfl_chain =
-			get_wfl_chain(last_wfl_pid)
+			X_WFL.get_wfl_chain()
 			|> Enum.reverse
 
 		do_concretise_phrases(wfl_chain)

@@ -43,10 +43,6 @@ defmodule WFLScratch.Server do
 
 	def handle_cast( {:wfl_file, {filePath, readerModule}}, state) do
 		{:ok, wfl_pid} = WFL.start_link()	#store this in map with filename as key? we need to have a completed status flag in state
-		NamedWFL.new("root_wfl_pid", wfl_pid)
-		yy = NamedWFL.get_map()
-		#IO.inspect(yy)
-		#new_state = Map.put_new(state, "root_wfl_pid", wfl_pid)	#originally used filename as key but want access to root - need another level to manage mutiple files
 		process_file(filePath, readerModule, wfl_pid)	#should process_file be async?  what is the effect of handle_info calls which set state before this call terminates?
 
 		{:noreply, state}
@@ -88,19 +84,21 @@ defmodule WFLScratch.Server do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
 		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
 		#if working with multiple files, create common tokens once and clone
-		{:ok, x_wfl_pid} = X_WFL.start_link(wfl_pid)
-		#IO.inspect({:xwfl_pid, x_wfl_pid})
+
+
 		WFL.mark_common(wfl_pid, ["the", "a"])
 		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line
-			{wfl_pid, colloc_pid, colloc_chain} = Collocation.expand_phrases(last_wfl_pid)	#expand_phrases needs to include root_colloc
+
+		X_WFL.start_link({wfl_pid, last_wfl_pid})
+
+			{wfl_pid, colloc_pid, colloc_chain} = Collocation.expand_phrases()	#expand_phrases needs to include root_colloc
 			###Collocation.check_expansions(colloc_chain)
 			#while happax are being freed, go through all the items in the expansion list and add to the concretisation sets
 			#so lose_one(ABC) -> [AB, BC, AC].
 			#look up each of the abstractions in the expansion map and add concretisation to their concretisation_map.
 			###Collocation.konkret_machen()
 
-		NamedWFL.new("last_wfl_pid", last_wfl_pid)
-Collocation.concretise_phrases(last_wfl_pid)
+			Collocation.concretise_phrases()
 
 		#new_state2 = Map.put_new(state, "last_wfl_pid", last_wfl_pid)
 		{:noreply, state}

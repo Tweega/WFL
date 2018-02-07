@@ -467,7 +467,7 @@ def save_sentence_tokens() do
 	#saving only tokens not punctuation, as an array of tokens
 	#sentences are stored where?
 
-	root_wfl_pid = NamedWFL.get_pid_from_name("root_wfl_pid")
+	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
 	{:ok, file} = File.open "sent_tokens.txt", [:write]
 
 
@@ -518,7 +518,7 @@ end
 
 def save_concretisation_tree() do
 	#start with the main wfl and then process all concretisations,depth first
-root_wfl_pid = NamedWFL.get_pid_from_name("root_wfl_pid")
+root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
 root_colloc_pid = get_root_colloc_pid()
 		{:ok, file} = File.open "wfl_tree.txt", [:write]
 		tree_open = [?{, 34, "wfl_tree", 34,   ?:, ?[]
@@ -584,9 +584,133 @@ end
 
 
 def get_root_colloc_pid() do
-	last_wfl_pid = NamedWFL.get_pid_from_name("last_wfl_pid")
-	[_root, root_colloc_pid | _] = Collocation.get_wfl_chain(last_wfl_pid)
+	[_root, root_colloc_pid | _] = X_WFL.get_wfl_chain()
 	root_colloc_pid
+end
+
+def flag_expression_tree_nodes() do
+	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
+	root_colloc_pid = get_root_colloc_pid()
+	cut_off = 2
+	sorted_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once - we should be streaming this too
+
+	concretisations = Enum.reduce_while(sorted_types, [], fn ({key, wfl_item}, acc) ->
+		if wfl_item.freq < cut_off do
+			 {:halt, acc}
+		else
+			{:cont, [{root_wfl_pid, wfl_item.type_id} | acc]}
+		end
+	end)
+	#wfl_types now looks like a list of concretisations
+	flag_tree_nodes(concretisations)
+end
+
+def flag_tree_nodes([]) do
+	:ok
+end
+
+#we need the pid of the  type in order to update it.
+def flag_tree_nodes([{wfl_pid, type_id} | rest]) do
+	#this function should be on x_wfl as it crosses all WFLs
+	#set root info.freq to -1 to flag that this node is on the expression tree
+	wfl_type = WFL.flag_tree_node(wfl_pid, type_id)
+
+	#now process all the concretisations of this node
+	next_concretisations =
+		case wfl_type.concretisations do
+			nil ->
+				rest
+			_ ->
+				Enum.reduce(wfl_type.concretisations, rest, fn (%Concretisation{pid: conc_pid, token_id: conc_id}, acc) ->
+						[{conc_pid, conc_id} | acc]
+				end)
+		end
+	flag_tree_nodes(next_concretisations)
+end
+
+
+def require_scenic_route() do
+	flag_expression_tree_nodes()
+	#where a tree provides more than one path to a concretisation, delete any path that is direct
+	#other -> other hand -> on the other hand
+	#other -> on the other hand  (this direct route is redundant)
+	#start with the parent of the last WFL
+	[last_wfl_pid | wfl_chain] = Enum.reverse(X_WFL.get_wfl_chain())
+	remove_direct_paths(wfl_chain)
+end
+
+def remove_direct_paths([]) do
+	:ok
+end
+
+
+def remove_direct_paths([wfl_pid | rest]) do
+	#get a list of all types in this wfl that are part of the expression tree - have root_info.freq == -1
+	#no leapfrogging allowed.
+	# if B -> AB -> ABCD, then B -> ABCD is redundant
+
+	%WFL_Data{types: wfl_types} =  WFL.get_wfl(wfl_pid)
+	#for each type that is part of the expression tree, get a set of all destinations
+
+	yy = Enum.filter(wfl_types, fn {_key, wfl_type} ->
+		wfl_type.root_info.freq == -1 && wfl_type.concretisations != nil
+	end)
+
+	remove_leapfroggers(yy, wfl_pid)
+
+	remove_direct_paths(rest)
+end
+
+def remove_leapfroggers([], _wfl_pid) do
+	:ok
+end
+
+def remove_leapfroggers([{type_key, wfl_type} | rest], wfl_pid) do
+	#get descendants of this node's concretisaions
+	grandchildren = Enum.reduce(wfl_type.concretisations, [], fn (%Concretisation{pid: conc_pid, token_id: conc_token_id}, acc) ->
+			conc_info = WFL.get_token_info_from_id(conc_pid, conc_token_id)
+			case conc_info.concretisations do
+				nil ->
+					acc
+				_ ->
+					acc ++ conc_info.concretisations
+					# Enum.reduce(conc_info.concretisations, acc, fn (%Concretisation{} = conc2, acc2)->
+					# 	#all i am doing here is joining two lists. Just use ++?
+					# 	[conc2 | acc2]
+					# end)
+			end
+	end)
+
+	descendants = get_concretisation_descendants(grandchildren, MapSet.new())
+
+	# we now want to see if any of the list of wfl_type.concretisations is in the descendant set
+	{filtered_concretisations, rejects} =
+		Enum.split_with(wfl_type.concretisations, fn (%Concretisation{} = conc) ->
+			 MapSet.member?(descendants, conc)
+		 end)
+
+	if rejects != [] do
+		#update this wfl type to reflect new concretisation list
+		IO.inspect({:reject, rejects})
+		WFL.update_concretisations(wfl_pid, type_key, filtered_concretisations)
+	end
+
+end
+
+def get_concretisation_descendants([], descendants) do
+	descendants
+end
+
+def get_concretisation_descendants([%Concretisation{pid: conc_pid, token_id: conc_token_id} = conc | rest], descendants) do
+	new_descendants = MapSet.put(descendants, conc)
+	conc_info = WFL.get_token_info_from_id(conc_pid, conc_token_id)
+
+	case conc_info.concretisations do
+		nil ->
+			new_descendants
+		_ ->
+			get_concretisation_descendants(Map.to_list(conc_info.concretisations), new_descendants)
+	end
 end
 
 end

@@ -56,6 +56,16 @@ defmodule WFL do
     #IO.inspect("wfl LEAVE concretisation")
 	end
 
+
+	def flag_tree_node(wfl_pid, phrase_id) do
+		:gen_server.call(wfl_pid, {:flag_tree_node, phrase_id})
+	end
+
+  def update_concretisations(wfl_pid, phrase_type, concretisations) do
+    :gen_server.call(wfl_pid, {:update_concretisations, phrase_type, concretisations})
+  end
+
+
   # def expand_type_id(wfl_pid, type_id, to_text \\ true) do
 	# 	:gen_server.call(wfl_pid, {:expand_type_id, wfl_pid, type_id, to_text})
 	# end
@@ -138,32 +148,26 @@ defmodule WFL do
 	end
 
 
-  # def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, {_, parent_wfl_pid} = state) do
-	# 	#this should be on wfl, otherwise wfl cannot call it, at least on its own pid, as the wfl process is blocked when calling to get_parent
-	# 	#parent_wfl_pid = WFL.get_parent(wfl_pid)
-  #   #we have to remove global data from the main execution code (WFLScratch.Server)
-  #   #for the moment, call a temporary function to
-	# 	root_wfl_pid = NamedWFL.get_pid_from_name("root_wfl_pid")
-  #
-	# 	tok = exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, to_text)
-	# 	{:reply, tok, state}
-	# end
-  #
-  #
-	# def handle_call({:expand_wfl, wfl_pid, to_text}, _from, state) do
-	# 	root_wfl_pid = NamedWFL.get_pid_from_name("root_wfl_pid")
-	# 	#add a check to see if wfl_pid is the root wfl pid, in which case we just want a dump of the wfl - or at least the types.
-	# 	{wfl, parent_pid} = WFL.get_wfl_state(wfl_pid)
-	# 	#grandparent_pid = WFL.get_parent(parent_pid)
-	# 	Enum.each(wfl.type_ids, fn({token_id, _phrase})  ->
-	# 		tok = exp_token(token_id, wfl_pid, parent_pid, root_wfl_pid, to_text)
-	# 		f = WFL.get_token_info_from_id(wfl_pid, token_id).freq
-	# 		IO.inspect({tok, f})
-	# 	end)
-  #
-	# 	{:reply, :ok, state}
-	# end
-  #
+  def handle_call({:flag_tree_node, phrase_id}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+    phrase_type = Map.get(wfl_data.type_ids, phrase_id)
+    IO.inspect({phrase_id, phrase_id})
+    {updated_wfl_type, new_wfl_types} = Map.get_and_update!(wfl_data.types, phrase_type, fn %WFL_Type{root_info: root_info} = wfl_type ->
+      new_root = %RootInfo{root_info | freq: -1}
+      {wfl_type, %WFL_Type{wfl_type | root_info: new_root}}
+    end)
+
+    new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
+    {:reply, updated_wfl_type, {new_wfl, parent_wfl_pid}}
+	end
+
+  def handle_call({:update_concretisations, phrase_type, new_concretisations}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+    new_wfl_types = Map.update!(wfl_data.types, phrase_type, fn %WFL_Type{} = wfl_type ->
+      %WFL_Type{wfl_type | concretisations: new_concretisations}
+    end)
+
+    new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
+    {:reply, :ok, {new_wfl, parent_wfl_pid}}
+  end
 
 
 	def handle_cast({:add_tokens, sentences}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
