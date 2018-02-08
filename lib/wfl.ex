@@ -166,6 +166,7 @@ defmodule WFL do
     end)
 
     new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
+
     {:reply, :ok, {new_wfl, parent_wfl_pid}}
   end
 
