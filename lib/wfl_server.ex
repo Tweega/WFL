@@ -85,15 +85,14 @@ defmodule WFLScratch.Server do
 		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
 		#if working with multiple files, create common tokens once and clone
 
-
 		WFL.mark_common(wfl_pid, ["the", "a"])
 		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line
 
 		X_WFL.start_link({wfl_pid, last_wfl_pid})
 
 			{wfl_pid, colloc_pid, colloc_chain} = Collocation.expand_phrases()	#expand_phrases needs to include root_colloc
-			###Collocation.check_expansions(colloc_chain)
-			#while happax are being freed, go through all the items in the expansion list and add to the concretisation sets
+			###Collocation.check_expansions(colloc_chain) - i think this is only for debugging
+			#while hapax are being freed, go through all the items in the expansion list and add to the concretisation sets
 			#so lose_one(ABC) -> [AB, BC, AC].
 			#look up each of the abstractions in the expansion map and add concretisation to their concretisation_map.
 			###Collocation.konkret_machen()
@@ -109,19 +108,6 @@ defmodule WFLScratch.Server do
 		{:noreply, state}
 	end
 
-
-	def free_hapax([]) do
-	end
-
-	def free_hapax([wfl_pid | rest_wfl_pids]) do
-		{wfl, _parent_pid} = WFL.get_wfl_state(wfl_pid)
-		Enum.each(wfl.types, fn({token_key, %WFL_Type{} = wfl_type})  ->
-			if wfl_type.freq == 1 do
-				Map.delete(wfl_type, token_key)
-			end
-		end)
-		free_hapax(rest_wfl_pids)
-	end
 
 	defp process_file(filePath, readerModule, wfl_pid) do
 		#here we create a text-reader process and get it to report back every so often with tokens/sentences
@@ -168,7 +154,9 @@ defmodule WFLScratch.Server do
 
 	defp process_collocations2(sent_map, root_sent_map, source_wfl_pid) do
 		cutoff = 2	#this will have to be in config or similar.
-#IO.inspect({:parent, source_wfl_pid})
+		{:ok, num_released} = WFL.free_hapax(source_wfl_pid)
+
+IO.inspect({:released, num_released})
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
 		Parallel.pjob(sent_map, [{Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]}])  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
 
@@ -178,6 +166,7 @@ defmodule WFLScratch.Server do
 			process_collocations2(colloc_sent_map, root_sent_map, colloc_wfl_pid)
 		else
 			#this wfl has nothing in it, return the parent/source which will be the last wfl to have frequent tokens
+			Process.exit(colloc_wfl_pid, :normal)
 			source_wfl_pid
 		end
 	end

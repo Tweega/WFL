@@ -23,6 +23,10 @@ defmodule X_WFL do
 		:gen_server.call(:xwfl, {:get_pid_from_name, pid_name})
 	end
 
+	def free_hapax(pid_list) do
+		#this may not get used in favour of freeing hapax as we go for each wfl
+		:gen_server.call(:xwfl, {:free_hapax, pid_list})
+	end
 
 	def start_link(first_last_pid) do
     GenServer.start_link(__MODULE__, first_last_pid, name: :xwfl)
@@ -133,6 +137,14 @@ defmodule X_WFL do
 		grandparent_wfl_pid = WFL.get_parent(parent_wfl_pid)
 		new_acc = [wfl_pid | acc]
 		get_chain(parent_wfl_pid, grandparent_wfl_pid, new_acc)
+	end
+
+	def free_hapax([]) do
+	end
+
+	def free_hapax([wfl_pid | rest_wfl_pids]) do
+		WFL.free_hapax(wfl_pid)
+		free_hapax(rest_wfl_pids)
 	end
 
 

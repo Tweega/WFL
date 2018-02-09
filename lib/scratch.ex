@@ -450,7 +450,7 @@ end
 
 def save_wfl(wfl_pid) do
 #once we have a sorted main wfl - may be an idea to hang onto it until done
-#also - check where we get rid of happax legomena.
+#also - check where we get rid of hapax legomena.
   {:ok, file} = File.open "wfl.txt", [:write]
 IO.binwrite file, [?{, 34, "wfl", 34,   ?:, ?[]
   types = WFL.get_wfl(wfl_pid).types

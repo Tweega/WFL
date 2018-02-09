@@ -65,6 +65,10 @@ defmodule WFL do
     :gen_server.call(wfl_pid, {:update_concretisations, phrase_type, concretisations})
   end
 
+  def free_hapax(wfl_pid) do
+    :gen_server.call(wfl_pid, {:free_hapax})
+  end
+
 
   # def expand_type_id(wfl_pid, type_id, to_text \\ true) do
 	# 	:gen_server.call(wfl_pid, {:expand_type_id, wfl_pid, type_id, to_text})
@@ -168,6 +172,23 @@ defmodule WFL do
     new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
 
     {:reply, :ok, {new_wfl, parent_wfl_pid}}
+  end
+
+  def handle_call({:free_hapax}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+    cutoff = 2
+    {new_wfl_types, num_released} =
+      Enum.reduce(wfl_data.types, {wfl_data.types, 0}, fn({token_key, wfl_type}, {types, n})  ->
+  			if wfl_type.freq < cutoff do
+          new_types = Map.delete(types, token_key)
+          {new_types, n + 1}
+        else
+          {types, n}
+  			end
+  		end)
+
+    new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
+
+    {:reply, {:ok, num_released}, {new_wfl, parent_wfl_pid}}
   end
 
 
@@ -422,7 +443,5 @@ defmodule WFL do
 	def space_out(phrase, space_count) do
 		space_out([<<"_">> | phrase], space_count - 1)
 	end
-
-
 
 end

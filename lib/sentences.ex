@@ -23,4 +23,9 @@ defmodule Sentences do
     sent_map |> Stream.map(&(&1))
   end
 
+  def strike_sentence() do
+    # idea here is to make all sentences aailable for garbage collection
+    Agent.update(:sentences, %{})
+  end
+
 end

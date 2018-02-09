@@ -3,7 +3,8 @@
 # end
 
 defmodule TokensBinary do
-  #stores a binary representation of a sentence <<11, 43, 41, 2, 83>> - keyed on sentence, where each number represents a wrod such as cat.  numbers will actually be 4 bytes
+  #stores a binary representation of a sentence <<11, 43, 41, 2, 83>> - keyed on sentence,
+  #where each number represents a word such as cat.  numbers will actually be 4 bytes
   #also stores a map between first offset and token
   defstruct(bin_tokens: <<>>, offset_maps: %OffsetMaps{})
 
