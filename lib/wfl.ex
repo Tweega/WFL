@@ -69,6 +69,13 @@ defmodule WFL do
     :gen_server.call(wfl_pid, {:free_hapax})
   end
 
+  def get_sorted_wfl(wfl_pid, field, order) do
+    :gen_server.call(wfl_pid, {:get_sorted_wfl, field, order})
+  end
+
+  def get_types_as_list(wfl_pid) do
+    :gen_server.call(wfl_pid, {:get_types_as_list})
+  end
 
   # def expand_type_id(wfl_pid, type_id, to_text \\ true) do
 	# 	:gen_server.call(wfl_pid, {:expand_type_id, wfl_pid, type_id, to_text})
@@ -191,6 +198,16 @@ defmodule WFL do
     {:reply, {:ok, num_released}, {new_wfl, parent_wfl_pid}}
   end
 
+  def handle_call({:get_sorted_wfl, field, order}, _client, {%WFL_Data{} = wfl_data, _parent_wfl_pid} = state) do
+    swfl = sorted_wfl(wfl_data.types, field, order)
+    {:reply, swfl, state}
+  end
+
+  def handle_call({:get_types_as_list}, _client, {%WFL_Data{} = wfl_data, _parent_wfl_pid} = state) do
+    #may not need to expose this on api - need it for function in scratch which will probably be moved here
+    wfl_list = Map.to_list(wfl_data.types)
+    {:reply, wfl_list, state}
+  end
 
 	def handle_cast({:add_tokens, sentences}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
 		#this function is not part of the api for some reason. tk
@@ -443,5 +460,109 @@ defmodule WFL do
 	def space_out(phrase, space_count) do
 		space_out([<<"_">> | phrase], space_count - 1)
 	end
+
+
+  def xget_instance_stream(wfl_pid) do
+    #for each frequent wfl item
+      #get each instance
+    #what i want to return is a stream of entries that can be added to a new colloc wfl.
+    #lhs_freq_phrase, rhs_token_id - this will be the phrase
+    #we get the phrase to add from wfl where freq and is_common criteria met.
+
+    #what we want is an lhs stream
+    #each element represents an instance of a frequent phrase type
+    #{start_offset 0 => [{end_offset 0, token_id<<0, 0, 0, 93>>, token parts (lhs.rhs, unless root in which case word) "we"}],
+    #we will need sentence as well
+    #so we have an inner stream
+    #we have an outer context and an inner context
+    #we keep going while we have either inner or outer
+    #if inner is empty, set inner to data for outer; pop outer,
+
+    #this feels like it should be on the wfl
+    types = WFL.get_wfl(wfl_pid).types	#ideally this would be a stream tk.  can we reduce from a stream - i would have thought so.
+    #cutoff = get_cutoff()
+    #could we parallelise this? to do this we would have to replace the reduce mechanism wiht parallel_job - otherwise should be no problem. probably should fo the frequency filter before parralellising
+    #anonymous fn({15, {3, 3}}, %{})
+
+    Enum.reduce(types, {%{}, 0}, fn({token_key, %WFL_Type{} = wfl_type}, {sent_map, freq_token_count}) ->
+    #IO.inspect(sent_map)
+      if wfl_type.freq > 1 do
+
+        Enum.reduce(wfl_type.instances, {sent_map, freq_token_count}, fn({sent_id, {first_offset, last_offset}}, {sent_map_acc, tok_count}) ->
+          #IO.inspect({sent_id, first_offset, last_offset})
+          {_, new_sent_map} = Map.get_and_update(sent_map_acc, sent_id, fn(cm) ->
+            continuation_map = case cm do
+              nil -> %{}
+              _ -> cm
+            end
+
+
+            {_, new_continuation_map} = Map.get_and_update(continuation_map, first_offset, fn(continuation_list) ->
+              continuations = case continuation_list do
+                nil -> []
+                _ -> continuation_list
+              end
+
+              {nil, [{last_offset, wfl_type.type_id, token_key} | continuations]}
+
+              end)
+
+              {nil, new_continuation_map}
+
+            end)
+          {new_sent_map, tok_count + 1}
+        end)
+      else
+        {sent_map, freq_token_count}
+      end
+    end)
+  end
+
+  defp sorted_wfl(wfl_types, field, order) do #this should be on wfl
+    wfl = Map.to_list(wfl_types)
+
+    case field do    #a nuisance here that structs don't implement access behaviour
+      :freq ->
+        case order do
+          :asc ->
+            Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq <= wfl_item_b.freq end)
+          _ ->
+            Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq >= wfl_item_b.freq end)
+        end
+      _ ->
+        case order do
+          :asc ->
+            Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type <= wfl_item_b.type end)
+          _ ->
+            Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type >= wfl_item_b.type end)
+        end
+
+    end
+  end
+
+
+  def get_instance_stream(wfl) do
+    Stream.resource(
+      fn ->
+        {wfl, []} #{list / stream of frequent wfl items, list of instances}
+      end,	#this fn intitialises the resource - it takes no params and returns 'the resource' - which will be a sorted wfl
+      fn({wfl_item_list,  instances}) ->
+        case instances do
+          [] ->
+            case wfl_item_list do
+              [] ->
+                {:halt, {[], []}}
+              [{_key, wfl_item} | rest_wfl] ->
+                [first_instance | other_instances] = wfl_item.instances #this will fail if there are no instancs, which shoud not be the case
+                {[first_instance], {rest_wfl, other_instances}}
+            end
+          [instance | rest_instances] ->
+            {[instance], {wfl_item_list, rest_instances}}
+        end
+      end,
+      fn(empty_wfl) -> empty_wfl end 	#this takes accumulator, does clear up and returns the final value if there is one.
+      )
+  end
+
 
 end

@@ -346,7 +346,7 @@ def test_stream(wfl_pid) do
 	#after all this faffing around with streams - I actually want to sort the wfl by freq.
 	#Stream.map(WFL.get_wfl(wfl_pid).types, fn ({k, v}) ->
 
-  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
+  wfl_types = WFL.get_sorted_wfl(wfl_pid, :freq, :asc)
 
   Stream.transform(wfl_types, [], fn (v, acc) ->
 	IO.inspect(v)
@@ -454,7 +454,7 @@ def save_wfl(wfl_pid) do
   {:ok, file} = File.open "wfl.txt", [:write]
 IO.binwrite file, [?{, 34, "wfl", 34,   ?:, ?[]
   types = WFL.get_wfl(wfl_pid).types
-  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)
+  wfl_types = WFL.get_sorted_wfl(wfl_pid, :freq, :desc)
 save_tokens(wfl_types, file)
 
   IO.binwrite file, [?], ?}]
@@ -525,7 +525,7 @@ root_colloc_pid = get_root_colloc_pid()
 		tree_close = [?], ?}]
 		IO.binwrite file, tree_open
 		#types = WFL.get_wfl(root_wfl_pid).types
-		wfl_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
+		wfl_types = WFL.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
 		Enum.scan(wfl_types, 0, fn({_key, wfl_type}, tally) ->
 
 				if wfl_type.freq > 1 && wfl_type.is_common != true && wfl_type.concretisations != nil do
@@ -592,7 +592,7 @@ def flag_expression_tree_nodes() do
 	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
 	#root_colloc_pid = get_root_colloc_pid()
 	cut_off = 2
-	sorted_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once - we should be streaming this too
+	sorted_types = WFL.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once - we should be streaming this too
 
 	concretisations = Enum.reduce_while(sorted_types, [], fn ({_key, wfl_item}, acc) ->
 		if wfl_item.freq < cut_off do

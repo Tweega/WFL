@@ -50,32 +50,12 @@ defmodule Collocation do
 
 
 	def check_wfl(wfl_pid) do
-		x = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)
+		x = WFL.get_sorted_wfl(wfl_pid, :freq, :desc)
 		IO.inspect(x)
 	end
 
-
-	#for each sentence, for each continuation list - extend the continuation list and recurse until no more continuations.
-
-	def process_sent_map(sent_map, continuation_wfl_pid, parent_wfl_pid, sent_x_fun) do 	#sent_x_fun needed because initial sentence map will be different to subsequent ones - need to ratioalise tokensbinary
-		#don't think we need the continuation_wfl_pid
-		#IO.inspect(sent_map)
-		sents = Stream.map(sent_map, fn({sentence_id, _}) -> sentence_id end)
-		{:ok, phrase_wfl_pid} = WFL.start_link(parent_wfl_pid)
-		Parallel.pjob(sents, [{Collocation, :x_phrases, [sent_map, phrase_wfl_pid, sent_x_fun]}]) ##could we not use sent_map instead of sents? tk
-
-		# we now have a wfl with collocation frequencies.  we want to do the loop again	for which we need a combination map
-		# which is indexed on sentence, then continuations indexed on offset.
-		#so we are going to call process_sent_map again
-		{new_sent_map, freq_token_count} = create_sent_map_from_wfl(phrase_wfl_pid)
-
-		##new_sent_x_fun = fn(x) -> x end
-
-		##process_sent_map(sent_map, continuation_wfl_pid, colloc_wfl_pid, sent_x_fun)
-		##IO.inspect(new_sent_map)
-	end
-
 	def create_sent_map_from_wfl(wfl_pid) do
+		#this feels like it should be on the wfl
 		types = WFL.get_wfl(wfl_pid).types	#ideally this would be a stream tk.  can we reduce from a stream - i would have thought so.
 		#cutoff = get_cutoff()
 		#could we parallelise this? to do this we would have to replace the reduce mechanism wiht parallel_job - otherwise should be no problem. probably should fo the frequency filter before parralellising
@@ -116,14 +96,15 @@ defmodule Collocation do
 	end
 
 
-	def pre_pair_up({sent_id,  lhs_cont_map}, root_sent_map, colloc_wfl_pid) do
+	def pre_pair_up({sent_id, first_off, last_off} = instance, root_sent_map, colloc_wfl_pid) do
 		{:ok, rhs_cont_map} = Map.fetch(root_sent_map, sent_id)
 		pair_up(sent_id, lhs_cont_map, rhs_cont_map, colloc_wfl_pid)
 	end
 
 	def pair_up(sent_id, lhs_phrase_map, continuation_map, colloc_wfl_pid) do
-
-	#continuation map value is an array because we may have phrase tuple of eg "the black", and "the _ cat"
+	#continuation map value is an array because more than one phrase may start at the same offset.
+	#although the rhs will only have one memeber
+	#{start_offset 0 => [{end_offset 0, token_id<<0, 0, 0, 93>>, token parts (lhs.rhs, unless root in which case word) "we"}],
 	_sample_continuation_map = %{0 => [{0, <<0, 0, 0, 93>>, "we"}],
 	    1 => [{1, <<0, 0, 0, 92>>, "needed"}],
 	    2 => [{2, <<0, 0, 0, 7>>, "the"}],
@@ -138,7 +119,7 @@ defmodule Collocation do
 	    11 => [{11, <<0, 0, 0, 162>>, "best"}],
 	    12 => [{12, <<0, 0, 0, 93>>, "we"}],
 	    15 => [{15, <<0, 0, 0, 8>>, "in"}]}
-
+IO.inspect(lhs_phrase_map)
 		cutoff = 2  	#+ 1?
 		# we don't need to reduce as we only want to store in wfl.  Should be able to replace with each loops and can just return :ok here.
 		# however, placing the WFL.addToken code inside the reduce makes it blow up for some reason - so doing that in the pre pair_up function

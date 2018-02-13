@@ -84,7 +84,9 @@ defmodule WFLScratch.Server do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
 		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
 		#if working with multiple files, create common tokens once and clone
+		X_WFL.start_link({wfl_pid, nil})#debu line only
 
+if 1 == 2 do
 		WFL.mark_common(wfl_pid, ["the", "a"])
 		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line
 
@@ -98,7 +100,7 @@ defmodule WFLScratch.Server do
 			###Collocation.konkret_machen()
 
 			Collocation.concretise_phrases()
-
+end #debug 1==2
 		#new_state2 = Map.put_new(state, "last_wfl_pid", last_wfl_pid)
 		{:noreply, state}
 	end
@@ -121,44 +123,48 @@ defmodule WFLScratch.Server do
 
 	end
 
-
-	def get_sorted_wfl(wfl_pid, field, order) do #this should be on wfl
-		wfl_types = WFL.get_wfl(wfl_pid).types
-		wfl = Map.to_list(wfl_types)
-
-		case field do    #a nuisance here that structs don't implement access behaviour
-			:freq ->
-				case order do
-					:asc ->
-						Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq <= wfl_item_b.freq end)
-					_ ->
-						Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq >= wfl_item_b.freq end)
-				end
-			_ ->
-				case order do
-					:asc ->
-						Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type <= wfl_item_b.type end)
-					_ ->
-						Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type >= wfl_item_b.type end)
-				end
-
-		end
-	end
-
-
 	defp process_collocations(source_wfl_pid) do
+		#what we want back from create_sent_map_from_wfl is a stream, not a whole map
+		#a stream of?? {sent_id, start_off, end_off, token_id, token_type}?
+		#from the rhs i need to able to get the token that comes at a particular offset
+		#so create the normal sent map for the root, possibly checking whether we need to keep the token_type
+		#should create sent map be on WFL module?
+		#SAVE root wfl hapax here before they are deleted
 		{root_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(source_wfl_pid) 	#we may want to get back count of items with freq > c/o
-		process_collocations2(root_sent_map, root_sent_map, source_wfl_pid)
+		_sample_sent_map = %{
+			  1 => %{
+			    0 => [{0, <<0, 0, 0, 4>>, "one"}],
+			    2 => [{2, <<0, 0, 0, 2>>, "wenger"}],
+			    3 => [{3, <<0, 0, 0, 1>>, "five"}]
+			  },
+			  2 => %{
+			    1 => [{1, <<0, 0, 0, 7>>, "the"}],
+			    3 => [{3, <<0, 0, 0, 30>>, "that"}],
+			    4 => [{4, <<0, 0, 0, 29>>, "it"}]
+					#...
+				}
+				###...
+			} #end of sample_map
+			#we now have a map of frequent tokens for each sentence. the tokens will become phrases in the next round
+			#this will be the lhs which will be joined at each stage by an additional word from the root wfl.
+
+			#WE NEED the root sent map to check if there are continuations from lhs - but not sure
+			#if we need sent maps for the lhs itself - we should be able to just go through the colloc list.
+			#the problem is that the sent map is effectively a duplicate of the wfl with phrase id, phrase type, start_off and end_off
+			#it may be possible to stream data in the in the same format so as not to have to change the shape of the existing code
+			#so instelad of the first parameter being a map - which we just iterate through, we send in the wfl pid
+			#from the wfl, not create a stream for the lhs
+			lhs_stream = WFL.get_instance_stream(source_wfl_pid)
+		process_collocations2(lhs_stream, root_sent_map, source_wfl_pid)
 	end
 
-
-	defp process_collocations2(sent_map, root_sent_map, source_wfl_pid) do
+	defp process_collocations2(sent_map_lhs_stream, root_sent_map, source_wfl_pid) do
 		cutoff = 2	#this will have to be in config or similar.
 		{:ok, num_released} = WFL.free_hapax(source_wfl_pid)
 
-IO.inspect({:released, num_released})
+		IO.inspect({:released, num_released})
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
-		Parallel.pjob(sent_map, [{Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]}])  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
+		Parallel.pjob(lhs_stream, [{Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]}])  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
 
 		{colloc_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(colloc_wfl_pid) 	#we may want to get back count of items with freq > c/o
 
@@ -168,40 +174,6 @@ IO.inspect({:released, num_released})
 			#this wfl has nothing in it, return the parent/source which will be the last wfl to have frequent tokens
 			Process.exit(colloc_wfl_pid, :normal)
 			source_wfl_pid
-		end
-	end
-
-
-	def get_colloc_continuations(colloc_wfl_pid, continuation_wfl_pid) do
-		# i think p_s_t is phrase something type
-		cutoff = 1	#get from config
-		colloc_types = WFL.get_wfl(colloc_wfl_pid).types
-		frequent_collocs = Enum.filter(colloc_types, fn({_,  wfl_type}) ->
-			_sample_colloc = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
-					 %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
-					  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
-					  type_id: <<0, 0, 1, 42>>}}
-
-			wfl_type.freq >= cutoff
-		end)	#note - this part iterates so we need to call a holding function.
-
-		case frequent_collocs do
-			[_h | _t] = frequent_collocs ->
-				#we have at least one frequent colloc so process it
-				###-{:ok, new_colloc_wfl_pid} = WFL.start_link(colloc_wfl_pid)
-
-				Parallel.pjob(frequent_collocs, [{Collocation, :set_continuations, []}])
-				##-sents = Stream.map(TokensBinary.get_map(), fn({sentence_id, _}) -> sentence_id end)
-				###Parallel.pjob(sents, [{Collocation, :combine_phrases, [colloc_wfl_pid]}])
-				###-Parallel.pjob(sents, [{Collocation, :x_phrases, [colloc_wfl_pid]}])
-				##Parallel.pjob(sents, [{Collocation, :process_sent_map, [continuation_wfl_pid, colloc_wfl_pid, fn(s) -> Collocation.get_temp_x(s) end]}])
-				m = TokensBinary.get_map()
-			Collocation.process_sent_map(m, continuation_wfl_pid, colloc_wfl_pid, fn(sent_map, sent_id) -> Collocation.temp_get_x(sent_map, sent_id) end)
-
-				###Parallel.pjob(frequent_collocs, [{Collocation, :do_phrase, [new_colloc_wfl_pid, continuation_wfl_pid]}])
-				###get_colloc_continuations(new_colloc_wfl_pid, continuation_wfl_pid)	#Is this this tail recursive? perhaps the catch all clause also needs to call the same function
-			_ ->
-				colloc_wfl_pid
 		end
 	end
 
