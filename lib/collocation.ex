@@ -80,6 +80,7 @@ defmodule Collocation do
 		#cutoff = get_cutoff()
 		#could we parallelise this? to do this we would have to replace the reduce mechanism wiht parallel_job - otherwise should be no problem. probably should fo the frequency filter before parralellising
 		#anonymous fn({15, {3, 3}}, %{})
+		#sent map tels me how to extend a phrase given sentence and last offset
 
 		Enum.reduce(types, {%{}, 0}, fn({token_key, %WFL_Type{} = wfl_type}, {sent_map, freq_token_count}) ->
 		#IO.inspect(sent_map)
