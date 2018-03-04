@@ -80,7 +80,8 @@ def process_line(str, wfl_pid, char_tree) when is_binary(str) do
   										#tokens: ["day", "lucky", "your", "be", "might", "it"]}]
 	#note that the full stop is missing here, perhaps because it coincides with an endline.
 
-	GenServer.cast(wfl_pid, {:add_tokens, sentences})	#this should accept spawn acknowledge
+	#GenServer.cast(wfl_pid, {:add_tokens, sentences})	#this should accept spawn acknowledge
+	WFL.addTokens(wfl_pid, sentences)
 end
 
 def process_line(_str, _wfl_pid, _char_tree) do

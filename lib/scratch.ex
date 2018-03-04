@@ -721,4 +721,25 @@ def get_concretisation_descendants([%Concretisation{pid: conc_pid, token_id: con
 	get_concretisation_descendants(rest, child_descendants)
 end
 
+def binary8_to_int(bin8) do
+	list = for << b::8 <- bin8>>, do: b
+	{total, _d} =
+			List.foldl(list, {0, 7}, fn(x, {total, depth}) ->
+				total2 = total + (round(:math.pow(256,  depth)) * x)
+				{total2, depth - 1}
+			end)
+	total
+end
+
+
+def int_to_binary8(int8) do
+
+	{_x, bin4} =
+			List.foldl([0,0,0,0,0,0,0,0], {int8, <<>>}, fn(_x, {remaining, acc}) ->
+				divisor = Kernel.trunc(remaining / 256)
+				remainder = rem(remaining, 256)
+				{divisor, << remainder >> <> acc}
+			end)
+	bin4
+end
 end

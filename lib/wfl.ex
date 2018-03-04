@@ -10,9 +10,13 @@ defmodule WFL do
 	use GenServer
 
 	#API
-	def addToken(pid, %TokenInput{} = token_info) do
-		:gen_server.call(pid, {:add_token, token_info })
+	def addPhrase(pid, %TokenInput{} = token_info, query) do
+    :gen_server.call(pid, {:add_phrase, token_info, query})
 	end
+
+  def addTokens(pid, sentences) do
+    :gen_server.cast(pid, {:add_tokens, sentences })
+  end
 
 	def addColloc(pid, %TokenInput{} = token_info) do  	#defstruct([:token, :instance])		may not use this api
 		:gen_server.call(pid, {:add_colloc, token_info })
@@ -85,6 +89,8 @@ defmodule WFL do
 	#Server
 	def init(state) do
 		#the state of a wfl is a WFL
+    # we could add in state the prepared query used to store happax legomena in db.
+    #by this time the prepared statements should have been set - any chance that this is asynchronous?
 
 		{:ok, state}
 	end
@@ -101,9 +107,11 @@ defmodule WFL do
 		{:reply, parent, state}
 	end
 
-	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
-
-		{token_id, new_wfl} = process_token(token, sentence_id, offset, wfl_data)
+	def handle_call({:add_phrase,
+    %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}, query},
+     _from, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+#IO.inspect({:token, token})
+		{token_id, new_wfl} = process_phrase(token, sentence_id, offset, wfl_data, parent_wfl_pid, query)
 
 		{:reply, {:ok, token_id}, {new_wfl, parent_wfl_pid}}
 	end
@@ -193,7 +201,6 @@ defmodule WFL do
 
 
 	def handle_cast({:add_tokens, sentences}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
-		#this function is not part of the api for some reason. tk
 		#at the end of this process
 			#ok - all sentences in sentences should be saved somewhere keyed on sentence_id
 			#ok  jut to be added to map - all tokens in a sentence should be merged into a binary format containing the token ids only, 4 bytes per token
@@ -212,7 +219,7 @@ defmodule WFL do
             #sentence at this stage is back to front, but we can reverse that later for just the sentences that we need.
 			Sentences.new(sentence_id, sentence)
 
-			{_token_offset, tokens_binary, offset_map, wfl_data2} = process_tokens(tokens, sentence_id, wfl_data1)
+			{_token_offset, tokens_binary, offset_map, wfl_data2} = process_tokens(tokens, sentence_id, wfl_data1, parent_wfl_pid)
 
 			_sample_offset_map = %{0 => <<0, 0, 0, 4>>, 1 => <<0, 0, 0, 188>>, 2 => <<0, 0, 0, 158>>}
 
@@ -225,7 +232,7 @@ defmodule WFL do
 	end
 
 
-	defp process_tokens(tokens, sentence_id, %WFL_Data{} = wfl_data) do
+	defp process_tokens(tokens, sentence_id, %WFL_Data{} = wfl_data, parent_wfl_pid) do
 
 		#we want to end up with
 		#		defstruct([:type, :type_id, :freq, instances: []]) WFL_Type for each new token and with instances/freq update for existing types
@@ -235,48 +242,113 @@ defmodule WFL do
 		#update / create WFL_Type for each token
 		toke_offset = length(tokens) -1 # -1 for 1 based vs 0 based index.  tokens in reverse sentence order, start with count of words in sentence
 		List.foldl(tokens, {toke_offset, <<"">>, %{}, wfl_data}, fn (token, {token_offset, tokens_binary, token_offset_map, wfl_data1}) ->
-			{token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1)
+      sent_off = get_sent_off(sentence_id, token_offset)
+			{token_id, wfl_data2} = add_token_to_wfl(wfl_data1, token, [sent_off], 1)
 			offset_map = Map.put(token_offset_map, token_offset, token_id)
 			{token_offset - 1, << token_id <> tokens_binary >>, offset_map, wfl_data2}	#next accumulator value
 		end)
 	end
 
-	defp process_token(token, sentence_id, offset, %WFL_Data{types: types, type_ids: type_ids}) do
 
-		offsets = case offset do
+  defp process_phrase(token, sentence_id, offset, %WFL_Data{types: types} = wfl_data, parent_wfl_pid, add_phrase_query) do
+    if parent_wfl_pid == nil do
+      IO.inspect("parent nil in process phrase")
+    end
+    sent_off = get_sent_off(sentence_id, offset)
+    {phrase, phrase_freq, phrase_sent_offs} =
+      #see if we already have this type
+      case Map.get(types, token) do
+        nil ->
+          # not in wfl - check with database
+          persist_token(token, sent_off, add_phrase_query)
+        wfl_type ->
+          #we already have this in the wfl - hand off to process_token
+          {token, wfl_type.freq + 1, [sent_off | wfl_type.instances]}
+      end
 
-			{_first_off, _last_off, _max_off} ->
-				offset
+    case phrase_freq do
+      0 ->
+        #no update to the wfl - return the types collection as it stands.
+        {0, wfl_data}
+      _ ->
+        add_token_to_wfl(wfl_data, phrase, phrase_sent_offs, phrase_freq)
+    end
+  end
 
-			{_first_off, _last_off} ->
-				offset
+  defp persist_token(token, sent_off, add_phrase_query) do
 
-			first_off ->
-				{first_off, first_off}
-		end
+    #0)   cast token to integer (or can we simply pass the token up? how does one cast anyway)
+    #1)   register this token with the database
+    cutoff = 2
+    #we could store q in wfl state as we will be using it so often
+    #or at least get it only once when adding all tokens for a sentence. tk
+    #probably best to store as state as this involves a map look up across process boundary
+    #{20, {0, 1}}
+    {sent_id, {first_off, last_off}} = sent_off
+    off_map = %{s: sent_id, f: first_off, l: last_off}
+    token_id = Utils.binary8_to_int(token)
+    #{token_id2, freq, offsets} = PostgrexHelper.execute(add_phrase_query, [token_id, cutoff, off_map])
+    #[ [{0, 0, []}] ]
+#IO.inspect({:token, token, :tokenID, token_id})
+    ##!##res = PostgrexHelper.execute(add_phrase_query, [token_id, cutoff, off_map])
+    ##!##{token_id2, freq, offsets} = hd(hd(res))
+    #%{"l" => 10, "lkf" => 9, "s" => 18} -- offsets example??
 
-		new_instance = {sentence_id,  offsets}
+    # new_offs = List.foldl(offsets, [], fn (off, acc) ->
+    #   sent = Map.fetch!(off, "s")
+    #   first = Map.fetch!(off, "f")
+    #   last = Map.fetch!(off, "l")
+    #
+    #   [{sent, {first, last}} | acc]
+    # end)
 
-		#see if we already have this token in wfl
-		{type_id, new_types} = Map.get_and_update(types, token, fn type_info ->
-			new_type_info = case type_info do
-				%WFL_Type{freq: freq, instances: instances} ->
-					#existing type
-					%WFL_Type{type_info | freq: freq + 1, instances: [new_instance | instances]}
-				_ ->
-					#token not seen before
-					new_type_id = TokenCounter.get_token_id()
-					%WFL_Type{type: token, type_id: new_type_id, freq: 1, instances: [new_instance]}
-			end
-			{new_type_info.type_id, new_type_info}
-		end)
+    #??token_bin8 = Utils.int_to_binary8(token_id2)
+    ##!##{token_bin8, freq, new_offs}
+    {token, 1, [sent_off]}
+  end
+
+  defp add_token_to_wfl(%WFL_Data{types: types, type_ids: type_ids}, token, sent_offs, freq) do
+
+    {type_id, new_types} = Map.get_and_update(types, token, fn type_info ->
+      new_type_info = case type_info do
+        %WFL_Type{freq: token_freq, instances: instances} ->
+          #existing type
+          new_instances = merge_sent_offs(type_info.instances, sent_offs)
+          %WFL_Type{type_info | freq: freq + token_freq, instances: new_instances}
+        _ ->
+          #token not seen before - get new id
+          new_type_id = TokenCounter.get_token_id()
+          %WFL_Type{type: token, type_id: new_type_id, freq: freq, instances: sent_offs}
+      end
+      {new_type_info.type_id, new_type_info}
+    end)
+
+    #we want to be able to look up type from id
+    new_type_ids = Map.put_new(type_ids, type_id, token)
+
+    {type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
+  end
 
 
-		#we want to be able to look up type from id
-		new_type_ids = Map.put_new(type_ids, type_id, token)
+  defp merge_sent_offs(old_offsets, new_offsets ) do
+    List.foldl(new_offsets, old_offsets, fn(offset, acc) ->
+      [offset | acc]
+    end)  #or just concatenate ++?
+  end
 
-		{type_id, %WFL_Data{types: new_types, type_ids: new_type_ids}}
-	end
+  defp get_sent_off(sentence_id, offset) do
+    fo =case offset do
+      {_first_off, _last_off, _max_off} ->
+        offset
+
+      {_first_off, _last_off} ->
+        offset
+
+      first_off ->
+        {first_off, first_off}
+    end
+    {sentence_id, fo}
+  end
 
 
 	defp fetch_token_from_id({%WFL_Data{} = wfl_data, parent_wfl_pid}, token_id) do
@@ -320,11 +392,6 @@ defmodule WFL do
 			phrase_id
 		end
 
-
-    if concretiser_id == <<0,0,2,115>> do
-      IO.inspect({:conc_115, concretiser_valid})
-    end
-
     #IO.inspect({:Concretising, phrase_id, :with, concretisation_id, :is_phrase, is_phrase_id})
     #IO.inspect(phrase_type)
 #Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
@@ -351,16 +418,10 @@ defmodule WFL do
       %RootInfo{freq: proposed_abs_freq, valid: proposed_abs_valid} = proposed_abs_root =
         cond do
           new_spaces == true && !(abstractionFreq > concretiser_freq) ->
-            if wfl_type.type_id == <<0,0,2,115>> do
-              IO.inspect({:invalid_2_115, abstractionFreq, concretiser_freq})
-            end
             %RootInfo{concretiser_root | valid: false}
           abstractionFreq > (concretiser_freq + spacecount + cut_off) ->
             %RootInfo{valid: true, freq: abstractionFreq, conc: %Concretisation{pid: self(), token_id: wfl_type.type_id}}
           true ->
-            if wfl_type.type_id == <<0,0,2,115>> do
-              IO.inspect({:invalid_2_115, concretiser_root})
-            end
             concretiser_root
         end
 
@@ -395,15 +456,8 @@ defmodule WFL do
 
       new_concretisations =
         if concretiser_valid == true do
-          #cpr - need to handle 3 states not set valid, invalid
-          if wfl_type.type_id == <<0,0,2,115>> do
-            IO.inspect({:VALID_concretiser, concretiser_id, new_spaces})
-          end
           MapSet.put(concMap, concretiser_root.conc)
         else
-          if wfl_type.type_id == <<0,0,2,115>> do
-            IO.inspect({:invalid_concretiser, concretiser_id, new_spaces})
-          end
           concMap
         end
 

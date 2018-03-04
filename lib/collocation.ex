@@ -27,27 +27,6 @@ defmodule Collocation do
 
 	defstruct([token_ids: <<>>, concretisations: []])	#anything that further defines a pattern is a concretisation - though a shorter word would be nice.  ab is concretisation of a and b as is a_b.  acb is concretisation of a_b
 
-	def add_collocs_to_wfl(collocs, wfl_pid) do
-		#[{2, [{<<0, 0, 0, 6, 0, 0, 0, 5>>, 32}, {<<0, 0, 0, 7, 0, 0, 0, 6>>, 31},...]},
-		#for each sentence
-		inputs = Enum.reduce(collocs, [], fn({sent_id, token_offsets}, token_inputs_accum) ->
-			#for each token_offset
-			toke_inputs = Enum.reduce(token_offsets, [], fn({bin_token, offset}, token_inputs) ->
-				#create instance
-				instance = %TokenInstance{sentence_id: sent_id, offset: offset}
-				[%TokenInput{token: bin_token, instance: instance}  | token_inputs]
-			end)
-			toke_inputs ++ token_inputs_accum	#better to recurse?
-		end)
-		#add each input to the supplied wfl
-
-		Enum.each(inputs, fn(input) ->
-			WFL.addToken(wfl_pid, input)
-		end)
-
-		wfl_pid
-	end
-
 
 	def check_wfl(wfl_pid) do
 		x = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)
@@ -57,9 +36,9 @@ defmodule Collocation do
 
 	#for each sentence, for each continuation list - extend the continuation list and recurse until no more continuations.
 
-	def process_sent_map(sent_map, continuation_wfl_pid, parent_wfl_pid, sent_x_fun) do 	#sent_x_fun needed because initial sentence map will be different to subsequent ones - need to ratioalise tokensbinary
+	def process_sent_map_obsolete(sent_map, continuation_wfl_pid, parent_wfl_pid, sent_x_fun) do 	#sent_x_fun needed because initial sentence map will be different to subsequent ones - need to ratioalise tokensbinary
 		#don't think we need the continuation_wfl_pid
-		#IO.inspect(sent_map)
+		IO.inspect("start new wfl")
 		sents = Stream.map(sent_map, fn({sentence_id, _}) -> sentence_id end)
 		{:ok, phrase_wfl_pid} = WFL.start_link(parent_wfl_pid)
 		Parallel.pjob(sents, [{Collocation, :x_phrases, [sent_map, phrase_wfl_pid, sent_x_fun]}]) ##could we not use sent_map instead of sents? tk
@@ -85,7 +64,7 @@ defmodule Collocation do
 		Enum.reduce(types, {%{}, 0}, fn({token_key, %WFL_Type{} = wfl_type}, {sent_map, freq_token_count}) ->
 		#IO.inspect(sent_map)
 			if wfl_type.freq > 1 do
-
+IO.inspect(wfl_type.instances)
 				Enum.reduce(wfl_type.instances, {sent_map, freq_token_count}, fn({sent_id, {first_offset, last_offset}}, {sent_map_acc, tok_count}) ->
 					#IO.inspect({sent_id, first_offset, last_offset})
 					{_, new_sent_map} = Map.get_and_update(sent_map_acc, sent_id, fn(cm) ->
@@ -117,12 +96,12 @@ defmodule Collocation do
 	end
 
 
-	def pre_pair_up({sent_id,  lhs_cont_map}, root_sent_map, colloc_wfl_pid) do
+	def pre_pair_up({sent_id,  lhs_cont_map}, root_sent_map, colloc_wfl_pid, add_phrase_query) do
 		{:ok, rhs_cont_map} = Map.fetch(root_sent_map, sent_id)
-		pair_up(sent_id, lhs_cont_map, rhs_cont_map, colloc_wfl_pid)
+		pair_up(sent_id, lhs_cont_map, rhs_cont_map, colloc_wfl_pid, add_phrase_query)
 	end
 
-	def pair_up(sent_id, lhs_phrase_map, continuation_map, colloc_wfl_pid) do
+	def pair_up(sent_id, lhs_phrase_map, continuation_map, colloc_wfl_pid, add_phrase_query) do
 
 	#continuation map value is an array because we may have phrase tuple of eg "the black", and "the _ cat"
 	_sample_continuation_map = %{0 => [{0, <<0, 0, 0, 93>>, "we"}],
@@ -159,7 +138,7 @@ defmodule Collocation do
 
 									phrase_candidate = lhs_token_id <> new_rhs_token_id
 
-									WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {lhs_first_off, rhs_last_off}}})
+									WFL.addPhrase(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {lhs_first_off, rhs_last_off}}}, add_phrase_query)
 									#IO.inspect(phrase_candidate)
 
 								end)
@@ -180,45 +159,6 @@ defmodule Collocation do
 		%TokensBinary{offset_maps: %OffsetMaps{token_map: _index_map,  combination_map: combination_map}} = TokensBinary.get(sent_id)
 
 		combination_map
-	end
-
-	def x_phrases(sentence_id, sentence_map, colloc_wfl_pid, sent_x_fun) do
-		#do a checkout from master to get back oringinal code
-		combination_map = sent_x_fun.(sentence_map, sentence_id)
-
-		#from the combination map get the continuation list for each offset - it should not matter what order we do this in
-		#might want a map_reduce here
-		#first_off, {max_off, {[<<token_id>>, length} ...] = new_offset_combinations})
-
-		Enum.each(combination_map, fn({lhs_offset, {lhs_max_offset, lhs_combinations}}) ->
-
-
-
-				#get the RHS continuation map
-				case Map.fetch(combination_map, lhs_max_offset) do
-					#there will not be rhs continuations for all lhs combinations so rhs_combination_map may be nil
-					{:ok, {rhs_max_offset, rhs_continuations}} ->
-						#for each lhs combination
-						######rhs_max_offset not being used - won't this be needed to record the max_offset of the whole phrase? No, what is recorded in wfl is how the token actually is, it is in sentence map that spaces are recorded
-						#then how do I know where to continue when building the sentence map from a wfl? I need to record this in the wfl if the wfl is what the map is built from.
-						Enum.each(lhs_combinations, fn({lhs_token_id, _lhs_token_length}) ->
-							Enum.each(rhs_continuations, fn({rhs_token_id, rhs_token_length}) ->
-								last_offset = lhs_max_offset + rhs_token_length
-								phrase_candidate = lhs_token_id <> rhs_token_id
-								#IO.inspect({lhs_token_id, rhs_token_id})
-								#IO.inspect({:phrase, phrase_candidate, :instance, {sentence_id, :offset, {lhs_offset, last_offset}}})
-
-								WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sentence_id, offset: {lhs_offset, last_offset, rhs_max_offset}}})
-							end)
-						end)
-						:ok
-
-					_ ->
-						#no continuation exists for this combination
-						#IO.puts("no continuation for offset: #{lhs_max_offset}")
-						:ok
-				end
-		end)
 	end
 
 

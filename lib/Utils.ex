@@ -12,7 +12,7 @@ defmodule Utils do
   end
 
   def compare_ranges(first_range..last_range, first_search..last_search)  do
-    
+
     cond do
       first_range > first_search -> -1
       last_search > last_range -> 1
@@ -21,7 +21,7 @@ defmodule Utils do
   end
 
   def compare_ranges(first..last, search_item)  do
-    
+
     cond do
       first > search_item -> -1
       search_item > last -> 1
@@ -35,7 +35,7 @@ defmodule Utils do
   end
 
   def compare_char_type(%{:range => first_data..last_data}, %{:range => first_search..last_search})  do
-    
+
     cond do
       first_data > first_search -> -1
       last_search > last_data -> 1
@@ -44,7 +44,7 @@ defmodule Utils do
   end
 
   def compare_char_type(%{:range => first..last}, search_item)  do
-    
+
     cond do
       first > search_item -> -1
       search_item > last -> 1
@@ -54,9 +54,9 @@ defmodule Utils do
 
 
   def test(str) do
-    # << j :: utf8 >> = x; 
-    #for <<c <- " hello world ">>, c != ?\s, into: "", do: c  
-    #x = for c <- String.codepoints("Helloé") do <<ch :: utf8>> = c; ch end  
+    # << j :: utf8 >> = x;
+    #for <<c <- " hello world ">>, c != ?\s, into: "", do: c
+    #x = for c <- String.codepoints("Helloé") do <<ch :: utf8>> = c; ch end
     Stream.resource(fn -> String.codepoints(str) end,
       fn str ->
         case str do
@@ -95,7 +95,7 @@ def rev_bin4(bin) do
   def rev_bin(<< h :: binary-size(1),  t :: binary >>, store) do
     #to convert number into binary :binary.encode_unsigned gives you smallest number of bytes for number
     #while <<256 :: size(16)>> gives you <<1, 0>>
-    #and <<k :: integer-size(16) , rest :: binary>> = <<256 :: size(16)>> puts 256 into k 
+    #and <<k :: integer-size(16) , rest :: binary>> = <<256 :: size(16)>> puts 256 into k
 
     rev_bin(t, <<h <> store>>)
 
@@ -110,4 +110,27 @@ def rev_bin4(bin) do
     end)
 
   end
-end 
+
+  def binary8_to_int(bin8) do
+  	list = for << b::8 <- bin8>>, do: b
+  	{total, _d} =
+  			List.foldl(list, {0, 7}, fn(x, {total, depth}) ->
+  				total2 = total + (round(:math.pow(256,  depth)) * x)
+  				{total2, depth - 1}
+  			end)
+  	total
+  end
+
+
+  def int_to_binary8(int8) do
+
+  	{_x, bin4} =
+  			List.foldl([0,0,0,0,0,0,0,0], {int8, <<>>}, fn(_x, {remaining, acc}) ->
+  				divisor = Kernel.trunc(remaining / 256)
+  				remainder = rem(remaining, 256)
+  				{divisor, << remainder >> <> acc}
+  			end)
+  	bin4
+  end
+
+end
