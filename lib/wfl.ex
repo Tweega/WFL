@@ -263,7 +263,7 @@ defmodule WFL do
           persist_token(token, sent_off, add_phrase_query)
         wfl_type ->
           #we already have this in the wfl - hand off to process_token
-          {token, wfl_type.freq + 1, [sent_off | wfl_type.instances]}
+          {token, wfl_type.freq + 1, [sent_off]}
       end
 
     case phrase_freq do
