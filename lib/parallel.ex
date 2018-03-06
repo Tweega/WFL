@@ -46,7 +46,7 @@ defmodule Parallel do
        end)
  end
 
- def pjob(collection, job_list) do
+ def pjob_orig(collection, job_list) do
    collection
        |> Enum.map(fn(data_item) -> #assuming that job list is serial not parralel.
          root_pid = self()
@@ -76,5 +76,17 @@ defmodule Parallel do
            result
          end
      end)
+ end
+
+
+
+ def pjob(collection, job_list) do
+   collection
+   |> Stream.each(fn(data_item) ->
+              output = List.foldl(job_list, data_item, fn({module, func, params}, previous_output) ->
+               args = [previous_output | params]
+               apply(module, func, args)
+             end)
+    end)
  end
 end
