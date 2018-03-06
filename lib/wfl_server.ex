@@ -152,6 +152,7 @@ defmodule WFLScratch.Server do
 
 
 	defp process_collocations(source_wfl_pid) do
+		PostgrexHelper.query("truncate table staging.phrase_candidate", [])
 		q = PostgrexHelper.getAddPhraseQuery()
 		{root_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(source_wfl_pid) 	#we may want to get back count of items with freq > c/o
 		process_collocations2(root_sent_map, root_sent_map, source_wfl_pid ,q)

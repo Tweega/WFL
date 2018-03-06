@@ -64,7 +64,7 @@ defmodule Collocation do
 		Enum.reduce(types, {%{}, 0}, fn({token_key, %WFL_Type{} = wfl_type}, {sent_map, freq_token_count}) ->
 		#IO.inspect(sent_map)
 			if wfl_type.freq > 1 do
-IO.inspect(wfl_type.instances)
+#IO.inspect(wfl_type.instances)
 				Enum.reduce(wfl_type.instances, {sent_map, freq_token_count}, fn({sent_id, {first_offset, last_offset}}, {sent_map_acc, tok_count}) ->
 					#IO.inspect({sent_id, first_offset, last_offset})
 					{_, new_sent_map} = Map.get_and_update(sent_map_acc, sent_id, fn(cm) ->

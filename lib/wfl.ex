@@ -162,7 +162,7 @@ defmodule WFL do
 
   def handle_call({:flag_tree_node, phrase_id}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
     phrase_type = Map.get(wfl_data.type_ids, phrase_id)
-    IO.inspect({phrase_id, phrase_id})
+    #IO.inspect({phrase_id, phrase_id})
     {updated_wfl_type, new_wfl_types} = Map.get_and_update!(wfl_data.types, phrase_type, fn %WFL_Type{root_info: root_info} = wfl_type ->
       new_root = %RootInfo{root_info | freq: -1}
       {wfl_type, %WFL_Type{wfl_type | root_info: new_root}}
@@ -290,21 +290,21 @@ defmodule WFL do
     #{token_id2, freq, offsets} = PostgrexHelper.execute(add_phrase_query, [token_id, cutoff, off_map])
     #[ [{0, 0, []}] ]
 #IO.inspect({:token, token, :tokenID, token_id})
-    ##!##res = PostgrexHelper.execute(add_phrase_query, [token_id, cutoff, off_map])
-    ##!##{token_id2, freq, offsets} = hd(hd(res))
+    res = PostgrexHelper.execute(add_phrase_query, [token_id, cutoff, off_map])
+    {token_id2, freq, offsets} = hd(hd(res))
     #%{"l" => 10, "lkf" => 9, "s" => 18} -- offsets example??
 
-    # new_offs = List.foldl(offsets, [], fn (off, acc) ->
-    #   sent = Map.fetch!(off, "s")
-    #   first = Map.fetch!(off, "f")
-    #   last = Map.fetch!(off, "l")
-    #
-    #   [{sent, {first, last}} | acc]
-    # end)
+    new_offs = List.foldl(offsets, [], fn (off, acc) ->
+      sent = Map.fetch!(off, "s")
+      first = Map.fetch!(off, "f")
+      last = Map.fetch!(off, "l")
+
+      [{sent, {first, last}} | acc]
+    end)
 
     #??token_bin8 = Utils.int_to_binary8(token_id2)
-    ##!##{token_bin8, freq, new_offs}
-    {token, 1, [sent_off]}
+    {token, freq, new_offs}
+    #{token, 1, [sent_off]}
   end
 
   defp add_token_to_wfl(%WFL_Data{types: types, type_ids: type_ids}, token, sent_offs, freq) do
