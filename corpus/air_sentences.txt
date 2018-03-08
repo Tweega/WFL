@@ -1,0 +1,133 @@
+ere may also be an inherent quantitative difference between the  strengths of  mortar and concrete due to the greater amount of entrapped air in mortar.
+gauge  length is cured in humid air for 24 hours.
+affected by the temperature and the humidity of the  surrounding medium, these are specified by BS 4550 : Part 3 : Section 3.6 : 1978: mixing  room temperature of 20 +/- 2 C (68 +/- 4 F) and minimum relative humidity of 65 per cent;  curing room temperature of 20 +/- 1 C (68 +/- 2 F) and relative humidity of air of not less than  90 per cent.
+For this reason, the measured value of the specific surface is considerably  higher than that determined by the air permeability methods.
+While in the air permeability methods  only the continuous paths through the bed of cement contribute to the measured area, in
+In the air permeability method, the surface area of all particles is measured directly, and the  resulting value of the specific surface is about 1.8 times higher than the value c
+Here, the air does not pass through the bed at a  constant rate but a known volume of air passes at a  prescribed average pressure, the rate  of flow diminishing steadily.
+This amount of cement is placed in a cylindrical container, a stream of  dry air is passed through the cement bed at a constant velocity and the resulting pressure  drop is measured by a manometer connected to the top and bottom of the bed.
+the specific surface of cement  is the air permeability method, using an apparatus developed by Lea and Nurse.
+for consistence of cement paste and  workability measure different properties of fresh paste; also, accidental air affects the  workability of cement paste, and cements of different fineness may contain different  amounts of air.
+This is  necessary, as cold powder fed direct into a kiln would not permit the air flow and  exchange of heat necessary for the chemical reactions of formation of cement clinker.
+The air is pumped over one quadrant of the silo at a time and this  permits the apparently heavier material from the non-aerated quadrants to move laterally  into the aerated quadrant.
+To obtain a uniform and intimate mixture the raw meal is blended, usually by  means of compressed air inducing an upward movement of the powd
+rticles being removed to the storage silo by an air  current, while the coarser particles are passed through the mill once again.
+The clinker drops into coolers, which are of various types and often provide  means for an exchange of heat with the air subsequently used for the combustion of the  pulverized coal.
+The slurry is fed in at the upper end while pulverized coal is blown in by an air
+a number of storage tanks in which the  slurry is kept, the sedimentation of the suspended solids being prevented by mechanical  stirrers or bubbling by compressed air.
+crease in workability tends to be smaller for concretes containing  rounded aggregates or low cement - water ratios (by volume) and, in general, the rate of increase in  workability tends to decrease with increasing air content.
+However, as a guide it may be assumed that  every 1 per cent increase in air content will increase the compacting factor
+Two points of practical importance concerning air-entrained concrete are that for a given  amount of entrained air, the in
+ability range, such as with very dry mixes, the recorded Vebe times are likely to be in  excess of their true workability since prolonged vibration is required to remove the entrapped air  bubbles under the transparent disc.
+Compactability is the ease with which a given mix can be fully compacted, all the trapped  air being removed.
+The air content is determined independently but the analysis of air-entrained  concrete is less accurate than of non-air-entrained concr
+Compressed air (or in the  case of pneumatically conveyed mix, additional air) is injected at the nozzle, and the  material is projected at high velocity onto the surface to be shotcreted.
+The mixture is then transferred by a feed wheel or  distributor (at a known rate) into a stream of compressed air in a hose, and carried up to  the delivery nozzle.
+It may  be noted that air bubbles are removed only from the surface since they do not form a  continuous system.
+A related problem is that, if relatively cool  concrete is allowed to expand when placed at a higher temperature,  the air voids expand and the strength is reduced.
+When an external vibrator is used, concrete has to be placed in layers of suitable depth as  air cannot be expelled through too great a thickness of concrete.
+An immersion vibrator will not expel air from the form boundary so  that "slicing" along the form by means of a flat plate on edge is necessary.
+With a lift greater than about 0.5 m (2 ft) the vibrator may not be fully  effective in expelling air from the lower part of the layer.
+ is recommended so that the hole left by the vibrator closes  fully without any air being trapped.
+Vibration of Concrete    The process of compacting the concrete consists essentially of the elimination  of entrapped air.
+The oldest means of achieving this is by ramming or punning the  surface of the concrete in order to dislodge the air and force t
+The friction rises and so does the pressure: the air becomes compressed  further so that the workability drops even more.
+If the pipeline is long enough, the  reduction in volume of the air under pressure can absorb the entire movement of the  piston so that no concrete will come out at the delivery end.
+Concrete with a high content of entrained air behaves in a similar manner.
+Under a high  pumping pressure, the air becomes compressed and no longer aids the mix by
+As a result, when pressure is applied in the pipeline, the air in  these voids contracts, and water is forced
+hile a delay in placing without continuous mixing causes a drop in  air content by only about 1/10 per hour.
+On the other hand, a decrease in  mixing time below 2 or 3 minutes may lead to inadequate entrainment of  air.
+In the case of air-entrained concrete, prolonged mixing reduces the air  content by about 1/6 per hour (depending on the type of air-entraining  agent), w
+ch, and the  differences in the properties of the two samples should not exceed any of  the following:   density of concrete  16 kg / m3 (1 lb / ft3)  air content   1 per cent  slump    25 mm (1 in.)
+Air entrainment effectively reduces bleeding so that finishing  can follow casting without delay.
+It may be noted that entrained air reduces the danger of segregation.
+4.13 may possibly  be explained by the use of air-entrained concrete in the latter case: there may be some  form of interaction between the entrained air, the cement, and the climate.
+Moreover, it seems that the loss of slump in hot and dry air is greater than th
+ation must not be  assumed to be generally applicable since it depends on factors  such as the shape and  texture of the aggregate or presence of entrained air, as well as on mix proportions.
+This applies also in the case of air-entrained concrete since the entrained  air behaves like weightless fine particles.
+This is  indicative of the order of values only, since the effect of entrained air on workability  depends on the mix proportions, as described in detail on page 484.
+When air is entrained  the water content can be reduced in accordance with the data of Fig
+ction there may be an optimum  water content of the mix at which the sum of the volumes of air bubbles and water space  will be a minimum.
+The air bubbles, which represent "accidental" air, i.e.  voids within an originally loose granular material, are governed by the grading of the finest  particles in the mix and are more easily expelled from a wetter mix than from a dry one.
+ in agreement with Feret's expression relating strength to the sum  of the volumes of water and air in the hardened paste (see p.
+Relation between strength ratio and density ratio     Voids in concrete are in fact either bubbles of entrapped air or spaces left after  excess water has been removed.
+, the process consists essentially of the elimination of  entrapped air from the concrete until it has achieved as close a configuration as is  possible for a given mix.
+Forced circulation of air and heating by electric lamps encourage  evaporation and thus deposition of the residue.
+ however, hardly a  practical means of air entrainment.
+It may be interesting to note that the presence of algae in mixing water results in air  entrainment with a consequent loss of strength.
+Corrosion has been observed in structures  exposed to humid air when the cover to reinforcement is i
+ter on, owing  to the heat generated by the reactions of hydration, the temperature of the concrete is  higher than that of the surrounding air.
+During the first hour or two after placing in the curing  chamber the temperature of the concrete lags behind that of the air but la
+strength of steam-cured concrete is the  pressure developed in the air pores during heating, since air has a higher coefficient  of thermal expansion than the surrounding solid material.
+It is possible that the presence or absence of entrained air is  responsible, at least in part, for the difference between Klieger's and Shalon's  results.
+This behaviour has been observed  using concrete without entrained air and stored at a relative humidity of between 20 and  70 per cent
+air content = 4.5 per cent; ordinary Portland cement)     The increase in strength caused by the addition of calcium chloride depends on the  temperature of the concrete and is proportionately greater at lower temperatures.
+ entrained air.
+5.43 obtained by Klieger who tested ordinary Portland cement  concrete with a water / cement ratio of 0.43 and an air content of 4.5 per cent, cured at  23 C (73 F) from the age of 28 days onwards.
+rature of concrete (at an air temperature of 4.5 C  (40 F)) on the loss of water from concrete in the early stages after placing (relative  humidity of air 100 per cent, wind velocity 4.5 m / s (10 mph))      Methods of Curing    No more than an outline of the different means of curing will be given here  as the actual procedures used vary widely
+the loss of water from  concrete in the early stages after placing (relative humidity of air 70 per cent; wind  velocity 4.5 m / s (10 mph))     Fig.
+Influence of wind velocity on the loss of water from concrete in the early  stages after placing (relative humidity of air 70 per cent, temperature 21 C (70 F))    Fig.
+Influence of relative humidity of air on the loss of water from  concrete in  the early stages after placing (air temperature 21 C (70 F); wind velocity 4.5 m / s (10 mph))    Fig.
+Influence of temperature of air and concrete on
+The difference between the temperatures of concrete and of air also affects the  loss of water, as shown in Fig.
+Thus concrete saturated in day-time would lose  water during a cold night, and this would also be the case with  concrete cast in cold weather, even in saturated air.
+Evaporation of water from concrete soon after placing depends on the temperature and  relative humidity of the surrounding air and on the velocity of wind which effects a  change of air over the surface of the concrete.
+ral strengths of concrete (both air- and  non-air-entrained)    Table 5.2: Relation between Compressive and Tensile Strengths of Concrete      Bond between Concrete and Reinforcement    Since structural concrete is in the vast majority of cases used with steel  reinforcement, the strength of bond between the two materials is of considerable  inter
+tion is similar to  that of entrained air (see Fig.
+Air entrainment affects the ft / fc ratio because the presence of air lowers the  compressive strength of concrete more than the tensile strength, particularly in the  case of rich and strong mixes.
+Gain of strength of air-stored concrete with time (Austrian Portland cement;  cement and aggregate from one source; water / cement ratio = 0.65; cement content = 260 kg / m3  (440 lb / yd3); curing 7 days in wet sand, then in air at room temperature)     Pioneiro sugg
+Relation between the compressive strength of mortar and gel / space ratio  modified to include entrapped air voids     The resulting formula for strength would be similar to that of Feret but the ratio used h
+If A cm3 of air are present in the set paste, the ratio wo / c in the above  expression would be
+on takes place;  the air content of the concrete; and also the change in the effective water / cement ratio  and the formation of fissures due to bleeding.
+s in  concrete: entrapped air, capillary pores, gel pores, and entrained air if present.
+An  example of the calculation of the total air content may be of interest and is given in a  footnote.
+e  degree of compaction both affect the volume of voids in concrete, and this is why the  volume of air in concrete is included in Feret's expression.
+was in the form    (formula)    where f, is the strength of concrete, c, w, and a are the absolute volumes of cement,  water, and air respectively, and K is a constant.
+he hardened concrete contains about 1 per cent of air  voids.
+The influence of air voids on strength  was discussed on page 204, and at this stage we shall consider fully-compacted concrete only:  in practice this is taken to mean that t
+densates, do not have the problem of retardation and excessive air entrainment associated with  high rates of addition of normal plasticizers.
+ining the amount of air entrained in concrete is described in BS 1881: Part  106.
+The density of  air-entrained concrete is reduced in direct proportion to the amount of air entrained.
+The  amount of entrained air in concrete is dependent on the type of admixture and dosage used, as well as  on the cement type, aggregate type and grading, mix proportions, ambient te
+However, entrained air
+The beneficial  effects of entrained air are produced in two ways: first, by disrupting the continuity of capillary pores  and thus reducing the
+The entrainment of air in the form  of uniformly dispersed, very small and stable bubbles of predominantly between 0.25 and 1 mm  diameter can be achieved by using foaming agents based on natural resins, animal or vegetable fats  and synthetic detergents which promote the formation of air bubbles dur
+This is given by  A / (A - B) where A is the weight of the saturated surface-dry sample in air and B the weight of the  saturated sample in water.
+nce of a layer of cement to  the passage of air.
+The use  of superplasticizers with an air-entraining admixture requires caution as sometimes the  actual amount of entrained air is reduced by the superplasticizer.
+A part of this is in many  cases (especially with Class 1 admixtures) due to the entrained air introduced by the  admixture.
+The substances are  adsorbed on the cement particles, giving them a negative charge which leads to repulsion  between the particles and results in stabilizing their dispersion; air bubbles are also  repelled and cannot attach to the cement particles.
+ Table 2.9: Specification for the Various Types of Admixtures According to BS 5075: Part 1: 1974     Additives inducing air entrainment are considered on p.
+There exist also additives  for other purposes, such as air detrainment, fungicidal action, water-proofing, etc.,
+Numerous proofs of this are available, a recent and particularly convincing one being  the measurement of air permeability of converted compared with unconverted high-alumina  cement concrete
+The use of admixtures demands special care as they may affect expansion,  but there are no problems with air entrainment.
+The strength of masonry cements is  lower than that of ordinary Portland cement, particularly since a high air content is  introduced, but this low strength is generally an a
+ mixer, but it is essential that the pigments do not affect adversely  the development of strength of the cement or affect air entrainment.
+For instance, carbon black  reduces the air content of the mix.
+The cement is manufactured by separating fines from rapid hardening Portland cement by  a cyclone air elutriator.
+y removing all the air from the concrete during compaction.
+vel of air content required varies with the maximum size of aggregate used, ranging  from an average of 7 per cent for 10 mm to 4 per cent for 40 mm nominal maximum aggregate sizes.
+BS 8110: Part 1 recommends the use  of entrained air for a concrete of characteristic strength below 50 N mm-2 where it is likely to be  exposed to freezing and thawing actions while wet and its surfaces are subject to the effects of  de-icing salts.
+Durability can be further improved by using air-entrainment, an air content of 3 to 6 per cent of the  volume of concrete normally being adequate for most applications.
+It should also be  noted that moist (or water) curing after an initial period in air results in a resumption of the hydration  process and that concrete strength is further improved with time, although the optimum strength may  not be realised.
+It is apparent that concrete left in air achieves the lowest strength values at all  ages owing to the evaporation of the free mixing water from the concrete.
+hen these  admixtures are used to improve workability no significant change in strength should be expected,  providing of course that the air content remains unchanged.
+improvement in workability is also taken into account in the mix  design when using air-entraining admixtures and there is generally no significant change in concrete  strength for the usual range of air content.
+Provided no air is entrained, the concrete strength will be approximately the same as that of the  control mix within a few days.
+Air entrainment in concrete will cause a reduction in strength at all  ages and to achieve a required strength the mix cement content has to be increased.
+Admixtures    As a general rule, admixtures can only affect concrete strength by changing the hydration processes  and the air content of the mix and / or by enabling changes to be made to the mix proportions, most  importantly to the water - cement ratio.
+Care must be taken to ensure that  no air is trapped underneath the stones and that t
+100 ASTM) when the cement content is above 297  kg / m3 (500 lb / yd3) or if air entrainment is used with at least 237 kg of cement per cubic  metre of concrete (400 1b / yd3)
+It may be noted that in the case of air-entrained concrete lower  quantities of the finest particles are acceptable, the entrained air acting effectively as very  fine aggregate.
+The volume of entrained air can be taken as equivalent to one-half the volume of fines and  shou
+If the aggregate is reactive a blue-green gelatinous  precipitate of ferrous sulphate appears within a few minutes, and on exposure to air this  changes to brown ferric hydroxide.
+These sulphides react with water and oxygen in the air to form a ferrous  sulphate which subsequently de
+If salt is not removed it will absorb moisture from the air and cause efflorescence - unsightly  white deposits on the surface of the concrete (see also p.
+The  sand is then tipped out, the container is partially filled with water and the sand is  gradually fed back, with stirring and rodding to expel all air bubbles.
+The test is slow and requires great care in execution (e.g. all air must be expelled  from the sample) but can yield accurate results.
+If aggregate in this condition is allowed to stand free in dry air, e.g. in the  laboratory, some of
+The latter can also affect adversely the  durability of concrete as they tend to be oriented in one plane, with water and air  voids forming underneath.
+is applied; hence, the volume of air, i.e. the  volume of interstitial space, can be calculated.
+The void content of aggregate can be calculated from the change in the volume of  air when a known decrease in pressure
+

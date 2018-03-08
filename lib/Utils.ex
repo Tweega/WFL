@@ -111,6 +111,42 @@ def rev_bin4(bin) do
 
   end
 
+  def binary_to_string(bin) do
+  	[h | _rest] = list = for << b::8 <- bin>>, do: b
+    #IO.inspect(list)
+    case h do  #this assumes that binary tokens always start with a zero
+      0 ->
+    	{total, _d} =
+    			List.foldl(list, {"", 0}, fn(x, {str, depth}) ->
+    		  y = Integer.to_string(x)
+          yy = case depth do
+            0 ->
+              y
+            _ ->
+              ", " <> y
+          end
+          {str <> yy, depth + 1}
+    			end)
+    	"<<" <> total <> ">>"
+    _ ->
+      bin
+    end
+  end
+
+  def text_from_binary(bin, wfl_pid) do
+  	[h | _rest] = list = for << b::8 <- bin>>, do: b
+    IO.inspect(h)
+    case h do  #this assumes that binary tokens always start with a zero
+      0 ->
+        #the only way to call  translate_phrase is when wfl is nt doing anything else or we hang.
+        #possobly we can go into a receive mode here and wait till we get a message back from translate
+        #the only way that would be possible is to be able to completely park what we are doing
+    	WFL.translate_phrase(wfl_pid, bin)
+    _ ->
+      ""
+    end
+  end
+
   def binary8_to_int(bin8) do
   	list = for << b::8 <- bin8>>, do: b
   	{total, _d} =

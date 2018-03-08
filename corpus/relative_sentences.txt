@@ -1,0 +1,68 @@
+	temperature between 18 and 20 C (64 and 68 F) in an atmosphere of at least 90 per cent  relative humidity, and tested in direct tension, the pull being applied through special jaws  engaging the wide ends of the briquette.
+affected by the temperature and the humidity of the  surrounding medium, these are specified by BS 4550 : Part 3 : Section 3.6 : 1978: mixing  room temperature of 20 +/- 2 C (68 +/- 4 F) and minimum relative humidity of 65 per cent;  curing room temperature of 20 +/- 1 C (68 +/- 2 F) and relative humidity of air of not less than  90 per cent.
+ervations on the gel / space  ratio, according to which the increase in strength of a cement paste is a function of the  increase in the relative volume of gel, regardless of age, water / cement ratio, or compound  composition of cement.
+In particular, capillary pores, because of  their comparatively large size,  empty when the ambient relative humid
+We cannot thus estimate the relative importance of the physical and chemical  bonds but there is no doubt that both contribute to the very  considerable strength of the  hardened paste.
+1.9 shows the relative volumes of unhydrated cement, products of hydration,  and capillaries for mixes of different water / cement ratios.
+eft to saturate the solid surfaces, and the  relative humidity within the paste decreases.
+Either method gives a good picture of the relative variation in the fineness of  cement, and for practical purposes this is sufficient.
+the required workability of a mix depends not only on  the characteristics and relative proportions of the constituent materials but also  on (1) the methods employed for conveyance and compaction, (2) the size, shape and  surface roughness of formwork or moulds and (3) the quantity and spacing of  reinforcement.
+According to the American Concrete Institute, the risk of plastic cracking is the  same at the following combinations of temperature and relative humidity:  41 C (106 F) and 90 per cent  35 C (90 F) and 70 per cent  24 C (75 F) and 30 per cent.
+A drop in the ambient relative  humidity encourages this type of cracking so that in fact
+Vibration at too large an amplitude relative to the inter-particle space  results in the mix being in a constant state of flow so that full compaction is never  achieved.
+In either case, the relative movement between the paddles  and the concrete
+Up to a temperature of  40 C (104 F) and with a relative humidity within the range 20 to 70 per cent, no  effect of temperature on slump has been observed.
+High-pressure steam curing accelerates the hardening of concrete  containing calcium chloride, but the relative increase in strength is less than when no  calcium chloride is used.
+For this reason, the  relative improvement in resistance to sulphate attack is greater in cements with a high  C3A content than in cements relatively resistant to sulphates.
+This behaviour has been observed  using concrete without entrained air and stored at a relative humidity of between 20 and  70 per cent
+the relative increase in the same mix at 49 C (120 F)  is only 50 per cent.
+rature of concrete (at an air temperature of 4.5 C  (40 F)) on the loss of water from concrete in the early stages after placing (relative  humidity of air 100 per cent, wind velocity 4.5 m / s (10 mph))      Methods of Curing    No more than an outline of the different means of curing will be given here  as the actual procedures used vary widely
+the loss of water from  concrete in the early stages after placing (relative humidity of air 70 per cent; wind  velocity 4.5 m / s (10 mph))     Fig.
+Influence of wind velocity on the loss of water from concrete in the early  stages after placing (relative humidity of air 70 per cent, temperature 21 C (70 F))    Fig.
+Influence of relative humidity of air on the loss of water from  concrete in  the early stages after placing (air temperature 21 C (70 F); wind velocity 4.5 m / s (10 mph))    Fig.
+Evaporation of water from concrete soon after placing depends on the temperature and  relative humidity of the surrounding air and on the velocity of wind which effects a  change of air over the surface of the concrete.
+5.32 shows the degree of hydration  after six months' storage at different relative humidities, and it is clear
+Bond arises primarily from friction and adhesion between concrete and steel,  and may also be affected by the shrinkage of concrete relative to the steel.
+The relative increase in strength was greater at higher  water / cement ratios.
+Relative gain of strength with time of concretes with different water / cement  ratios, made with ordinary Portland cement     When no specific data on the materials used are available, the 28-day strength may be  assumed to be 1.5 times the 7-day strength and, as an alternative to the specified  28-day strength of test
+The generality of this equation should not be overestimated for, as Hobbs points out,  the tensile strength and compressive strength of concrete are not equally affected by  the aggregate type and grading and by the direction of the applied stress relative to  the direction of casting.
+However, in compression - tension and in biaxial tension, the relative  strength at any particular biaxial stress combination decreases as the level of uniaxial  compressive strength increases.
+Orowan calculated the maximum tensile stress at the tip of the  flaw of the most dangerous orientation relative to the principal stress axes as a function of  the two principal stresses P and Q.
+5.7 gives  the relative strength of mixes with different water / cement ratios, taking the strength at the  water / cement ratio of 0 4
+Influence of porosity on relative strength of various materials     The infl
+Moreover, if the strength of different materials is expressed as a fraction of the strength at  a zero porosity, a wide range of materials conform to the same relation between relative  strength and porosity, as shown in Fig.
+For artificial aggregates the relative density varies over a much wider range.
+Aggregate is the  major constituent of concrete and as such its relative density is an important factor affecting the  density of the resulting concrete.
+For the purposes of  mix design the relative density on a 'saturated and surface-dry' basis is used.
+The relative density of most natural aggregates falls within the range
+The relative density of a material is the ratio of its unit weight to that of water.
+Since  aggregates incorporate pores the value of relative density varies depending on the extent to which the  pores contain (absorbed) water when the value is
+ent paste depends on their relative moduli of  elasticity.
+h, deformation, durability, toughness, hardness, volume change, porosity, relative density and  chemical reactivity.
+The rate of hydration depends on the relative properties  of` silicate and aluminate compounds, the cement fineness and the ambient conditions (particularly  temperature and moisture)
+For a given water / cement ratio, the leaner the mix the lower the  porosity of the cement paste and, consequently, the lower the relative loss in strength  with time.
+The relative difference in the loss of strength of high-alumina cement concrete  made with a high water / cement ratio and with a low water / cement  ratio should be noted.
+Airflow through concrete: (a) unconverted high-alumina cement concrete;  (b) converted high-alumina cement concrete; (c) Portland cement concrete (temperature 22 to  24 C (72 to 75 F), relative humidity 36 to 41 per cent; pressure difference 10.7 kPa)     As shown on page 271, the strength of hydrated cement paste or
+The relative weights of the compounds are derived from the measurements of endothermic  peaks in
+has an equivalent relative humidity of 100 per cent regardless of  the environmental humidity, so that conversion can take place.
+ of concrete cylinders with different water / cement ratios  made with high-alumina cement and cured at 18 C (64 F) and 95 per cent relative humidity     An important feature of hydration of high-alumina cement is that at higher temperatures  only the cubic form of the calcium aluminate hydrate can exist; at room temperature  either can, but the h
+Figure 14.23 Schmidt hammer     Hardness (rebound number) is a relative property and there can be no physical  relationship between it and the other properties of concrete.
+The relative humidity and temperature of the environment have a significant effect on both  the rate and magnitude of shrinkage in as much as they affect the movement of water in concrete.
+Figure 14.20 Effect of water - cement and aggregate - cement ratios on drying shrinkage of  concrete at 20 C and 50 per cent relative humidity, based on Lea (1970)      Since the aggregate exerts a restraining influence on shrinkage the maximum aggregate  content compatible with
+These include the type, content  and proportion of the constituent materials of concrete, the size and shape of the concrete structure,  the amount and distribution of reinforcement and the relative humidity of the environment.
+The environmental conditions that are also  important are the relative humidity and temperature.
+The rate of carbonation increases with  temperature and this effect is more pronounced at relative humidities within the optimum range of 50  to 75 per cent.
+Figure 14.16 Effect of cement content and water - cement ratio on ultimate creep strain of concrete  at 50 per cent relative humidity loaded at an age of 28 days, based on CEB-FIP (1970)    Figure 14.17 Effect of relative humidity and age at loading on creep, based on Neville (1970)     The influence of the const
+For the same stress - strength ratio, the creep  strain increases as both cement content and water - cement ratio increase (figure 14.16) and decreases as  the relative humidity and age at l
+Factors influencing creep    Both the type of concrete (as described by its ingredients, curing history, strength and age) and the  relative magnitude of the applied stress with respect to concrete strength (stress - strength ratio) aff
+However,  the relative effects of the rate of loading vary with the nominal strength, age and extent of moist  curing.
+The relative influence of slenderness may be modified by several inherent
+ends on a number of factors such as relative humidity, wind velocity and the size of structural  member of test specimen.
+The gain in strength  is most marked at early ages and after 28 days the relative gain in strength is much reduced.
+Table 3.20: Relative Values of Surface Area and Surface Index     The overall effect of the surface area of an aggregate of given grading is obtained by  multiplyi
+The requirement that the aggregate occupies as large a relative volume as possible is in the  first instance an economic one, the aggregate being cheaper than the cement paste, but  there are also technical reasons why too rich a mi
+ing the desired aggregate grading are:  the surface area of the aggregate, which determines the amount of water necessary to wet  all the solids; the relative volume occupied by the aggregate; the workability of the mix;  and the tendency to segregation.
+The increase in volume relative to that occupied by a saturated and  surface-dry sand increases with an increase in the moisture content of the sand up to a  value of some 5 to 8 per cent, when bulking of 20 to 30 per cent occurs.
+Table 3.5: Average Relative Importance of the Aggregate Properties Affecting the  Strength of Concrete     The shape and texture of fine aggregate have a signific
+Roundness measures the relative sharpness or angularity of the edges and corners of a  particle.
+

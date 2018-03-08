@@ -1,0 +1,748 @@
+Relation between the strengths of concrete and mortar of the same  water / cement ratio     It may be interesting to know to what extent commercial cements comply with  the standard
+1.26: mortar and concrete of fixed  proportions, each with a water / cement ratio of  0.65 were used.
+erature and humidity conditions  of the mixing room, curing chamber, compression testing room, and the temperature of  the water curing tank are specified.
+In the concrete test, one of three water / cement ratios can be used, viz.
+ use of a water / cement ratio higher than that used in  the mortar test.
+n water until tested in a wet-surface condition.
+Expressed as a water / cement ratio, this corresponds to 0.40  by weight.
+The sand is again the  standard Leighton Buzzard sand, and the weight of water in the mix is 10 per cent of the  weight of the dry materials
+In this test, a 1:3 cement-sand  mortar with a water content of 8 per cent of the weight of the solids is mixed and moulded  into a briquette of the shape shown in Fig.
+The  whole assembly is then immersed in water at 20 +/- 1 C (68 +/- 2 F) for 24 hours.
+At the  end of that period, the distance between the indicators is measured, and the mould is  immersed in water again and brought
+A cement can also be unsound due to the presence of MgO, which reacts with  water in a manner similar to CaO.
+On the other hand, free lime, present in clinker is intercrystallized  with other compounds and is only partially exposed to water during the time before the  paste has set.
+The final setting  time is reckoned from the moment when mixing water was added to the  cement, and is required by the relevant British Standards to be not more than 10 hours
+Initial set is expressed as the time elapsed since the mixing  water was added  to the cement.
+The  water content of the standard paste is expressed as a percentage by weight of the dr
+A trial paste of cement and water is mixed  in a prescribed manner and placed in the mould.
+It is, therefore,  necessary to determine for any given cement the water content of the paste which will  produce the desired consistence.
+Relation between compressive strength and combined water content	The effects of the minor compounds on the strength of cement paste have not  been thoroughly investigated as these compounds were not thought to be of importance as  far as strength is concerned.
+ervations on the gel / space  ratio, according to which the increase in strength of a cement paste is a function of the  increase in the relative volume of gel, regardless of age, water / cement ratio, or compound  composition of cement.
+Figure 1.21 shows, for instance, an experimental relation between the  compressive strength of concrete and the combined water in a cement paste with a  water / cement ratio of 0.25.
+Relation between the heat of hydration and the amount of non-evaporable  water for ordinary Portland cement     Furthermore, the initial framework of the paste established at the time of setting  affects to a large degree the subsequent structure of the products of hydration.
+ proportional to the amount of water of hydration, whatever the  water / cement ratio and age.
+Likewise, the water of hydration agrees with  the additivity of the individual compounds.
+1.16 Development of heat of hydration of different cements cured at 21 C (70 F)  (water / cement ratio of 0.40)     The quantity of cement in the mix will also affect
+Fig 1.13 Temperature rise in 1:2:4 concrete (water / cement ratio of 0.60) made with different  cements and cured adiabatically     For the usual range of Portland cements, Bogue observed that about one-half of  the total heat is liberated between 1 and 3 days, about  three-quarters in 7 days, and 83 to  91 per
+ of the chemical heat  of the reactions of hydration and the heat of adsorption of  water on the surface of the gel  formed by the processes of hydration.
+At the other extreme, the heat produced by the hydration of cement may prevent  freezing of the water in the capillaries of freshly placed concrete in cold weather, and a  high evolution of heat is therefore adva
+irmation of  the hypothesis that the properties of adsorbed water are different from those of free water  is afforded by measurements of the absorption of microwaves by hardened cement paste.
+ies; it is  approximately 1.2 for non-evaporable, 1.1 for gel, and 1.0 for free water.
+It has been  suggested that the increase in the density of the adsorbed water at low surface  concentrations is not the result of compression but is caused by the orientation of the  molecules in the adsorbed phase due to the action of the surface forces.
+The manner in which water is held in a cement paste determines the energy of  binding.
+For instance, 1670 joules (400 calories) are used in establishing the bond of 1 gram  of non-evaporable water, while the energy of the water of crystallization of Ca(OH)2, is  3560 joules per gram (850 cal / g)
+Likewise, the density of the water var
+It follows from the proportionality between the amount of non-evaporable  water and the solid volume of the cement paste that the former volume can be used as a  measure of the quantity of the cement gel present, i.e. of the degree of h
+phere and the quantity of such water is in fact a continuous  function of the ambient vapour pressure.
+The amount of non-evaporable water increases as hydration proceeds but in a  saturated paste non-evaporable water can never become more than one-half of the total  water present.
+In well-hydrated cement the non-evaporable water is about 18 per
+ pressure and water content of cement is continuous.
+However, in  general terms, the non-evaporable water contains nearly all chemically combined water  and also some water not held by chemical bonds.
+This water has a vapour pressure lower  than that of the ambient atmos
+able water can be determined by the loss upon drying at a higher temperature,  usually 105 C, or by freezing out, or by removing with a solvent.
+All these methods essentially divide water according to whether or not it can be  removed at a certain reduced vapour pressure.
+ suggest that gel water has  the same energy of binding as interlayer water in some swelling clays; thus the gel water  may well be in interlayer form.
+A convenient division of water in the hydrated cement, necessary for investigation  purposes, though rather arbitrary, is into two categories: evaporable and non-evaporable.
+ water is distributed between  these different states, nor it is easy to predict these divisions from theoretical  considerations as the energy of binding of combined water in the hydrate is of the same  order of magnitude as the energy of binding of the adsorbed water.
+1.12 Probable structure of hydrated silicates     Free water is held in capillaries and is beyond the range of the surface forces of  the solid phase.
+ategories  there is gel water held in a variety of other ways.
+The water held by the surface forces of the gel particles is called adsorbed water,  and that part of it which is held between the surfaces of certain planes in a crystal is called  interlayer or zeolitic water.
+Lattice water is that part of the water of crystallization which  is not
+ity falls below about 45 per cent, but water is  adsorbed in the gel pores even at very low ambient humidities.
+We can thus see that water in hydrated cement is held with varying degree  of firmness.
+At one extreme there is free water; at the other, chemically combined  water forming a definite part of the hydrated compounds.
+The actual water content of the paste depends on the  ambient humidity.
+Water Held in Hydrated Cement Paste    The presence of water in hydrated cement has be
+Since cement gel  is of the limited swelling type (i.e. the particles cannot be dispersed by addition of water)  it seems that the gel particles are c
+	quantity of water the degree of crystallization is probably even poorer, the crystals being  ill-formed.
+ due to the withdrawal  of water from the hydrated material as postulated by Michaelis.
+land cement, it has been found that, when mixed with a  large quantity of water, cement produces within a few hours a solution  supersaturated with Ca(OH)2 and containing concentrations of calcium silicate  hydrate in a metastable condition.
+The lime-saturated water then attacks the silicates and forms a  hydrated calcium silicate which, being almost insoluble, forms a gelatinous mass.
+This mass hardens gradually owing to the loss of water either b
+The proportionality between the weight of water forming a monomolecular  layer over the surface of the gel and the weight of non-evaporable water in the  paste (for a given cement) means that gel of nearly the same specific surface is  formed throug
+It has been suggested  that the ratio of the specific surface to the weight of non-evaporable water  (which in turn is proportional to the porosity of the hydrated cement paste) is  proportional to    (formula),    where the symbols in brackets represent the perc
+Another way of expressing the porosity of the gel is to say that the volume  of the pores is about three times the volume of the water providing a layer one  molecule thick over the entire solid surface in the gel.
+From measurements of water adsorption, the specific surface of gel has been  estimated to be of the order of 5.5 x 10'8
+The  actual value is characteristic for a given cement but is largely independent of  the water / cement ratio of the mix and of the progress of hydration.
+of water.
+For this reason, the vapour pressure and mobility of adsorbed  water are different from the corresponding properties of free water.
+The amount  of reversible water indicates directly the porosity of the gel.
+ that it can hold large quantities of  evaporable water it follows that the gel is porous, but the gel pores are really  interconnected interstitial spaces between the gel particles.
+Relation between the water / cement ratio and the degree of hydration at which  the capillaries cease to be continuous    Table 1.6: Approximate Age Required to produce Maturity at which Capillaries become segmented      Gel Pores    Let us now consider the gel itself.
+For extremely fine cement, the maximum water / cement ratio would be  higher, possibly up to 1.0; conversely, for coarse cements, it would be below 0.7.
+the degree of maturity required for different water / cement ratios  for ordinary Portland cements is indicated in Fig.
+For water / cement  ratios above ab
+The absence of continuous  capillaries is due to a combination of a suitable water / cement ratio and a sufficiently long  period of moist curing
+Thus the capillary porosity of the paste depends on both the water / cement ratio of  the mix and the degree of hydration.
+As mentioned before, at water / cement ratio
+capillaries would fill with imbibed water.
+he gel water is wg, such that -    (formula),    whence, the volume of gel water is 24.0 ml, and the volume of hydrated cement is 85.6 ml.
+There are thus 60 - (29.0 + 24.0) = 7.0 ml of water left as capillary water in the paste.
+If the paste had access to water  during curing these
+course intermixed, the water forming a capillary system between the  unhydrated cement particles.
+The  non-evaporable water is 0.23 x 126 = 29.0 ml and t
+specific example, let us consider the hydration of a paste with a  water / cement ratio of 0.475, sealed in a tube.
+The volume of water is then 0.475 x 126 = 60 ml.
+1.10, but in reality the cement and  water are of
+Some of the capillaries will  contain excess water from the mix, others will fill by imbibing water from outside.
+1.9 shows the relative volumes of unhydrated cement, products of hydration,  and capillaries for mixes of different water / cement ratios.
+The porosity of such mixes and therefore the "equivalent"  water / cement ratio are very low.
+On the other hand, if the water / cement ratio is higher than about 0.38, all the  cement can hydrate but capillary pores will also be present
+ / space ratio of 1.0 those with a higher proportion of unhydrated  cement (i.e. a lower water / cement ratio) have a higher strength, possibly because in such pastes the layers of hydrated paste surrounding the unhydrated grains are thinner.
+Abrams  obtained strengths of the order of 280 MPa (40 000 psi) using mixes with a water / cement  ratio o
+If water is available from outside some further cement can hydrate, its quantity  being such that the products of hydration occupy 4.2 ml more than the volume of dry  cement
+instance, if we have a mix of 100 g of cement  (31.8 ml) and 30 g of water, the water would suffice to hydrate x g of cement, given by the  following:    Contraction in volume on hydration =  (formula)
+Porosity = (formula)  and total water = (formula)
+If the actual water / cement ratio of the mix, allowing for bleeding, is less than  about 0.38 by weight, complete hydration is not possible as the volume available is insufficient to  accommodate all the products of hydration.
+It will be recalled that hydration can take  place only in water within the capillaries.
+Thus, for no unhydrated  cement to be left and no capillary pores to be present, the original mixing water should be  approximately (67.9 - 31.8) = 36.1 ml.
+This corresponds to a water / cement ratio of 1.14  by volume or 0.36 by weight.
+It has been found that hydration becomes  very slow when the water vapour pressure falls below about 0.8 of the saturation  pressure.
+Let us know consider the hydration of a paste cured under water so that water  can be imbibed as some of the capillaries become emptied by hydration.
+ws also that full hydration in a sealed specimen is possible  only when the mixing water is at least twice the water required for chemical reaction, i.e.  the mix has a water / cement ratio of about 0.5 by weight.
+The gel water, because it is held firmly, cannot move  into the capillaries so that it is not available for hydration of the still unhydrated cement.
+Thus, when hydration in a sealed specimen has progressed to a stage when the  combined water has become about one-half of the original water content, no further  hydration will take place.
+of paste with a  water / cement ratio of 0.42     The figures given above are only approximate but had the total amount of water  been lower than about 42 ml, it would have been inadequate for full hydration as gel can  form only when sufficient water is available both for the chemical reactions and for the  filling of the gel pores being formed
+ the hydration was assumed to take place in a sealed test  tube with no water movement to or from the system.
+in the mix      =  42.0 ml  Water / cement ratio by weight    =  0.42  Water / cement ratio by volume     =  1.32  Volume of hydrated cement    =  67.9 ml  Original volume of cement and water    =  73.8 m1  Decrease in volume due to hydration    =  5.9 ml  Volume of products of hydration of 1 ml of dry cement =  2.l ml.
+ty of about 28 per cent, the  volume of gel water, wg, is given by    (formula)  whence wg = 19.0 ml,  and the volume of hydrated cement is (formula)
+Summarizing, we have -  Weight of dry cement      =  100.0 g  Absolute volume of dry cement    =  31.8 ml  Weight of combined water     =  23.0 g  Volume of gel water     =  19.0 ml  Total water
+The non-evaporable water is, as we have said, about 23 per cent of  the weight of cement, i.e. 23 ml.
+The solid products of hydration occupy a volume equal  to the sum of volumes of anhydrous cement and water less 0.254 of the volume of  non-evaporable water, i.e. -    (formula)
+The specific gravity of the products of hydration of cement is such that they  occupy a greater volume than the absolute volume of unhydrated cement but smaller than  the sum of volumes of the dry cement and the non-evaporable water by approximately  0.254 of the vo
+e as our knowledge of  stoichiometry of the products of hydration of cement is inadequate to state the amounts of  water combined chemically.
+It is preferable, therefore, to consider non-evaporable water  as determined by a given method (see p.
+This water, determined under specified  conditions, is taken as 23 per cent of the weight of anhydr
+The water bound chemically by C3S and C2S was shown to be very  approximately 24 and 21 per cent of the weight of the two silicates, respectively.
+mixing water is sufficient for hydration to proceed at the  same rate as when moist-cured.
+Volume of Products of Hydration    The gross space available for the products of hydration consists of the absolute volume of  the dry cement together with the volume of water added to the mix.
+The small loss of  water due to bleeding and the contractio
+However, in self-desiccated pastes with water / cement ratios in  excess of 0.5, the amount of
+al (the ratio of calcium silicate  hydrates to CA(OH)2 being 7:2 by weight) during hydration the surface area of the solid  phase increases enormously, and a large amount of free water becomes adsorbed on this  surface.
+If no water movement to or from the cement paste is permitted, the reactions of  hydration use up the water until too little is l
+of cement in water but, once  the paste has set, its apparent or gross volume remains approximately constant.
+Data on the influence of particle size on the rate of  penetration of water are confusing.
+The water  content of a paste of standard consistence is greater the finer the cement, but conversely  an increase in fineness of cement slightly improves the workability of a concrete mix.
+If, however, false set is encountered, it can be dealt with by remixing the concrete  without adding any water.
+Water is adsorbed on the grains of cement, and  these freshly activated surfaces can combine very rapidly with more water during mixing:  this
+hdrite (CaSO4)  are formed, and when the cement is mixed with water these hydrate to form gypsum.
+that no appreciable heat is  evolved, and remixing the cement paste without addition of water restores plasticity of the  paste until it sets in the normal manner and without a loss of strength.
+False Set    False set is the name give to the abnormal premature stiffening of cement within a few  minutes of mixing with water.
+Neat C3S mixed with water  also ex
+Generally, the immediate peak in  the rate of heat evolution is followed by a second peak some 4 to 8 hours after the water  has been added to cement, and with the correct amount of gypsum there should be little  C3A available for reaction after all the gypsum has combined, and
+The molecular weights show that 100 parts of C3A react with 40 parts of water  by weight, which is a much higher proportion of water than that required by the silicates.
+This occurs due to the fact CA(OH)2 reacts with C3A and water  to form C4AH19 which forms a protective coating on the surface of unhydrated grains of  C3A.
+In particular, a peak in the rate of heat development normally observed within five  minutes of adding water to cement means that some calcium aluminate hydrate is formed  directly during that period, the conditions for the retardation by gypsum no
+The reaction of pure C3A with water is very violent and leads to immediate  stiffening of the paste, known as flash set.
+Thus on a weight basis both silicates require approximately the same amount of  water for their hydration, but C3S produces more than twice as much Ca(OH)2 as is  formed by the hydration of C2S.
+Since the crystals formed by hydration are  imperfect and extremely small the mole ratio of water to silica need not be a whole  number.
+When hydration takes place in a limited amount of water, as is the case in cement  paste and in concrete, C3S is believed to undergo hydrolysis producing a calcium silicate  of lower basicity, ultimately C3S2H3, with the released
+ically combined  water; (e) the amount of unhydrated cement present (using X-ray quantitative analysis);  and (f) also indirectly from the strength of the hydrated paste.
+ complete hydration under normal conditions is  possible only for cement particles smaller than 50 um, but full hydration has been obtained  by grinding cement in water continuously for five days.
+Microscopic examination of hydrated cement shows no evidence of channelling of  water into the grains of cement to hydrate selectively the more reacti
+For instance, after 28 days in contact with  water, grains of cement have been found to have hydrated to a depth of only 4 um, and 8  um after a year.
+as shown by  the stability of the hardened cement paste in contact with water.
+It is possible that the newly produced hydrate forms an envelope which grows  from within by the action of water that has penetrated the surrounding f
+The products of hydration of cement have a low solubility in water
+olecules of water takes place, this being  a true reaction of hydration.
+The second type of reaction with water is hydrolysis.
+It is  convenient and usual, however, to apply the term hydration to all reactions of cement with  water, i.e. to both true hydration and hydrolysis.
+In other words, in the presence of water, the silicates and aluminates  listed in Table 1.1 form products of hydration, which in time produce a firm and hard mass  - the hardened cement paste.
+There are two ways in which compounds of the type present in cement may react  with water.
+In the semi-dry process, the blended meal is now sieved and fed into a rotating  dish called a granulator, water weighing about 12 per cent of the meal being added at the same  time.
+At first, the water is driven off and CO, is liberated; further on, the dry  material undergoes a series of chemical reactions until finally, in the hottest part of the  kiln, some 20 to 30 per cent of the material becomes liquid, and lime, silica and alumina  recombine.
+The slurry is a liquid of creamy consistence, with a water content of between 35  and 50 per cent, and only a small fraction of material - about 2 per cent - larger than a 90  um (No.
+When limestone is used it has to be blasted, then crushed, usually in two  progressively smaller crushers, and then fed into a ball mill with the clay dispersed in  water.
+oken up  and dispersed in water in a washmill; this is a circular pit with revolving radial arms carrying  rakes which break up the lumps of solid matter.
+The clay is also broken up and mixed with  water, usually in a similar washmill.
+The mixing and grinding of the raw materials can be done either in water or in a  dry condition, hence the names "wet" and "dry" processes.
+The definition of the current British Standard (BS 12: 1978) is on these lines; the  standard stipulates also that no materials other than gypsum and water may be added aft
+and water, sand and crushed stone or brick and broken tiles.
+Lime mortar does not harden under water, and for construction under  water the Romans ground together lime and a volcanic ash or finely ground burnt clay  tiles.
+ under water by virtue of a  chemical reaction with it and are, therefore, called hydraulic cements.
+On the other hand, removal of the  surface water will unduly delay the finishing operation on the site.
+The  water which reaches the top surface presents the most serious  practical problems.
+For example, the strength of the concrete immediately  underneath the reinforcing bars and coarse aggregate particles may be much less than the  average strength and the resistance to percolation of water in these areas is reduced.
+Separation of water from a mix in this manner is known as  bleeding.
+While some of the water reaches the top surface some may become trapped  under the larger particles and under the reinforcing bars.
+The resulting  variations in the effective water conte
+Where the consistency of a mix is such that it is unable to hold all its water  some of it is gradually di
+No restriction on delivery time is given in BS 8110: Part 1 but the concrete must be  capable of being placed and effectively compacted without the addition of further water.
+When this results in a water content greater than that originally intended, some reduction  in strength and durability of the hardened concrete is to be expected unless the cement content is  increased accordingly.
+Corrective measures frequently taken to ensure that  concrete at the time of placing has the desired workability are either an initial increase in the water  content or an increase in the water content with furth
+The associated reduction in workability is a direct result of loss of free  water with time through evaporation, aggregate absorption and initial hydration of the cement.
+n	concrete, changes in workability are governed by the rate of hydration of the  cement and the rate of evaporation of water.
+An  increase in the temperature speeds up the rate at which water is use
+ncrete having water - cement ratio of 0.55 by weight, based on McIntosh (1964)    TABLE 13.3 Effect of aggregate grading (maximum size 19.
+0 mm) on aggregate - cement ratio of  concrete having medium workability and water - cement ratio of 0.55 by weight, based on McIntosh  (1964)    Figure 13.5 A typical relationship between workability and coars
+mpacted concrete, for given materials and  cement - water ratio, is not dependent on the ratio of coarse to fine aggregate, maximum economy can  be obtained by using the coarse aggregate content producing the maximum workability for a given  cement content (Hughes, 1960) (see figure 13.5)
+e practical significance of this is that for a given workability and cement - water  ratio the amount of aggregate which can be used in a mix varies depending on the shape, maximum  size and grading of the aggregate, as shown in figure 13.4 and tables 13.2 and 13.3 
+Figure 13.4 Effect of aggregate shape on aggregate - cement ratio of concretes for different  workabilities, based on Cornelius (1970)    Aggregate    For given cement, water and aggregate contents, the workability of concrete is mainly influenced by  the total surface area of the aggregate.
+crease in workability tends to be smaller for concretes containing  rounded aggregates or low cement - water ratios (by volume) and, in general, the rate of increase in  workability tends to decrease with increasing air content.
+Variations in quality of water suitable for making  concrete have no significant effect on workability.
+Workability is relatively  insensitive to changes in only the cement content and, for practical purposes, may be considered  dependent on only the water content for variations in cement content of up to 10 to 20 per cent  depending on the cement content, the effect of cement content being greater for the richer mixes.
+Figure 13.3 Factors affecting workability of fresh concrete    Cement and Water    Typical relationships between the cement - water ratio (by volume) and the volume fraction of cement  for different workabilities are shown in figure 15.5.
+From the following discussion it will be apparent that a change in workability associated with  the constituent materials is mainly affected by water content and specific surface of cement and  agg
+It should be noted that the value of  slump changes with time after mixing owing to normal hydration processes and  evaporation of some of the free water, and it is desirable  therefore that tests are performed wit
+For example, an increase in  the water content or deficiency in the proportion of fine aggregate results in an increase  in slump.
+13    Properties of Fresh Concrete    Fresh concrete is a mixture of water, cement, aggregate and admixture (if any)
+st which relies on chloride titration for determining the water  content and on calcium titration for cement content.
+mal neutrons, and, since hydrogen is almost  exclusively bound in water, the nuclear method can provide a value of the water content  with an accuracy of +/-0.3 per cent.
+n weight gives  the water content.
+The water content of aggregate and of fresh concrete can be measured also by estimating  the degree of scattering of thermal neutrons emitted by a source placed within the bulk of  the aggregate or within a sample of the mix.
+A slightly different method of determination of the water content of fresh concrete was  suggested by Nischer.
+ is obtained as a difference between the  weight in water of the concrete and of the aggregates.
+The water content is  determined by drying the sample over a heater.
+The weights of fine and coarse aggregate are determined  by weighing in water, and the weight of cement
+The test has  to be commenced virtually as soon as the concrete has been discharged from the mixer  because loss of water can occur; even if evaporation is prevented, an unknown amount of  hydration will take place during any period of delay.
+However, in practice, mistakes, errors  and even deliberate actions can lead to incorrect mix proportions, and it is sometimes  useful to determine the composition of concrete at an early stage; the two values of  greatest interest are the cement content and water / cem
+The usual range of water / cement ratios is 0.35 to  0.50; there is generally very little bleeding.
+On the other hand, the wet mix process gives a  better control of the quantity of mixing water (which is metered, as opposed to judgement  by the nozzle operator) and of any admixtur
+The fundamental feature of the wet mix process is that all the ingredients, including the  mixing water, are mixed together to begin with.
+The nozzle is fitted inside with a perforated manifold through which  water is introduced under pressure and in
+ntact with water flowing at  a high velocity.
+The formation of voids can be prevented if in addition to vacuum-processing intermittent  vibration is applied; under those circumstances a higher degree of consolidation is  achieved and the amount of water withdrawn can be nearly
+Thus the amount of water removed would be equal to the  contraction in the total volume of concrete and no voids would be produced.
+However, in  practice some voids are formed and for the same final water / cement ratio ordinary  concrete ha
+Little reduction in water content occurs beyond 30  minutes.
+It has been said that, strictly speaking, no suction of water takes place during vacuum-processing  but merely a fall of pressure below atmospheric is communicated to the interstit
+The withdrawal of water produces settlement of the concrete to  the extent of about 3 per cent of the depth over which the suction acts.
+The rate of  withdrawal of water falls
+This vacuum reduces the water content by up to 20  per cent over a depth of 150 to 300 mm (6 to 12 in.).
+ which prevents the  removal of cement together with the water.
+Relation between the strength of concrete and the calculated water / cement ratio  after vacuum treatment    The vacuum is applied through porous mats connected to a vacuum pump.
+Nevertheless, the strength of vacuum-processed  concrete broadly follows the usual dependence on the final water / cement ratio, as shown  in Fig.
+Table 4.8: Water / Cement Ratio and Strength of Vacuum-Processed Concrete    Fig.
+wever, some of the water extracted leaves behind voids, so  that the full theoretical advantage of water removal may not be achieved in practice.
+In  fact, the increase in strength on vacuum treatment is proportional to the amount of water  removed up to a critical value beyond which there is no significant increases, so that  prolonged vacuum tre
+The magnitude of the decrease in the water / cement ratio due to vacuum-processing is  given in Table 4.8.
+ce of the concrete results in a large  amount of water being extracted from a certain depth of the concrete.
+In other words,  what might be termed "water of workability" is removed when no longer needed.
+The final water / cement ratio
+Vacuum-processed Concrete    One solution to the problem of combining a sufficiently high workability with a minimum  water / cement ratio is offered by vacuum-processing of freshly placed conc
+Preplaced aggregate concrete may be used in mass construction where the temperature  rise has to be controlled: cooling can be achieved by circulating refrigerated water round  the aggregate and thus chilling it; the water is later displaced by the rising mortar.
+It may be relevant to  mention here that for concreting in depths of water over 30 m (100 ft) a tremie should be used.
+For large concrete placement under water, there exist specialized
+In this case, pozzolana should not be used because it reduces the  density of the concrete and fixes less water.
+Preplaced aggregate concrete is economical in cement, as little as 120 to 150 kg per cubic  metre (200 to 250 lb / yd3) of concrete being used, but the strength of the resultant  concrete is limited by the high water / cement ratio necessary for a sufficient plasticity of  mortar; typical strength is 20 MPa (2900 psi)
+A typical mortar consists (by weight) of two parts of Portland cement, one part of a very  finely divided and highly active pozzolana (for instance, fly ash), and three to four parts of  fine sand, with sufficient water to form a fluid mixture.
+However, water should not be allowed to  stand too long as algae can grow on the aggregate.
+Such a mix might  have a water content down to 48 kg / m3 (80 lb / yd3)
+rated water  through embedded pipes.
+However, if hot cement is dampened by a small amount of water before  it is well dispersed with other solids it may set quickly and form cement balls.
+btain a better  picture we can say that if the water / cement ratio of a mix is 0.5 and the aggregate / cement  ratio is 5.6, then a drop of 1 C (or 1 F) in the temperature of fresh concrete can be obtained  by lowering the temperature either of the cement by 9 C (9 F) or of the water by 3.6 C (3.6 F)  or of the aggregate by 1.6 C (1.6 F)
+e dry ingredients to that of water, and is applicable to both the SI and Imperial  systems of units.
+ calculated from that of the ingredients, using the expression    (formula),    where T denotes temperature in  C or  F, W weight of ingredient per unit volume of  concrete, and the suffixes a, c, w refer to aggregate, cement, and water (both added and  in aggregate) respectively.
+For instance, ice can used instead of some of the mixing water, but it is essential that the  ice melts completely before the mixing has been completed.
+Curing also presents additional problems  as the curing water tends to evaporate rapidly.
+The use of curing compounds is not  entirely satisfactory since it leads to lower compressive strengths than when continuous  water curing is applied; some experimental values are given in Table 4.5.
+racks also form under a layer of water and merely become  apparent on drying.
+It is generally believed that plastic shrinkage is likely to occur when the rate of  evaporation exceeds the rate at which the bleeding water rises to the surface, but it  has been observed that c
+In general the  improvement in strength is more pronounced at earlier ages, and is greatest in concretes liable  to high bleeding since the trapped water is expelled on revibration.
+If pumping is stopped and pressure removed, water is  discharged from the aggregate; this water may carry with it the fine material so that a  plug forms on resumption of pumping.
+As a result, when pressure is applied in the pipeline, the air in  these voids contracts, and water is forced
+If the fines  content is too high, the friction resistance of the mix can be so large that  the pressure exerted by the piston through the water phase is not sufficient  to move the mass of concrete, which becomes stuck.
+blocked filter" effect, which  allows the water phase to transmit the pressure but not to escape from the  mix.
+Of all the components of concrete, it is only water that is  pumpable in its natural state, and it is the water, therefore, that transmits  the pressure to the other mix components.
+In one, water escapes through the mix
+excess water as segregation would result.
+With a lower water  content, the solid particles, instead of moving longitudinally in a coherent  mass in suspension, would exert pressure on the walls of the pipe.
+	reason, concrete is sometimes re-tempered (see page 233) by the addition  of water immediately before discharge; the workability is thus restored but  it must be realized that the resultant compressive strength will be affected  by the amount of water added to the mix (see Fig.
+Effect of re-tempering water on the strength of
+Unless, however, the initial workability is high, the stiffening caused  by prolonged agitation would result in a concrete of very low workability,  especially in hot weather, when a high loss of water by evaporation takes  place in addition to the loss of free water by hydration of cement.
+-mixing,  water need not be added till nearer the commencement of mixing, but the  time during which the cement and moist aggregate are allowed to remain in  contact should be limited to about 90 minutes, although an amendment to  BS 5328 : 1976 allows 2 hours.
+Water is then gradually  added so that neither water by itself nor with cement can escape.
+hen the added  water forms part of the effective water which governs the strength (see Fig.
+Re-tempering has been reported slightly to increase the shrinkage but  this probably occurs only if the effective water / cement ratio is increase by  the added water.
+ cement ratio; others have found the loss to be the same as if the  re-tempering water were added during initial mixing.
+The explanation of  this discrepancy probably lies in how the water was lost: water lost by  evaporation should not be included in the effective water / cement ratio but  if re-tempering replaces the water used up in hydration t
+Adding water to restore workability, known as re-tempering,  will lower the strength of the concrete.
+Some investigators have reported that this loss of strength is  smaller than would be expected from the consideration of the total  water
+, then the water, and  finally the remainder of the coarse aggregate so as to break up any nodules  of mortar.
+Generally, evaporation of water from the mix takes place, with a consequent  decrease in workability and increase in strength.
+If water or cement are fed too fast or are  too hot there is a danger of formation of cement balls, sometimes up to  70 mm (or 3 in.)
+ With some drum mixers, however, when a very dry mix is used, it is  necessary to feed first some water and the coarse aggregate, as otherwise  its surface does not become sufficiently wetted.
+Generally, a small amount of water should be fed first, followed by all the  solid materials, preferably fed uniformly and simultaneously in to the  mixer.
+If possible, the greater part of the water should also be fed during  the same time, the remainder of the water being added after the solids
+On the  other hand, when lightweight aggregate is used, the mixing time should be  not less than 5 min, sometimes divided into 2 min of mixing the aggregate  with water, followed by 3 min with cement added
+The mixing time is reckoned from the time when all the solid  materials have been put in the mixer, and it is usual to specify that all the  water has to be added not later than after one quarter of the mixing time.
+ypical values  in the latter case are:    for percentage water content 0.8 to 0.9 per cent,  for percentage cement content 8 per cent of the nominal value,  for percentage of fine aggregate 8 to 9 per cent of the nominal value.
+ement as percentage of total aggregate to 0.01 per cent,  water / cement ratio to 0.01.
+Each sample is subjected to wet analysis  (see page 261) in accordance with British Standard BS 1881: Part 2: 1970  and the following are determined:    water content as percentage of solids to 0.1 per cent,  fine aggregate content as percentage of total aggregate to 0.5 per cent,  c
+given water / cement  ratio than conventional mixing.
+For instance, at water / cement ratios of 0.45 to 0.50, a gain in  strength of 10 per cent has been observed.
+used for the latter, cement and water are formed into colloidal grout by passage,  at a speed of 2000 rev / min, through a narrow gap, and sand is subsequently added to the grout.
+This type of mixer may become of interest in concrete-making because the pre-mixing of cement  and water allows better hydration and may lead to a higher strength at a
+e	usual quantities of cement, water and fine aggregate, simply  omitting the coarse material.
+On the other hand, if the rising water carries with it a considerable amount  of the finer cement particles a layer of laitance will be formed.
+If it is undisturbed (and the water  evaporates) the effective water / cement ratio may be lowered with a resulting increase in  streng
+This water leaves behind  capillaries, and since all the voids are oriented in the same direction, the  permeability of the concrete in a horizontal plane may be increased.
+On the other hand, if evaporation of water from the surface of  the concrete is faster than the bleeding rate plastic shrinkage cracking may result (see  p.
+Some of the rising water becomes trapped on the underside of coarse aggregate particles  or o
+ding the top of every lift may become too wet and if the water is  trapped by superimposed concrete, porous, weak, and non-durable concrete will result.
+If  the bleeding water is remixed during finishing of the top surface a weak wearing surface  will be formed.
+This can be avoided by delaying the finishing operations until the  bleeding water has
+Bleeding    Bleeding, known also as water gain, is a form of segregation in which some of the water  in the mix tends to rise to the surface of freshly placed concrete.
+This is caused by  the inability of the solid constituents of the mix to hold all of the mixing water when  they settle downwards.
+he second form of segregation, occurring particularly in wet mixes, is  manifested by the separation of grout (cement plus water) from the mix.
+With some  gradings when a lean mix is used, the first type of segregation may occur if the mix is  too dry; addition of water would improve the cohesion of the mix, but when the mix  becomes too wet the s
+There is therefore no corresponding large increase in the  water requirement.
+Influence of temperature on amount of water required to change slump     It is interesting that the loss of workability with increase in temperature has not  been confirmed by site tests made by Shalon in a h
+an  example of the effect of temperature on slump of laboratory-mixed concrete: it is apparent  that on a hot day the water content of the mix would have to be increased for a constant  workability to be maintained.
+4.14 shows that as the concrete temperature increases the  percentage increase in water required to effect a 25 mm (1 in.)
+ater content): the loss is greater with  dry aggregate owing to the absorption of water by aggregate, as of course would be  expected.
+Relation between slump and time since completion of mixing for a 1:2:4  concrete with a water / cement ratio of 0.775     Because of this change in apparent consistence and also because we are really
+It is simply that some water from the mix is absorbed by the aggregate, some is  lost by evaporation, particularly if the concrete is exposed to sun or wind, and some is  removed by the initial chemical reactions.
+These methods, by and large, give a helpful indication of  "workability" and are certainly  adequately sensitive to variations in the water content of  the mix.
+Here, the cylinder is supported by a spring balance which can be calibrated for a given  mix so as to read workability directly, or even to indicate the excess or deficiency of  water in kilograms per batch.
+The last qualification is necessary because of some secondary effects: a lower  aggregate / cement ratio means a higher total surface area of solids (aggregate and  cement) so that the same amount of water results in a somewhat decreased workability.
+For instance, if the aggregate / cement ratio  is reduced, but the water / cement ratio is kept constant, the water content increases, and  consequently the workability also increases.
+If, on the other hand, the water content is  kept constant when the aggregate / cement ratio is reduced, then the water / cem
+In practice, predicting the influence of mix proportions on workability requires  care since of the three factors, water / cement ratio, aggregate / cement ratio, and  wa
+Conversely, for a given workability, there is one value of  coarse / fine aggregate ratio  which needs the lowest water content The influence of these factors was discussed in  Chapter 3.
+ particular value of water / cement ratio may not be the best for another value of the ratio.
+In particular, the higher the water / cement ratio the finer the grading required for the highest  workability.
+In actual fact, for a given value of water / cement ratio there is one value of  the coarse / fine aggregate ratio (using given materials) tha
+ water content and the other mix proportions are fixed, workability is governed  by the maximum size of aggregate, its grading, shape and texture.
+However, the grading and the water / cement ratio  have to be considered  together, as a grading producing the most workable concrete for  one
+Table 4.1: Approximate Water Content for Different Slumps and Maximum Sizes of  Aggregate    Fig.
+Reduction in mixing water requirement due to air-entrainment     If the
+assumption, the mix  proportions of concretes of different richness can be estimated, and Table 4.1 gives  typical values of water content for different slumps and maximum sizes of aggregate.
+When air is entrained  the water content can be reduced in accordance with the data of Fig
+fecting Workability    The main factor is the water content of the mix, expressed in kilogrammes of water per  cubic metre of concrete: it is convenient, though approximate, to assume that for a  given type and grading of aggregate and workability of concrete, the water content is  independent of the aggregate / cement ratio.
+ction there may be an optimum  water content of the mix at which the sum of the volumes of air bubbles and water space  will be a minimum.
+At this optimum water content the highest density ratio of the concrete  would be obtained.
+It can be seen, however, that the optimum water content may vary for  different methods of compaction.
+s solely on the  water / cement ratio of the mix.
+ in agreement with Feret's expression relating strength to the sum  of the volumes of water and air in the hardened paste (see p.
+Relation between strength ratio and density ratio     Voids in concrete are in fact either bubbles of entrapped air or spaces left after  excess water has been removed.
+ of no significance, and any water suitable for mixing,  or even slightly inferior in quality, is acceptable for curing.
+It is essential that curing water be free from substances that attack hardened  concrete; these are discussed in Chapter 7.
+Here, 150 litres (40 U.S. gallons) of water are allowed to flow  lengthwise over a 150 by 150 by 750 mm (6 by 6 by 30 in.)
+U.S. Army Engineers recommend  a preliminary test in which 300 ml of the water to be used for curing is evaporated from a  slight depression, 100 mm (4 in.)
+Hardness of water does not affect the efficiency of  air-entraining admixtures.
+As far as curing of concrete is concerned, water satisfactory for mixing is also  suitable for curing purposes.
+However, iron or organic matter can cause staining,  particularly if water flows slowly over concre
+er  organic acids may adversely affect the hardening of concrete; such water, as well as  highly alkaline water, should be tested.
+It may be interesting to note that the presence of algae in mixing water results in air  entrainment with a consequent loss of strength.
+ may contain a large amount of salt, but if sand dredged from the  sea is washed in sea water and is allowed to drain, and fresh water is used as mixing  water, then the salt content represents no more than 1 per cent of the total weight of  water (see p.
+Natural waters that are slightly acid are harmless, but water containing humic or oth
+dvisable to use sea water  for mixing unless this is unavoidable.
+In prestressed concrete the use of sea water  is not permitted because the small cross-section of the wire means that the effects of  corrosion are relatively more serious.
+Sand  dried out in sea water
+On the other hand, when reinforced concrete is permanently in  water, either sea or fresh, the use of sea water in mixing seems to have no ill-effects.
+believed to increase the risk of  corrosion of the reinforcement, although there is no experimental evidence that the use  of sea water in mixing leads to attack on the reinforcing steel.
+Water containing large quantities of chlorides (e.g. sea water) tends to cause  persistent dampness and surface efflorescence.
+Such water should, therefore, not be used  where appearance of the concrete is of importance, or where a plaster finish is to be  applied.
+In the case of reinforced concrete, sea water is
+me tests suggest that sea water  slightly accelerates the setting time of cement, others, a substantial reduction in  the initial setting time but not necessarily in the final set.
+Generally, the effects on  setting are unimportant if water is acceptable from strength considerations.
+Sea water has a total salinity of about 3.5 per cent (78 per cent of the dissolved  solids being NaCl and 15 per cent MgCl2 and MgSO4), and produces a slightly higher  early strength but a lower long-term strength; the loss of strength is usually no more than  15  per cent and can therefore often be tolerated.
+0  ppm, or SO3 does not exceed 1000 ppm, the water is harmless, but water with even higher  salt  contents has been used satisfactorily.
+ever, water  used to wash out truck mixers is satisfactory as mixing water, provided of course that  it was satisfactory to begin with.
+ASTM Standard C 94-78a allows the use of wash water.
+Brackish water contains chlorides and sulphates.
+Since it is undesirable to introduce large quantities of silt into the concrete, mixing  water with a high content of suspended solids should be allowed to stand in a settling  basin before use; a turbidity limit of 2000 ppm has been suggested.
+dinary drinking water.
+Such  tests are recommended when water for which no service record is available contains  dissolved solids in  excess of 2000 ppm or, in the case of alkali carbonate
+A simple way of determining the suitability of such water is to compare the setting  time of cement and the strength of mortar cubes using the water in question with the  corresponding results obtained using known "good" water or distilled water; there is no  appreciable difference between the behaviour of distilled and or
+While the use of potable water is generally safe, water not fit for drinking may  often also be satisfactorily used in making concrete.
+As a rule, water with pH of 6 0  to 8.0 which does not taste saline or brackish is suitable for use, but dark  colour or bad smell do not necessarily mean that deleterious
+There is, however, one situation when drinking water is unsuitable as mixing water:  this is when there is a danger of alkali - aggregate reaction and the water has a high
+ of the latter type of water may be harmless or even beneficial when used in mixing.
+In many specifications, the quality of water is covered by a clause saying that water  should be fit for drinking.
+Such water very rarely contains dissolved solids in excess  of 2000 parts per million (ppm), and as a rule less than 1000 ppm.
+For a water / cement
+For these reasons, the suitability of water for mixing  and curing purposes should be considered.
+Clear distinction must be made between the  effects of mixing water and the attack on hardened concrete by aggressive waters.
+e	of strain in impact tests for  the data of reference      Quality of Mixing Water    The vital influence of the quantity of water in the mix on the strength of the resulting  concrete has been repeatedly mentioned.
+The quality of the water also plays its role:  impurities in water may interfere with the setting of the cement, may adversely affec
+Specifically, the impact strength of water stored concrete is  lower than when the concrete is dry, although the former
+ion between compressive strength and number of blows to  "no-rebound" for concretes made with different aggregates and Type I cement,  stored in water     A smaller maximum size of aggregate significantly improves impact resistance; so does  the use of aggregate with a low modulus of elasticity and a low Poisson's ratio.
+Usually 200 to 300 samples are tested in one plant in  any year, six cubes (of 1 : 3 mortar with a water / cement ratio of  0 5) per sample being crushed.
+The water / cement ratio affects the strength of high-pressure steam-cured  concrete in the usual manner, but the actual values of early strength dif
+r must be of the  pressure vessel type with a supply of wet steam; excess water is necessary as  superheated steam must not be allowed to come into contact with the concrete.
+ed was made with modified cement, and had a water / cement ratio of 0.6.
+5.51 Gain of strength of steam-cured concrete with time (water / cement ratio =  0.50, rapid-hardening Portland cement)     Si
+The adverse effect of the rapid rise is more pronounced the higher  the  water / cement ratio of the mix, and is also more noticeable with rapid  hardening than with ordinary Portland cement.
+ypical values of strength of concrete made  with modified cement and a water / cement ratio of 0 55; steam curing was applied  immediately after casting 
+Strength of concrete cured in steam at different temperatures (water / cement  ratio = 0.50; steam curing applied immediately after casting)     One factor in the retrogression of
+Concrete with a lower water / cement ratio  responds to steam curing much better than a weaker mix.
+Comparison of strengths of concrete with a water / cement ratio of 0.40 cast in  Lagos, Nigeria and in England      Steam Curing at Atmospheric Pressure    Since an increase in the curing temperature of concrete increases its r
+Indeed, on many construction sites the  strength of test specimens has been found to be lower during hot weather even though  from the time of stripping the moulds at the age of 24 hours the specimens were cured in  water at 18 C (64 F
+sibly because water is drawn out of the concrete  while capillaries can still collapse, so that the effective water / cement ratio is  decreased.
+Effect of temperature during the first 28 days on the strength of concrete  (water / cement ratio = 0.41
+The temperature of the specimens  was moderated to 20 C at a constant rate over a two-hour period prior to testing  (water / cement ratio = 0.14; Type I cement)     Tests have also been made on concretes stored in water at different temperatures for
+However, the temperature at the time of testing  also appears to be a factor, at least in the case of neat (ordinary Portland) cement  paste compacts with a water / cement ratio of 0.14.
+5.44 shows Price's data on the effect of the temperature during the first two  hours after mixing on the developing of strength of concrete with a water / cement ratio  of 0.53.
+5.43 obtained by Klieger who tested ordinary Portland cement  concrete with a water / cement ratio of 0.43 and an air content of 4.5 per cent, cured at  23 C (73 F) from the age of 28 days onwards.
+s below the freezing point of water  and down to about - 12 C (11 F) concrete shows a small increase in strength with time  but the low temperature must not be applied, of course, until after the concrete has set  and gained sufficient strength to resist damage due to the action of frost; a "waiting  period" of 24 hours is usually required.
+Ratio of strength of concrete cured at different temperatures to the 28-day  strength of concrete cured at 21 C (70 F) (water / cement ratio = 0.50; the specimens  were cast, sealed, and cured a
+5.38 for a 1:3.4 mortar with a water / cement ratio  of 0.70, but in practice early drying may lead to shrinkage and cracking, and delaying  curing is inadvisable.
+Relation between total curing time in water and tensile strength of mortar  briquettes      Mat
+ age as partial hydration may make  the capillaries discontinuous: on renewal of curing, water would not be able to enter  the interior of the concrete and no further hydration would result.
+However, mixes with  a high water / cement ratio always retain a large volume of capillaries so that curing can  be effectively resumed at any time.
+However, sheeting can cause discoloration or mottling because of non-uniform  condensation of water on the underside of the paper.
+Except when used on concrete with a high water / cement ratio, sealing compounds  reduce the degree and rate of hydration compared with efficient wet curing.
+ng compounds applied after free  water has disappeared from the surface of the concrete but before the pores in  concrete can absorb the compound.
+A  membrane, provided it is not punctured or damaged, will effectively prevent evaporation  of water from the concrete but will not allow ingress of water to replenish that lost  by self-desiccation.
+The difference is greatest at low  water / cement ratios where self-desiccation operates rapidly.
+Periodically-wetted  hessian or cotton mats may be used, or alternatively an absorbent covering with  access to water may be placed over the concrete.
+A continuous supply of water is  naturally more efficient than an intermittent one, and Fig.
+Once the concrete has set, wet curing can be provided by keeping the concrete in  contact with a source of water.
+In  order to prevent crazing of the surface on drying out, loss of water must be prevented  even prior to setting.
+rature of concrete (at an air temperature of 4.5 C  (40 F)) on the loss of water from concrete in the early stages after placing (relative  humidity of air 100 per cent, wind velocity 4.5 m / s (10 mph))      Methods of Curing    No more than an outline of the different means of curing will be given here  as the actual procedures used vary widely
+the loss of water from  concrete in the early stages after placing (relative humidity of air 70 per cent; wind  velocity 4.5 m / s (10 mph))     Fig.
+Influence of wind velocity on the loss of water from concrete in the early  stages after placing (relative humidity of air 70 per cent, temperature 21 C (70 F))    Fig.
+erely  typical as the actual loss of water depends on the surface /  volume ratio of the  specimen.
+Influence of relative humidity of air on the loss of water from  concrete in  the early stages after placing (air temperature 21 C (70 F); wind velocity 4.5 m / s (10 mph))    Fig.
+The difference between the temperatures of concrete and of air also affects the  loss of water, as shown in Fig.
+Thus concrete saturated in day-time would lose  water during a cold night, and this would also be the case with  concrete cast in cold weather, even in saturated air.
+Evaporation of water from concrete soon after placing depends on the temperature and  relative humidity of the surrounding air and on the velocity of wind which effects a  change of air over the surface of the concrete.
+Water taken up by dry cement exposed for six months to different vapour pressures     It must be stressed that for a satisfactory development of strength it is not necessary  for all t
+than the water required for  combination.
+This statement is of considerable importance as it was formerly thought  that, provided a concrete mix contained water in excess of that required for the  chemical reactions with cement, a small loss of water during hardening would not  adversely affect the process of hardening and the gain of strength.
+mixes with water / cement ratios below about  0.5; for higher water / cement ratios the rate of hydration of a sealed specimen equals  that of a saturated specimen.
+It should not be forgotten, however, that only half the  water present in the paste can be used for chemical combination;  this is so even if the total amount of water present is less
+nally by self-desiccation  has to be replaced by water from outside, i.e. ingress of water into the concrete must  be made possible.
+It may be recalled that hydration of a sealed specimen can proceed only if the amount  of water present in the paste is at least twice that of the water already combined.
+Influence of moist curing on the strength of concrete with a water / cement  ratio of 0.50	The necessity for curing arises from the fact that hydration of cement can take place  only in water-filled capillaries.
+This is why a loss of water by evaporation from the  capillaries must be prevented.
+Furthermore, water lost inter
+5.31,  obtained for concrete with a water / cement ratio of 0.50.
+Thus air-cured concrete has a lower ft / fc ratio than  concrete cured in water and tested wet.
+The relative increase in strength was greater at higher  water / cement ratios.
+Gain of strength of air-stored concrete with time (Austrian Portland cement;  cement and aggregate from one source; water / cement ratio = 0.65; cement content = 260 kg / m3  (440 lb / yd3); curing 7 days in wet sand, then in air at room temperature)     Pioneiro sugg
+Relative gain of strength with time of concretes with different water / cement  ratios, made with ordinary Portland cement     When no specific data on the materials used are available, the 28-day strength may be  assumed to be 1.5 times the 7-day strength and, as an alternative to the specified  28-day strength of test
+h, more rapidly than mixes with higher  water / cement ratios (Fig.
+Furthermore, mixes with a low water / cement ratio gain strength,  expressed as a percentage of long-term strengt
+al compression and to  biaxial compression - tension	Effect of Age on Strength of Concrete    The relation between the water / cement ratio and the strength of concrete applies to  one type of cement and one age only.
+Wet or air-dried concrete (fc = compressive strength )     The level of uniaxial compressive strength virtually does not affect the shape of the  curve or the magnitude of the values given by it; the prism strength range tested  was 19 to 58 MPa (2700 to 8350 psi) and both the water / cement ratio and c
+constant water / cement ratio of 0.50    Fig.
+Relation between direct tensile strength and volume of aggregate at a  constant water / cement ratio of 0.50     The effects are smaller in cubes than in cylinders or prisms.
+The  reasons for this effect are not clear, but it is the same at all water / cement ratios.
+It is probable, however, that other factors also  play a part: for instance, the total water content per cubic metre of concrete is lower  in a leaner mix than in a rich one.
+hat for a constant water / cement ratio a leaner mix leads to a higher strength (see Fig.
+Influence of the aggregate / cement ratio on strength of concrete     This behaviour is probably associated with the absorption of water by the aggregate: a  larger amount of aggregate absorbs a greater quantity of water, the effective  w
+ the  paste itself becomes paramount, and at a water / cement ratio of 0.65 no difference in the  strengths of concretes made with crushed rock and gravel has been observed.
+Relation between compressive strength and age for concretes made with  various aggregates (water / cement ratio = 0.5)     The influence of aggregate on flexural
+For water / cement ratios below 0.4, the use of  crushed aggregate has resulted in strengths up to 38 per cent higher than when gravel is used.
+The  behaviour at a water / cement ratio of 0.5 is shown in Fig.
+With an increase in the  water / cement ratio, the influence of aggregate falls off, presumably because the strength of
+ompressive strength and indirect - tensile strength for concretes  of constant workability made with various aggregates (water / cement ratio between 0.33 and  0.68, aggregate / cement ratio between 2.8 and 10.1)     The influence of the type of coarse aggregate on the strength of concrete varies in magnitude and  depends on the water / cement rat
+The overall stress under which they develop is sensitive to the  water / cement ratio of the paste.
+displaced pore water to  escape through the loading platens, then the apparent strength is higher.
+It may be noted that if the  development of pore water pressure in concrete is limited by allowing the
+Care is therefore necessary in translating laboratory results into mix proportions to be  used on a site and all reference to water / cement ratio must make it clear if total rather than effective  water is considered.
+to a saturated and surface-dry condition is considered to be the effective water of the mix.
+10.2) are based on the water  in excess of that absorbed by the aggregate.
+On the other hand, McIntosh and Erntroy's  data refer to the total water added to a dry aggregate.
+es are therefore air-filled, a part of the water added to the mix will be absorbed by  the aggregate during the first half hour or so after mixing.
+Under such circumstances the  demarcation between absorbed and free water is a little difficult.
+On a site, the aggregate is as a rule wet, and only the water in excess of that required to  bring it
+A part of the latter water is absorbed within the pore structure of the  aggregate while some exists as free water on the surface of the aggregate and is therefore no different  from the water added direct into the mixer.
+We consider as effective that water which occupies space outside  the aggregate particles when the gross volume of concrete becomes stabilized, i.e., approximately at  the time of setting.
+Hence the terms effective or net water / cement ratio.
+Generally, water in concrete consists of that added to the mix and that he
+Effective Water in the Mix    The relations discussed so far in this chapter involve the quantity of water in the mix.
+Relation between the strength of cement paste and the ratio of surface area of  gel Vm, to the volume of mixing water wo     The above expressions have been found to be valid for many cements but the numerical  coefficients may depend on the
+he volume of the gel; and also that the volume of mixing water, wo, is related  to the space available for the gel.
+It may be convenient to utilize the fact that the volume of non-evaporable water, wn, is  proportional to t
+Let c = weight of cement,   vc = specific volume of cement,   wo = volume of mixing water,   and a = the frac
+on takes place;  the air content of the concrete; and also the change in the effective water / cement ratio  and the formation of fissures due to bleeding.
+ce of the water / cement ratio on strength does not truly constitute a law as the  water / cement ratio rule does not include many  qualifications necessary for its validity.
+In  particular, strength at any water / cement ratio depends on the degree of hydration of  cement  and its chemical and physical properties; the temperature at which hydrati
+The pattern of strength of high-alumina cement concrete is somewhat different from that  of concrete made with Portland cement, in that strength increases with the cement / water  ratio at a progressively decreasing rate.
+Relation between logarithm of strength and water / cement ratio      Gel / Space Ratio     The influen
+suggested that as an approximation  the relation between the logarithm of strength and the natural value of the water / cement  ratio can be assumed to be linear (cf.
+5.7 gives  the relative strength of mixes with different water / cement ratios, taking the strength at the  water / cement ratio of 0 4
+Relation between 7-day strength and water / cement ratio for concrete made with  a rapid-hardening Portland cement    Fig.
+A plot of strength against cement / water ratio for the data of Fig.
+venient to use than  the water / cement ratio curve, particularly when interpolation is desired.
+5.5 plotted with the cement / water ratio as abscissa.
+The values used apply  to the given cement only, and in any practical case the actual relation between strength and  cement / water ratio has to be determined.
+Thus the relation between the strength  and the cement / water ratio is approximately linear in the range of cement / water ratios  between about 1 2 and 2 5.
+shows that the graph of strength versus water / cement ratio is   approximately in the shape of a hyperbola.
+nt and acceptable aggregates, the strength that may be  developed by a workable, properly placed mixture of cement, aggregate, and water (under  the same mixing, curing, and testing conditions) is influenced by the:   (a) ratio of cement to mixing water   (b) ratio of cement to aggregate   (c) grading, surface texture, shape, strength, and stiffne
+From time to time the water / cement ratio rule has been criticized as not being sufficiently  fundamental (see the following section)
+Nevertheless, in practice the water / cement ratio  is the largest single factor in the strength of fully compacted concrete.
+Thus at later ages, in this type of  mix, a lower water / cement ratio would not lead to a higher strength.
+It seems also that mixes with a very low water / cement ratio and an extremely  high cement content (470 to 530 kg / m3 (800 to 900 lb / yd3)) exhibit retrogressio
+5.1 shows that the range of validity of the water / cement ratio rule is limited.
+The relation between strength and the total volume of voids is not a unique property of  concrete but is found also in other brittle materials in which water leaves behind pores: for  instance, th
+was in the form    (formula)    where f, is the strength of concrete, c, w, and a are the absolute volumes of cement,  water, and air respectively, and K is a constant.
+It may be recalled that the water / cement ratio determines the porosity of the hardened  cement paste at any stage of hydration (see p.
+Thus the water / cement ratio and th
+A typical strength versus water / cement  ratio curve is shown in Fig.
+The relation between strength and water / cement ratio of concrete     Abrams' "law", although established independently, is a special case of  a general rule formulated by Feret in 1896.
+When concrete is fully compacted its strength is taken to be inversely proportional to the  water / cement ratio according to the "law" established by Duff Abrams in 1919.
+He found  strength to be equal to    (formula)    where w / c represents the water / cement ratio of the mix (ori
+of concrete at a given age and cured at  a prescribed temperature is assumed to depend primarily on two factors only: the  water / cement ratio and the degree of compaction.
+Water / Cement Ratio    In engineering practice, the strength
+An alternative use of superplasticizers is in the production of high strength concrete by reducing the  mix water content, and hence water - cement ratio, while maintaining the original workability.
+A  reduction in the water content up to 25 per cent is possible.
+At a normal dose of  admixture, water and cement reductions up to about 10 per cent can be achieved.
+Third, to reduce cement content of a mix at a given workability and strength by reducing its  water content while maintaining the original water - cement ratio; this reduces the cost of a mix.
+First, to increase concrete workability for a given  water - cement ratio and nominal strength; this allows easier placing and compaction of concrete.
+Second, to increase concrete strength without the addition of further cement owing to the reduced  water requirement of a mix at a given workability; this allows the produ
+Water reducers or plasticizers    These admixtures are also based on lignosulphonic and hydroxylated-carboxylic acids.
+th retarding water reducing  admixtures gaining popularity.
+A  slightly reduced water content may be used when using these retarding agents
+rk involving water leakage.
+Since improvements in  workability can permit a reduction in the water content the loss in strength can be minimised.
+permeability of concrete and second, by reducing the internal stresses caused by  the expansion of water on freezing.
+In general, the presence of impurities in  the curing water does not have any harmful effects, although it may spoil the appearance of concrete.
+Water containing appreciable amounts of acid or organic materials should be avoided.
+The quality of water may also be assessed by comparing the setting time and  soundness of cement pastes made with water of known quality and the water whose quality is suspect.
+The use of impure water for washing aggregates can adversely affect strength and durability if  it deposits harmful
+When the suitability of  mixing water is in question, it is desirable to test for both the nature
+p  water, is acceptable for mixing concrete.
+The effect of water content on the properties of fresh and  hardened concrete is discussed in chapters 13 and 14.
+In general water fit for drinking, such as ta
+12.3 Water    Water used in concrete, in addition to reacting wi
+They are highly porous and absorb considerably greater quantities of water than do normal  aggregates.
+This is given by  A / (A - B) where A is the weight of the saturated surface-dry sample in air and B the weight of the  saturated sample in water.
+The relative density of a material is the ratio of its unit weight to that of water.
+Since  aggregates incorporate pores the value of relative density varies depending on the extent to which the  pores contain (absorbed) water when the value is
+The total moisture content, that is, the absorbed moisture plus the free or surface water, of  aggregates used for making concrete varies considerably.
+The water added at the mixer must be  adjusted to take account of this if the free wat
+A gravel  aggregate with a similar petrology to that of a crushed-rock aggregate will absorb more water because  of its greater weathering.
+Direct  measurement of porosity is difficult and in practice a related property, namely, water absorption, is  measured.
+The water absorption is defined as the weight of water absorbed by a dry aggregate in  reaching a saturated surface
+Aggregate porosity is an important property since it affects the behaviour of both freshly  mixed and hardened concrete through its effect on the strength, water absorption and permeability of  the aggregate.
+cularly sensitive to temperature, the  water - cement ratio and the richness of the mix at a given water - cement ratio, increasing as all these  factors increase.
+Water - cement ratios higher than 0.4 should generally be avoided.
+The use of these cements reduces the water demand of a  concrete mix, when compared with that using the corresponding ordinary Portland cement.
+In this case remixing the paste without further addition of water causes it to regain  its plasticity and its subsequent setting and hardening characteristics are quite normal.
+ol the rapid reaction of C3A with water, this reaction generating a  considerable amount of heat and causing the cement to stiffen within a few minutes after mixing.
+This  can only be overcome by adding more water and reagitating the mix.
+The addition of water results in  a reduction in strength.
+In practice, when mixes have a higher water  content than that used in the standard tests, the cement paste takes a correspondingly longer time to  set.
+The time from the addition of the water to the initial and final  set are known as the setting times (BS 4550: Part 3) and the spec
+Hydration    The chemical combination of` cement and water, known as hydration, produces a very hard and  strong binding medium for the aggrega
+Fineness    The reaction between the water and cement starts on the surface of the cement parti
+ent comes into contact with water, C3S begins to hydrate rapidly, generating a  considerable amount of heat and making a significant contribution to the development of the early  strength, particularly during the first 14 days.
+ a minimum  amount of water, passed into an inclined rotating nodulising pan where nodules are  formed.
+At 100 C the water is driven off
+Water is added to the propo
+Figure 12.1 Composition of concrete      12.1 Cement    The different cements used for making concrete are finely ground powders and all have the  important property that when mixed with water a chemical reaction (hydration) takes place  which, in time, produces a very
+ly of three materials, namely, cement, water and aggregate, and  an additional material, known as an admixture, is sometimes added to modify certain of its  properties.
+Cement is the chemically active constituent but its reactivity is only brought  into effect on mixing with water.
+They do not markedly change  the surface tension of water, their action being the dispersion of cement agglomerates normally  found when cement is suspended in water.
+Water / cement ratios down to 0.28 have been used with 28-day  strengths of the order of 100 MPa (15 000 psi)
+Generally speaking, superplasticizers can reduce  the water content for a given workability by 25 to 35 per cent (compared with half that  value in t
+Relation between German flow table spread and water content of concrete  with and without superplasticizer     The second use of superplasticizers is in the production of concrete of normal  workability but with an extremely high strength owing to a very substantial reduction  in the water / cement ra
+At a given water / cement ratio, this  dispersin
+Table 2.11: Water Reduction Obtained with Different Water-reducing and S
+reduction in the quantity of mixing water that is possible owing to the use of  admixtures varies between 5 and 15 per cent (Table 2.11)
+The actual decrease in the mixing water depends on the cement content,  type of aggreg
+For this reason, there  is an increase in the strength of concrete, compared with a mix of the same water / cement  ratio but without the admixture.
+The particles have, therefore, a greater  mobility, and water freed from the restraining influence of the flocculated system  becomes available to lubricate the mix so that the workability is increased.
+ also  the case with water-reducing and retarding admixtures (such as ligno-sulphonates):  Khalil and Ward showed that the linear relation between the heat of hydration and  weight of non-evaporable water (see Fig.
+Relation between the non-evaporable water content of cement and h
+en 2 minutes after water has come into  contact with the cement increases the retardation; such a delay can be achieved by a  suitable sequence of feeding the mixer.
+The U.S. Bureau of Reclamation found no corrosion of  reinforcement when calcium chloride is used in correct proportions, but others in the  U.S. found that at high water / cement ratios some corrosion takes place, alt
+		It is important that calcium chloride be uniformly distributed throughout the mix, and  this is best achieved by dissolving the additive in the mixing water before it enters  the mixer.
+This acceleration of setting makes the  addition of CaCl2 useful in repair work, for instance, when the ingress of water can be  prevented for a short time only.
+Calcium chloride is  generally more effective in increasing the early strength of rich mixes with a low  water / cement ratio than of lean ones.
+roofing admixtures should be distinguished from water repellents, based on  silicone resins, which are applied to the concrete surface.
+t	water-proofing  admixtures (calcium stearate, butyl stearate, and calcium oleate) are supposed to repel  water by an electrostatic charge which they form after reacting with calcium ions on the  walls of the capillaries in the hydrated cement paste.
+The reason for this is that the loss of water on first firing results in  a contraction approximately equal to the thermal expansion o
+	high-alumina cement paste show that even at a water / cement ratio of 0.30, the strength  at 50 C (122 F) is only 34 per cent of the strength at 18 C (64 F); at a water / cement ratio  of 0.50, the fraction is only 20 per cent.
+For a given water / cement ratio, the leaner the mix the lower the  porosity of the cement paste and, consequently, the lower the relative loss in strength  with time.
+Not only the water / cement ratio but also the richness of the mix may affect the loss of  strength on conversi
+latter case, say at a water / cement ratio of 0.35, even  after full conversion the strength could be deemed to be adequate for all structural  purposes.
+First, under practical conditions  of manufacture of concrete, it is not possible to guarantee that the water / cement ratio will  not be occasionally e
+te that the residual strength of mixes with moderate and  high water / cement ratios, say over 0.5, may be so low as to be unacceptable for most  structural purposes.
+The relative difference in the loss of strength of high-alumina cement concrete  made with a high water / cement ratio and with a low water / cement  ratio should be noted.
+te cubes curved in water at 18 C and 40 C for 100 days	Table 2.8: Influence of Water / Cement Ratio on Loss of Strength on Conversion.
+It may be observed that the shape of the strength versus water / cement ratio curves  for storage at 18 C (Fig.
+It is clear that  the loss, either in megapascals or as a fraction of the strength of cold-cured concrete,  is smaller in mixes with low water / cement ratios than in mixes with high water / cement  ratios.
+Influence of the water / cement ratio on the strength of high-alumina cement  concre
+However, the  degree of loss is a function of the water / cement ratio of the mix, as shown in Fig.
+rtions, the periods are much shorter as full conversion  has been observed after some twenty years at 20 C or thereabouts Thus data on neat  cement pastes with very low water / cement ratios should be used circumspectly, but they  are nevertheless of scientific interest.
+cubes of neat cement paste with a  water / cement ratio of 0.26 is shown in Fig.
+be noted that, although water appears as a product of the reaction,  conversion can take place only in the presence of water and not in desiccated concrete  because redissolving and reprecipitation are involved.
+ of concrete cylinders with different water / cement ratios  made with high-alumina cement and cured at 18 C (64 F) and 95 per cent relative humidity     An important feature of hydration of high-alumina cement is that at higher temperatures  only the cubic form of the calcium aluminate hydrate can exist; at room temperature  either can, but the h
+Mixtures of the two cements in suitable proportions are used when rapid setting is of  vital importance, e.g. for stopping the ingress of water, or for temporary construction  between the tides, but the u
+ and high-alumina cement clinker as aggregate,  with a water / cement ratio of 0.5, can reach a strength  of about 100 MPa (14 000 psi) in  24 hours, and 120 MPa (18000 psi) in 28 days at cool temperatures.
+er should not be used as mixing water; the setting and hardening of the  cement are adversely affected, possibly because of the formation of chloroaluminates.
+It may be noted that, although high-alumina cement stands up extremely well to sea  water, this wat
+lved on pure water.
+r  the hydration of Portland cement, but mixes with a water / cement ratio as low as 0.35 are  practical and indeed desirable.
+The water of hydration of high-alumina cement is calculated to be up to 50 per cent of  the weight of the dry cement, which is about twice as much as the water required fo
+gypsum, bauxite, and chalk, which form calcium sulphate  and calcium aluminate (mainly C5A3)  In the presence of water, these compounds react to  form calcium sulphoaluminate hydrate (ettringite), with an accompanying expansion of the  paste.
+ of concrete  made with blended cements, especially under conditions of wetting and drying or  freezing and thawing: absorption of water by capillary action may play a role here.
+It will be  recalled that, in most countries, specifications for Portland cement do not allow any  addition to clinker other than gypsum and water.
+The hydrophobic properties are due to the formation of a water repellent film around each  particle of cement.
+generally used, the water / cement ratio being not  higher than about 0.4.
+ fly ash particles are spherical  (which is advantageous from the water requirement point of view) and are of at least the same  fineness as cement (although with fewer very fine particles) so that the silica is readily available  for reaction.
+Some pozzolanas may create problems because of their physical properties; e.g. diatomaceous  earth, because of its angular and porous form, requires a high water content.
+cium hydroxide (liberated by  the hydrating Portland cement) in the presence of water to form stable calcium silicates which have  cementitious properties.
+It should be noted that for the concrete test BS 4248: 1974  prescribes a water / cement ratio of 0.55 instead of 0.60 used with other cements 
+	Portland cement, so that concrete with a water / cement ratio of less than	0.4 should not be made.
+The decrease in strength with an increase in  the water / cement ratio has been reported to be smaller than in other cements but, since the early  strength development depends on the type of slag
+Table 2.4: Typical Values of Strength of Supersulphated Cement     Supersulphated cement combines chemically with more water than is required for the hydration of
+ound water, and is also resistant to peaty  acids and to oils.
+Concrete with a water / cement ratio not greater than 0.45 has been found not to  deteriorate in contact with weak solutions of mineral acids of pH down to 3.5.
+The cement is highly resistant to sea water and can withstand the highest  concentrations of sulphates normally found in soil or gr
+Strength development of concretes made with Portland blast-furnace cement  (water / cement ratio = 0.6)     The heat of hydration of Portland blast-furnace cement is lower than  that of ordinary Portland cement so that the former can be used in mass concrete  structures.
+al strengths are reached  However, with Cemsave the workability is somewhat higher so that some reduction in water / (cement  plus slag) ratio is possible compared with the water / cement ratio of a Portland cement mix with the  same aggregate content.
+This rapid cooling by water result
+ is  of the same order as the 7-day strength of ordinary Portland cement with the same  water / cement ratio but the British Standards no longer specify 7-day strength.
+ / cement ratio of 0.53     The German classification of cements is on the basis of the 28-day strength of 1 : 3  mortars with a water / cement ratio of 0.5: 35, 45, and 55 MPa.
+ higher than in 1925, but the gain in strength between 28 days and 10 years is  unaltered: approximately 20 MPa (3000 psi) for continuously water-cured concrete with a  water / cement ratio of about 0.53.
+The rate of gain of strength of cements between 1916 and 1970 measured on  standard concrete cylinders with a water
+is no exposure to sulphates in the soil or in ground water.
+Strength development of concretes with a water / cement ratio of 0.49 made with  cements of different types     Also, the retrogression of strength of the concrete made with Type II cement is not  characteristic of this type
+This section deals only with normal concretes in which cement and  water form the binding medium.
+The most commonly used binding medium is the product formed  by a chemical reaction between cement and water.
+Other binding mediums are used on a  much smaller scale for special concretes in which the cement and water of normal  concretes are replaced either wholly or in part by epoxide or p
+The relative humidity and temperature of the environment have a significant effect on both  the rate and magnitude of shrinkage in as much as they affect the movement of water in concrete.
+In general, admixtures which  reduce the water requirement of concrete without affecting it
+In  general, shrinkage increases as the specific surface area of cement increases (table 14.5) although this  effect is slight and is usually overshadowed by the effects of water - cement ratio and  aggregate - cement ratio.
+Figure 14.20 Effect of water - cement and aggregate - cement ratios on drying shrinkage of  concrete at 20 C and 50 per cent relative humidity, based on Lea (1970)      Since the aggregate exerts a restraining influence on shrinkage the maximum aggregate  content compatible with
+Because of the interaction  of the effects of aggregate - cement and water - cement ratios, it is possible to have a rich mix with a  low water - cement ratio giving higher shrinkage than a leaner mix with a higher water - cement ratio  (Dhir et al.,
+For a given water
+In general, drying shrinkage is directly proportional to the water - cement ratio  and inv
+tial shrinkage even after prolonged immersion in water.
+Drying Shrinkage    When a hardened concrete, cured in water, is allowed to dry it first loses water from its voids and  capillary pores and only starts to shrink during further drying when water is drawn out of its cement  gel.
+ept in a dry atmosphere water is drawn out of the hydrated gel and additional shrinkage,  known as drying shrinkage, occurs.
+These include the  chemical composition of cement, the initial water content, temperature and time.
+However, when concrete is cured under water, the water taken up by cement during hydration is  replaced from outside and furthermore the gel particles absorb more water, thus producing a net  increase in volume of the cement paste and an expansion of the concrete.
+ gel has a smaller volume than the sum of the cement and water constituents.
+As hydration continues  in an environment where the water content is constant, such as inside a large mass of concrete, this  decrease in volume of the cement paste results in shrinkage of the concrete.
+ based on methods of reducing water loss.
+the water losses plastic shrinkage is most  common in slab construction and is characterised by the appearance of surface cracks which can  extend quite deeply into the concrete.
+This occurs as a  result of the loss of free water with, or without, significant settlements of solids in the mix.
+14.5 Shrinkage    Shrinkage of concrete is caused by the settlement of solids and the loss of free water from the plastic  concrete (plastic shrinkage), by the chemical combination of cement with wat
+In  general for a fully compacted concrete, the permeability decreases with decreasing water - cement  ratio.
+A concrete which readily absorbs water is  susceptible to deterioration.
+This arises from the use of water in excess of that  required for the purpose of hydration in order to make the mix sufficiently workable and the difficulty  of completel
+Absorption  may be defined as the ability of concrete to draw water into its voids.
+Permeability and Absorption    Permeability refers to the ease with which water can pass through the concrete.
+Volume Changes    Principal factors responsible for volume changes are the chemical combination of water and cement  and the subsequent drying of
+rmed as a result can imbibe  a considerable amount of water, thus producing a volume expansion and, where this expansion is  sufficient, an eventual disruption of concrete.
+Certain conditions of hydraulic flow result  in the formation of cavities between the flowing water and the concrete surface.
+These cavities are  usually filled with water vapour charged with extraordinarily high energy and repeated contact with  the concrete surface results in the formation
+Wear    The main causes of wear of concrete are the cavitation effects of fast-moving water, abrasive material  in wa
+Requirements given in BS 8110: Part 1 regarding the type of cement,  water - cement ratio and minimum cement content for concrete exposed to various degrees of sulphate  attack are reproduced in table 14.4.
+Although these compounds, unlike calcium hydroxide, do not readily dissolve in water  their volume
+quantities of chlorides are introduced into concrete at the mixing stage,  through the choice of constituent materials (such as water, aggregates or admixtures containing  calcium chloride), little can generally be done afterwards to rectify the situation.
+ts or occurring naturally in soils, seawater and ground water can enter  concrete by absorption through its surface, by capillary attraction along interconnected voids or by  direct access through cracks in the concrete.
+y the water - cement ratio, and  how well the concrete has been compacted and cured.
+Hydraulic  structures in which water may pass through cracks, areas of segregated or porous concrete or along  poor construction joints suffer from this kind of attack.
+Leaching    Calcium hydroxide, Ca(OH)2, in hardened cement paste dissolves readily in water 
+Thus, if concrete in  service absorbs or permits the passage of water through it the calcium hydroxide in t
+an be achieved by using a mix with the lowest possible water - cement ratio  compatible with sufficient workability for placing and compacting into a homogeneous mass.
+ught about by the disruptive action of alternate  freezing and thawing of free water within the concrete and expansion and contraction of the concrete,  under restraint, resulting from variations in temperature and alternate wetting and drying.
+ a given water - cement ratio and cement content using figure 14.16.
+Creep decreases as the mass of concrete increases owing  to the slower rate at which loss of water can take place within a large mass of con
+Figure 14.16 Effect of cement content and water - cement ratio on ultimate creep strain of concrete  at 50 per cent relative humidity loaded at an age of 28 days, based on CEB-FIP (1970)    Figure 14.17 Effect of relative humidity and age at loading on creep, based on Neville (1970)     The influence of the const
+For the same stress - strength ratio, the creep  strain increases as both cement content and water - cement ratio increase (figure 14.16) and decreases as  the relative humidity and age at l
+The influence of stress level and rate of loading on both the axial and lateral  strains is shown in figure 14.14 for a concrete which has been cured in water (20 C +/- 1 C) and  air-dried before loading in uniaxial compression.
+h-strength mature concretes cured in water are most sensitive to loading rate and  particularly so for loading rates greater than 600 N mm-2 min-1.
+It should also be  noted that moist (or water) curing after an initial period in air results in a resumption of the hydration  process and that concrete strength is further improved with time, although the optimum strength may  not be realised.
+Figure 14.5 shows that both the increased hydration due to improvements in  initial curing (moist or water curing at normal temperature) and the condition of the concrete at the  time of testing have a significant effect on the
+It is apparent that concrete left in air achieves the lowest strength values at all  ages owing to the evaporation of the free mixing water from the concrete.
+Generally speaking, the longer the period during which concrete is kept in  water, the greater its final strength.
+On the other hand if the water content of  the mix is reduced while maintaining workability an increase in strength corresponding to the new  water - cement ratio will result.
+Admixtures    As a general rule, admixtures can only affect concrete strength by changing the hydration processes  and the air content of the mix and / or by enabling changes to be made to the mix proportions, most  importantly to the water - cement ratio.
+On the other hand, for a  given cement content and workability this effect is opposed by a reduction in the water requirement  for the larger aggregate.
+The  associated loss in strength however may be offset by the smaller water - cement ratio required for the  same workability.
+concrete, as the ratio of  water to cement increases the strength decreases in a manner similar to that illustrated in figure 15.3  (see chapter 15)
+On the other hand, while facilitating placing and compaction, water in  excess of that required for full hydration produces a somewhat porous structure resulting from loss of  excess water, even for a fully compacted concrete.
+A water - cement ratio of approximately 0.25 (by weight) is required for full hydration of the  cement but with this water content a normal concrete mix would be extremely dry and virtually  impossible to compact.
+e	with different Portland cements  (see table 14.1)    Figure 14.4 Development of strength of typical concrete made with different Portland cements  (see table 14.1)    Water    A concrete mix containing the minimum amount of water required for complete hydration of its  cement, if it could be fully compacted, would develop the maximum attainable
+the effect of  size  on the decrease in the water requirement is dominant.
+ water requirement is offset by the detrimental effects of lower  bond area (so that volume changes in the paste cause larger stresses at interface) and of  discontinuities introduced by the very large particles, particularly in rich mixes.
+Thus, extending the grading of aggregate to a larger  maximum size lowers the water requirement of the mix, so that, for a specified workability  and richness, the water / ceme
+Typical gap gradings     Tests by Shacklock have shown that, for a given aggregate / cement ratio and water / cement  ratio, a higher worka
+The use of finer sand led  to a higher water requirement and consequently a lower strength of concrete.
+An aggregate / cement ratio of 6.04 and a  water / cement ratio of 0.60, both by weight, were used throughout.
+1 and 4,  the latter would require a considerably higher water content: this would mean a lower strength  if both concretes are to have the same aggregate / cement ratio or, if the same strength is  required, the concrete made with the fine aggregate would have to be con
+Such a  grading is comparatively workable and can, therefore, be used  for mixes with a low  water / cement ratio or for rich mixes; it is, however, necessary to make sure that  segregation does not
+s	 this is usually corrected at the mixer by a variation in the water content, concrete of  variable strength is obtained.
+Workability, in turn, affects the water and cement requirements, controls
+Table 3.22: Specific Surface of Aggregate and Strength of Concrete for a 1:6 Mix with a  Water / Cement Ratio of 0.60     It seems then that the surface area of the aggregate is an importan
+ties of Concretes Made with Aggregates of the Same Specific Surface     An increase in the specific surface of the aggregate for a constant water / cement ratio has  been found to lead to a lower strength of concrete, as shown for instance in Table 3.22,  reproducing Newman and Teychenne's results.
+fic surface of the aggregate the water requirement and the compressive strength of  the concrete are the same for very wide limits of aggregate grading.
+Table 3.19: Water / Cement Ratio Required to Produce a Given Workability for Various  Amounts of Crusher Dust (Smaller than 150 um (No.
+ of the aggregate that determines the water requirement or the  workability of the mix.
+Specific surface can be determined using the water permeability  method, but no si
+The  corresponding decrease in the water / cement ratio may be as much as 0.15.
+Influence of maximum size of aggregate on mixing water requirement for a  constant slump     The practical limitations of the maximum size of aggregate that ca
+xtends to a larger maximum aggregate size, the overall  specific surface is reduced and the water requirement decreases, but the relation is not  linear.
+can, under certain conditions, reduce the water requirement for a  constant workability by as much a
+regate the less paste, and therefore the less water, is required.
+The water / cement ratio of  the mix is generally fixed from strength considerations.
+is the mortar (i.e. a mixture  of sand, cement and water) that should be prevented from passing freely out of the voids  in the coarse aggregate.
+ing the desired aggregate grading are:  the surface area of the aggregate, which determines the amount of water necessary to wet  all the solids; the relative volume occupied by the aggregate; the workability of the mix;  and the tendency to segregation.
+As, however, the development of strength  corresponding to a given water / cement ratio requires full compaction, and this can be  achieved only with a sufficiently workable mix, it is necessary to produce a mix that can be  compacted to a maximum density with a reasonable amount of work.
+Since the strength of fully compacted concrete with a given water / cement ratio is  independent of the grading of the aggregate, grading is, in the first instance, of importance
+A side  effect of the addition of pozzolanas which has to be borne in mind is the increase in the  water requirement of the mix.
+The  reaction is also accelerated by the use of a fairly high water / cement ratio.
+The bars are stored over water at 38 C (100 F), at which temperature the  expansion is more rapid and usually higher than at higher or lower temper
+include the  availability of non-evaporable water in the paste and the permeability of the paste.
+Some of the relatively soft gel is later  leached out by water and deposited in the cracks already formed by the swelling of the  aggregate.
+The  gel is of the "unlimited swelling" type: it imbibes water with a consequent tendency to increase  in volume.
+Thus, if splitting of aggregate particles and disruption of the  surrounding cement paste are to be avoided, flow of water towards unfilled pores within  the aggregate particle or into the surrounding paste must be possible before the hydraulic  pressure becomes high enough to ca
+It has been found that pores smaller than 4 to 5 um are critical, for they are large  enough to permit water to enter but not large enough to allow easy drainage under the  pressure of ice.
+ost damage to occur there must exist critical conditions of water content and lack of  drainage.
+These are governed, inter alia, by the size, shape and continuity of pores in the  aggregate, because these characteristics of the pores control the rate and amount of absorption  and the rate at which water can escape from the aggregate particle.
+Not all pyrites are reactive but, since the decomposition of pyrites takes place only in lime  water, it
+These sulphides react with water and oxygen in the air to form a ferrous  sulphate which subsequently de
+e  affects adversely the water requirement and hence the strength of concrete.
+isruptive expansion on freezing or even exposure to water.
+washed even in sea water, does not  contain harmful quantities of salts.
+The simplest course is  to wash the sand in fresh water, but special care is required with deposits just above the  high-water mark in which large quantities of salt, sometimes over 6 per cent of weight of  sand, may be found.
+50 ml of  an  approximately 1 per cent solution of common salt in water is place in a 250 ml BS  measuring cylinder.
+In wet sieving, on the other hand, the aggregate is placed in water and  agitated suffici
+Even when they are in the  latter form, silt and fine dust should not be present in excessive quantities because, owing  to their fineness and therefore large surface area, silt and fine dust increase the amount of  water necessary to wet all the particles in the mix.
+The  sand is then tipped out, the container is partially filled with water and the sand is  gradually fed back, with stirring and rodding to expel all air bubbles.
+ of moist sand)     Coarse aggregate shows only a negligible increase in volume due to the presence of free  water, as the thickness of moisture films is very small compared with the particle size.
+eaches maximum bulking at a higher water content  than does coarse sand.
+ge and the water moves into the voids between the  particles so that the total volume of sand decreases until, when fully saturated  (flooded), its volume is approximately the same as the volume of dry sand for the same  method of filling the container.
+Upon further  addition of water, the films mer
+This is the increase in the volume of a given weight of sand caused  by the films of water pushing the sand particles apart.
+Bulking of Sand    The presence of moisture in aggregate necessitates correction of the actual mix  proportions: the weight of water added to the mix has to be decreased by the weight of  the free moisture in the aggregate, and the weight of the aggregate must be increased  by a like amount.
+Coarse aggregate holds very much less water than sand,  has a less variable moisture content, and genera
+he quantity of water to be added to the mixer but an accuracy  greater than 1 per cent of moisture cannot in practice be achieved.
+In the buoyancy meter test the moisture content of the aggregate of known specific  gravity is determined from the apparent loss in weight on immersion in water.
+ixed amount of water and  suspended at one end of a steelyard until it balances.
+We measure thus the quantity of  water that has to be replaced by the moist aggregate for a constant weight and total  volume.
+For this condition it can be shown that the amount of displaced water is  proportional to the moisture content of the aggregate.
+he sample and  topped up with water, the moisture content of the aggregate is    (formula)
+In the siphon can test the volume of water displaced by a known weight of moist  aggregate is measured, the siphon m
+Then, if B is the weight of the pycnometer full of water, C  the weight of the moist sample and A the weight of the pycnometer with t
+of that state,  the total water content of a moist aggregate is equal to the sum of absorption and  moisture content.
+Since absorption represents the water contained in aggregate in a saturated and  surface-dry condition, and the moisture content is the water in excess
+e place the pores must be full of  water, i.e. the aggregate must be in a saturated condition.
+On the other hand, any water  on the surface of the aggregate will contribute to the water in the mix and will occupy  a volume in excess of that of the aggregate particles.
+nutes instead of the total water absorption, which may  never be achieved in practice.
+If no water movement into the aggregate is to tak
+The absorption of water by aggregate results also in some loss of workability with  time, but beyond about 15 minutes the loss becomes small 
+Since absorption of water by dry aggregate slows down or is stopped owing to the  coating of particles with cement paste, it is often useful to determine the quantity of  water absorbed in 10 to 30 mi
+full absorption of water by the  aggregate been possible.
+en dry aggregate is used the particles  become quickly coated with cement paste which prevents further ingress of water  necessary for saturation.
+This is particularly so with coarse aggregate, where water has  further to travel from the surface of the particle.
+As a result, the effective  water / cement ratio is higher than would be the case had
+If the aggregate is batched in a dry condition it  is assumed that sufficient water will be absorbed from the mix to bring the aggregate to  a saturated condition, and this absorbed water is not included in the net or effective  mixing water.
+Although there is no clear-cut relation between the strength of concrete and the water  absorption of aggregate used, the pores at the surface of the particle affect the bond  between the aggregate and the cement paste, and may thus exert some influence on the  strength of concrete.
+by measuring the increase in weight of  an oven-dried sample when immersed in water for 24 hours (the surface water being  removed)
+Diagrammatic representation of moisture in aggregate     The water absorption of aggregate is determined
+ the water contained in the pores will evaporate and the aggregate  will be less than saturated, i.e. air-dry.
+However, water can  enter the pores, the amount and rate of penetration depending on their size, continuity  and total volume.
+If the aggregate contains surface water it will pack less densely owing to the bulking  effect.
+In the Imperial system, specific  gravity has to be multiplied  by the unit weight of water (approximately 624 lb / ft3) in  order to be converted into absolute density (specific weight) expressed in pounds per  cubic foot.
+The pycnometer can  thus be filled with water so as to contain precisely the same volume every time.
+146) because the water  contained in all the pores in the aggregate does not t
+ water is B, and the weight of the vessel with the sample and topped up  with water is A, then the weight of the water occupying the same volume as the solid is B - (A - D)
+ven at 100 to 110 C (212 to 230 F)  for 24 hours to the weight of water occupying a volume equal to that of the solid including  the impermeable pores.
+The latter weight is determined using a vessel which can be accurately  filled with water to a specified volume.
+ing all pores, and can,  therefore, be defined as the ratio of the weight of the solid, referred to vacuum, to the  weight of an  equal volume of gas-free distilled water, both taken at a stated temperature.
+Relation between void content of sand in a loose condition and the water  requirement of concrete made with the given sand      Flakiness and the shape of coarse aggregate in general have an appreciable  effect on the workability of concrete.
+ant effect on the water  requirement of the mix made with the given aggregate.
+142), then the influence on the water requirement is quite  definite (see Fig.
+The latter can also affect adversely the  durability of concrete as they tend to be oriented in one plane, with water and air  voids forming underneath.
+

@@ -5,6 +5,7 @@ erl_crash.dump
 *.ez
 *.beam
 /temp
+/output
 mix.lock
 wfl.txt
 sent_tokens.txt

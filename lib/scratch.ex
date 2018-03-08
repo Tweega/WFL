@@ -388,6 +388,7 @@ end
 
 def save_token({k, v}, file, leading_comma \\true) do
 
+	token = Utils.binary_to_string(k)
 	iolist = [?}]
 
 	iolist2 = save_sents(v.instances, iolist)
@@ -398,7 +399,7 @@ def save_token({k, v}, file, leading_comma \\true) do
 			iolist2
 		end
 
-  a = [123, 34, "type", 34, ?:, 34, k, 34, ?,, 34, "freq", 34, ?:, "#{v.freq}", 10, 13]
+  a = [123, 34, "type", 34, ?:, 34, token, 34, ?,, 34, "freq", 34, ?:, "#{v.freq}", 10, 13]
 
   aa = case leading_comma do
     false ->
@@ -448,10 +449,29 @@ b = [?[, "#{s}", ?,, "#{o1}", ?,, "#{o2}", ?]]
   [bb | iolist]
 end
 
-def save_wfl(wfl_pid) do
+def save_sentences_with_token(token) do
+	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
+	{:ok, file} = File.open "sent_tokens.txt", [:write]
+	token_info = WFL.get_token_info(root_wfl_pid, token)
+	file_name = token <> "_sentences.txt"
+	{:ok, file} = File.open file_name, [:write]
+	token_info.instances
+		|> Enum.map(fn({sent_id, _}) ->
+			sent_id
+		end)
+		|> Enum.uniq
+		|> Enum.each(fn(s_id) ->
+				s = Sentences.get(s_id)
+				s_io = [String.reverse(s), 10, 13]
+				IO.binwrite(file, s_io)
+			end)
+	File.close(file)
+end
+
+def save_wfl(wfl_pid, file_name \\"wfl.txt") do
 #once we have a sorted main wfl - may be an idea to hang onto it until done
 #also - check where we get rid of hapax legomena.
-  {:ok, file} = File.open "wfl.txt", [:write]
+  {:ok, file} = File.open file_name, [:write]
 IO.binwrite file, [?{, 34, "wfl", 34,   ?:, ?[]
   types = WFL.get_wfl(wfl_pid).types
   wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)

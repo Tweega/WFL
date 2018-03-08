@@ -81,9 +81,10 @@ defmodule Parallel do
 
 
  def pjob(collection, job_list) do
+   #IO.inspect(Kernel.map_size(collection))
    collection
-   |> Stream.each(fn(data_item) ->
-              output = List.foldl(job_list, data_item, fn({module, func, params}, previous_output) ->
+   |> Enum.each(fn(data_item) ->
+               output = List.foldl(job_list, data_item, fn({module, func, params}, previous_output) ->
                args = [previous_output | params]
                apply(module, func, args)
              end)
