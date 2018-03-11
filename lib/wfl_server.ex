@@ -172,7 +172,7 @@ IO.inspect("creating sent map from wfl")
 		{colloc_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(colloc_wfl_pid) 	#we may want to get back count of items with freq > c/o
 IO.inspect("DoNE  creating sent map from wfl: #{freq_token_count}")
 cutoff = 1
-		if freq_token_count > cutoff && depth < 9 do #freq_token_count is the number of types whose frequency is > cutoff
+		if freq_token_count > cutoff do #freq_token_count is the number of types whose frequency is > cutoff
 			process_collocations2(colloc_sent_map, root_sent_map, colloc_wfl_pid, add_phrase_query, depth + 1)
 		else
 			#this wfl has nothing in it, return the parent/source which will be the last wfl to have frequent tokens
