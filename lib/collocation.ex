@@ -47,7 +47,7 @@ defmodule Collocation do
 
 
 	def check_wfl(wfl_pid) do
-		x = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)
+		x = WFL.get_sorted_wfl(wfl_pid, :freq, :desc)
 		IO.inspect(x)
 	end
 
@@ -217,47 +217,6 @@ defmodule Collocation do
 		end)
 	end
 
-
-	def set_continuations({_key, wfl_type}) do
-
-
-		#this function adds continuation instances to the map of continuations stored for each sentence, indexed on offset
-		#it takes in a wfl type and checks for frequency - if over cutoff then adds each instance to the respective combination maps.
-		_sample_p_s = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
-			 %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
-			  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
-			  type_id: <<0, 0, 1, 42>>}}
-
-		if wfl_type.freq > 1 do 	# is this check redundant?
-			#occurrences for this wfl_type are listed in wfl_type.instances
-
-			#for each instance of this wfl_type
-				#get {Si, Oj}, add to list of continuations for that sent/offset
-
-			instances = wfl_type.instances
-			Enum.each(instances, fn({sent_id, {first_offset, last_offset}}) ->  #NOTE offsets may also have max_offset in 3-tuple.
-				#get existing continuations for sent/offset
-				%TokensBinary{offset_maps: %OffsetMaps{token_map: _index_map,  combination_map: combination_map}} = TokensBinary.get(sent_id)
-
-				###- {max_off, offset_combinations} = Map.get(combination_map, first_offset)
-				{max_off, offset_combinations} = case Map.get(combination_map, first_offset) do
-					{max_offz, offset_combinationsz} ->
-						{max_offz, offset_combinationsz}
-					_ ->
-						#IO.inspect({:a, first_offset, last_offset, combination_map})
-						nil
-				end
-				#colloc_len = get_last_offset(wfl_type.type, 0)	# how would this not be last_offset - first_offset + 1? may want to do a test for this
-				colloc_len = last_offset - first_offset + 1
-
-				new_offset_combinations = [{wfl_type.type_id, colloc_len} | offset_combinations]
-				Map.put(combination_map, first_offset, {max_off, new_offset_combinations})
-
-			end)
-		end
-		:ok
-	end
-
 	def do_concretisation({_key, wfl_type}, _root_wfl_pid, _last_wfl_pid, _deadend_wfl_pid) do
 
 		#if this is a frequent phrase, then addd to root wfl.  Note that we don't know how far down the phrase chain we are which may affect cutoff TK
@@ -297,12 +256,13 @@ defmodule Collocation do
 		#concretise_phrase(phrase, wfl_pid) does abstraction via lose_one
 	end
 
-	def expand_phrases(last_wfl_pid) do
+	def expand_phrases() do
 		#get list of all colloc wfls
 		#we are going to go through these in order from smallest to largest, look up smallest and stick on the rhs.
 		#having a bit of trouble with this.
 		#parent_wfl_pid = WFL.get_parent(last_wfl_pid)
-		wfl_chain = get_wfl_chain(last_wfl_pid)
+		wfl_chain = X_WFL.get_wfl_chain()
+
 		{wfl_pid, colloc_pid, colloc_chain} = case wfl_chain do
 			[root_wfl_pid, root_colloc_pid | rest_chain] -> {root_wfl_pid, root_colloc_pid, rest_chain}
 			_ -> {nil, []}
@@ -374,8 +334,8 @@ defmodule Collocation do
 				#we should be able to find phrase_id in Expansion.phrase_map
 				z = Expansion.get_phrase(phrase_id)
 				#IO.inspect({phrase_id, z})
-				expanded_phrase = WFLScratch.Server.expand_type_id(wfl_pid, phrase_id, false)
-				expanded_phrase2 = WFLScratch.Server.expand_type_id(wfl_pid, phrase_id, true)
+				expanded_phrase = X_WFL.expand_type_id(wfl_pid, phrase_id, false)
+				expanded_phrase2 = X_WFL.expand_type_id(wfl_pid, phrase_id, true)
 				IO.inspect({:xp, expanded_phrase2})
 				phrase_id2 = Expansion.get_phrase_id(expanded_phrase)
 				IO.inspect({:phrase_id, phrase_id2})
@@ -400,7 +360,7 @@ defmodule Collocation do
 		get_wfl_chain(parent_wfl_pid, grandparent_wfl_pid, new_acc)
 	end
 
-	defp do_concretise_phrases([wfl_pid | []]) do
+	defp do_concretise_phrases([_wfl_pid | []]) do
 IO.puts("That's all folks")
 	end
 
@@ -428,15 +388,10 @@ IO.puts("That's all folks")
 		do_concretise_phrases(rest_pids)
 	end
 
-	def concretise_phrases(last_wfl_pid) do
+	def concretise_phrases() do
 		#create a wfl to hold all the phrases that have already been processed.
-		#process each phrase in the wfl
-
-		processed_phrases = ProcessedPhrases.start_link()	#start this in the supervisor?
-
-		# loop over all the colloc wfls and need to consider
 		wfl_chain =
-			get_wfl_chain(last_wfl_pid)
+			X_WFL.get_wfl_chain()
 			|> Enum.reverse
 
 		do_concretise_phrases(wfl_chain)
@@ -470,9 +425,9 @@ IO.puts("That's all folks")
 		#this looks like a blocking call - we are calling back into wflscratch server from a job started there, so neither job can now proceed.
 		# the only way forward for the moment is to call the end function directly so that we stay on this thread.
 		#later we need to review which modules have which functions
-		expanded_phrase = WFLScratch.Server.expand_type_id(concretiser_pid, type.type_id, false)	#false leaves the expansion as binary token ids
+		expanded_phrase = X_WFL.expand_type_id(concretiser_pid, type.type_id, false)	#false leaves the expansion as binary token ids
 		conc_space_count = get_space_count(expanded_phrase)
-		#may not be so simple.  I think we are going to have to find a way not to start this exercise from inside WFLScratch.Server
+		#may not be so simple.  I think we are going to have to find a way not to start this exercise from inside X_WFL
 		#IO.inspect({:expanded_phrase, expanded_phrase})
 
 		#if ProcessedPhrases.contains(type.type_id) == false do
@@ -969,7 +924,7 @@ defmodule PhraseStream do
 	def get_pairs([a | []], phrase_indices, cutoff, pair_accum) do
 		#last token in phrase can't start anything - so see if there are more contestants
 		next_indices = case phrase_indices do
-	 		[next_player | opponents] -> opponents
+	 		[_next_player | opponents] -> opponents
 	 		_  -> []
 	 	end
 		get_pairs(phrase_indices, next_indices, cutoff, pair_accum)

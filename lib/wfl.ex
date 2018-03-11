@@ -22,6 +22,11 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, :get_wfl)
 	end
 
+  def get_sorted_wfl(wfl_pid, field, order) do
+		:gen_server.call(wfl_pid, {:get_sorted_wfl, field, order})
+	end
+
+
 	def get_wfl_state(wfl_pid) do
 		:gen_server.call(wfl_pid, :get_state)
 	end
@@ -54,6 +59,19 @@ defmodule WFL do
 		:gen_server.cast(wfl_pid, {:add_concretisation, {phrase, is_phrase_id, concretisation_info, new_spaces}})
 	end
 
+  def flag_tree_node(wfl_pid, phrase_id) do
+		:gen_server.call(wfl_pid, {:flag_tree_node, phrase_id})
+	end
+
+  def update_concretisations(wfl_pid, phrase_type, concretisations) do
+    :gen_server.call(wfl_pid, {:update_concretisations, phrase_type, concretisations})
+  end
+
+  def free_hapax(wfl_pid) do
+    :gen_server.call(wfl_pid, {:free_hapax})
+  end
+
+
 	def start_link(parent_wfl_pid \\ nil) do		#pass in an initial wfl?
 		:gen_server.start_link(__MODULE__, {%WFL_Data{}, parent_wfl_pid}, [])
 	end
@@ -72,6 +90,11 @@ defmodule WFL do
 	def handle_call(:get_wfl, _from, {wfl, _parent} = state) do 	#why does this return the same value as get_state?
 		{:reply, wfl, state}
 	end
+
+  def handle_call({:get_sorted_wfl, field, order}, _from, {%WFL_Data{} = wfl_data, _parent_wfl_pid} = state) do
+    sorted_wfl = do_get_sorted_wfl(wfl_data.types, field, order)
+    {:reply, sorted_wfl, state}
+  end
 
 	def handle_call(:get_parent, _from, {_wfl, parent} = state) do
 		{:reply, parent, state}
@@ -125,6 +148,46 @@ defmodule WFL do
 #IO.inspect("hello there how are you?")
     {:noreply, {new_wfl, parent_wfl_pid}}
 	end
+
+
+  def handle_call({:flag_tree_node, phrase_id}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+    phrase_type = Map.get(wfl_data.type_ids, phrase_id)
+    #IO.inspect({phrase_id, phrase_id})
+    {updated_wfl_type, new_wfl_types} = Map.get_and_update!(wfl_data.types, phrase_type, fn %WFL_Type{root_info: root_info} = wfl_type ->
+      new_root = %RootInfo{root_info | freq: -1}
+      {wfl_type, %WFL_Type{wfl_type | root_info: new_root}}
+    end)
+
+    new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
+    {:reply, updated_wfl_type, {new_wfl, parent_wfl_pid}}
+  end
+
+  def handle_call({:update_concretisations, phrase_type, new_concretisations}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+    new_wfl_types = Map.update!(wfl_data.types, phrase_type, fn %WFL_Type{} = wfl_type ->
+      %WFL_Type{wfl_type | concretisations: new_concretisations}
+    end)
+
+    new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
+
+    {:reply, :ok, {new_wfl, parent_wfl_pid}}
+  end
+
+  def handle_call({:free_hapax}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+    cutoff = 2
+    {new_wfl_types, num_released} =
+      Enum.reduce(wfl_data.types, {wfl_data.types, 0}, fn({token_key, wfl_type}, {types, n})  ->
+        if wfl_type.freq < cutoff do
+          new_types = Map.delete(types, token_key)
+          {new_types, n + 1}
+        else
+          {types, n}
+        end
+      end)
+
+    new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
+
+    {:reply, {:ok, num_released}, {new_wfl, parent_wfl_pid}}
+  end
 
 
 	def handle_cast({:add_tokens, sentences}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
@@ -335,5 +398,28 @@ Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
 	def space_out(phrase, space_count) do
 		space_out([<<"_">> | phrase], space_count - 1)
 	end
+
+
+  defp do_get_sorted_wfl(wfl_types, field, order) do #this should be on wfl
+    wfl = Map.to_list(wfl_types)
+
+    case field do    #a nuisance here that structs don't implement access behaviour
+      :freq ->
+        case order do
+          :asc ->
+            Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq <= wfl_item_b.freq end)
+          _ ->
+            Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq >= wfl_item_b.freq end)
+        end
+      _ ->
+        case order do
+          :asc ->
+            Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type <= wfl_item_b.type end)
+          _ ->
+            Enum.sort(wfl, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.type >= wfl_item_b.type end)
+        end
+
+    end
+  end
 
 end

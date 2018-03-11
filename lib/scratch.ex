@@ -346,7 +346,7 @@ def test_stream(wfl_pid) do
 	#after all this faffing around with streams - I actually want to sort the wfl by freq.
 	#Stream.map(WFL.get_wfl(wfl_pid).types, fn ({k, v}) ->
 
-  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
+  wfl_types = WFL.get_sorted_wfl(wfl_pid, :freq, :asc)
 
   Stream.transform(wfl_types, [], fn (v, acc) ->
 	IO.inspect(v)
@@ -448,26 +448,12 @@ b = [?[, "#{s}", ?,, "#{o1}", ?,, "#{o2}", ?]]
   [bb | iolist]
 end
 
-def save_wfl(wfl_pid) do
-#once we have a sorted main wfl - may be an idea to hang onto it until done
-#also - check where we get rid of happax legomena.
-  {:ok, file} = File.open "wfl.txt", [:write]
-IO.binwrite file, [?{, 34, "wfl", 34,   ?:, ?[]
-  types = WFL.get_wfl(wfl_pid).types
-  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)
-save_tokens(wfl_types, file)
-
-  IO.binwrite file, [?], ?}]
-
-  File.close(file)
-end
-
 def save_sentence_tokens() do
 	#at the moment not filtering out non-rich sentences
 	#saving only tokens not punctuation, as an array of tokens
 	#sentences are stored where?
 
-	root_wfl_pid = WFLScratch.Server.get_wfl_pid("root_wfl_pid")
+	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
 	{:ok, file} = File.open "sent_tokens.txt", [:write]
 
 
@@ -518,14 +504,14 @@ end
 
 def save_concretisation_tree() do
 	#start with the main wfl and then process all concretisations,depth first
-root_wfl_pid = WFLScratch.Server.get_wfl_pid("root_wfl_pid")
+root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
 root_colloc_pid = get_root_colloc_pid()
 		{:ok, file} = File.open "wfl_tree.txt", [:write]
 		tree_open = [?{, 34, "wfl_tree", 34,   ?:, ?[]
 		tree_close = [?], ?}]
 		IO.binwrite file, tree_open
 		#types = WFL.get_wfl(root_wfl_pid).types
-		wfl_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
+		wfl_types = WFL.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
 		Enum.scan(wfl_types, 0, fn({_key, wfl_type}, tally) ->
 
 				if wfl_type.freq > 1 && wfl_type.is_common != true && wfl_type.concretisations != nil do
@@ -557,7 +543,7 @@ IO.inspect({:processing_for, wfl_type})
 			MapSet.to_list(concSet)
 	end
 IO.inspect({:conc_list, conc_list})
-	xx = WFLScratch.Server.expand_type_id(wfl_pid, type_id, true)
+	xx = X_WFL.expand_type_id(wfl_pid, type_id, true)
 	type_op = [?{, 34, "phrase", 34, ?:, 34, "#{xx}", 34, ?,, 34, "concs", 34, ?:, ?[]
 	type_open = if tally == 0 do
 		type_op
@@ -584,9 +570,27 @@ end
 
 
 def get_root_colloc_pid() do
-	last_wfl_pid = WFLScratch.Server.get_wfl_pid("last_wfl_pid")
+	last_wfl_pid = X_WFL.get_pid_from_name("last_wfl_pid")
 	[_root, root_colloc_pid | _] = Collocation.get_wfl_chain(last_wfl_pid)
 	root_colloc_pid
 end
+
+
+def save_wfl(wfl_pid, file_name \\"wfl.txt") do
+#once we have a sorted main wfl - may be an idea to hang onto it until done
+#also - check where we get rid of hapax legomena.
+IO.inspect("Trying to save file")
+  {:ok, file} = File.open file_name, [:write]
+IO.binwrite file, [?{, 34, "wfl", 34,   ?:, ?[]
+  
+  wfl_types = WFL.get_sorted_wfl(wfl_pid, :freq, :desc)
+
+save_tokens(wfl_types, file)
+
+  IO.binwrite file, [?], ?}]
+
+  File.close(file)
+end
+
 
 end

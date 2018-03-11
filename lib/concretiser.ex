@@ -34,9 +34,9 @@ defmodule Concretiser do
                 abs
               _ ->
               abs_id = WFL.get_token_info(abs_pid, abs).type_id
-              WFLScratch.Server.expand_type_id(abs_pid, abs_id)
+              X_WFL.expand_type_id(abs_pid, abs_id)
             end
-            concretiser = WFLScratch.Server.expand_type_id(conc_pid, concretiser_id)
+            concretiser = X_WFL.expand_type_id(conc_pid, concretiser_id)
             IO.inspect({abstraction, ":",  concretiser})
         end)
       end)
