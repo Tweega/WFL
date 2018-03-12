@@ -36,7 +36,7 @@ defmodule TextReader do
 
 	defp process_file(filePath, wfl_pid, char_def_tree, server) do
 		#start monitored process to read file
-		res = spawn_monitor(fn ->read_file(filePath, wfl_pid, char_def_tree) end)
+		_res = spawn_monitor(fn ->read_file(filePath, wfl_pid, char_def_tree) end)
 
 		#now wait for the processing to finish and alert wfl_server
 		#IO.puts inspect res
@@ -44,9 +44,8 @@ defmodule TextReader do
 			{:DOWN, _ref, :process, _pid, :normal} ->
 				IO.puts "File complete: Normal"
 				send(server, {:file_complete, wfl_pid})
-			{_DOWN, _ref, _process, _pid, {{:nocatch, _}, _} = x} ->
-				IO.puts "File read: Unhandled exception"
-				#IO.inspect(x)
+			{_DOWN, _ref, _process, _pid, {{:nocatch, _}, _}} ->
+				IO.puts "File read: Unhandled exception"				
 				send(server, {:file_error, filePath})
 			msg ->
 				IO.puts "File read: Something else"

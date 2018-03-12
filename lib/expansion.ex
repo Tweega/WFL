@@ -17,7 +17,7 @@ defmodule Expansion do
 
   def new(phrase_tokens, %ExpansionItem{phrase_id: phrase_id} = expansion_item) do
     #IO.inspect({:item, expansion_item})
-    Agent.update(:expansion, fn (%Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} = expansion) ->
+    Agent.update(:expansion, fn (%Expansion{root_wfl_pid: _root_wfl_pid, root_colloc_pid: _root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} = expansion) ->
         new_expansion_map = Map.put(expansion_map, phrase_tokens, expansion_item)
         new_phrase_map = Map.put(phrase_map, phrase_id, phrase_tokens)
         %Expansion{expansion | expansion_map: new_expansion_map, phrase_map: new_phrase_map}
@@ -40,7 +40,7 @@ defmodule Expansion do
   def get_phrase_info(phrase_id) do
     tokens = get_phrase(phrase_id)
 
-    %Expansion{expansion_map: expansion_map, phrase_map: phrase_map} =
+    %Expansion{expansion_map: expansion_map, phrase_map: _phrase_map} =
       Agent.get(:expansion, &(&1))
 
       case Map.get(expansion_map, tokens) do
@@ -48,7 +48,7 @@ defmodule Expansion do
           #IO.inspect({:not_foundss, phrase_id})
         {:not_found, tokens}
 
-      %ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} ->
+      %ExpansionItem{wfl_pid: wfl_pid, phrase_id: _phrase_id} ->
         {wfl_pid, tokens}
 
       end
@@ -60,7 +60,7 @@ defmodule Expansion do
     #consider calling this function through an api, which forces us onto the Expansion thread
     #access to the data is on the expansion process.  Once we have the data we are on the client thread
     #should we place this code outside this module, then and have only data access code here?
-    %Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} =
+    %Expansion{root_wfl_pid: root_wfl_pid, root_colloc_pid: root_colloc_pid, expansion_map: expansion_map, phrase_map: _phrase_map} =
       Agent.get(:expansion, fn (expansion) ->
         expansion
       end)

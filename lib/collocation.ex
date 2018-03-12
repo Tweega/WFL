@@ -51,27 +51,6 @@ defmodule Collocation do
 		IO.inspect(x)
 	end
 
-
-	#for each sentence, for each continuation list - extend the continuation list and recurse until no more continuations.
-
-	def process_sent_map(sent_map, continuation_wfl_pid, parent_wfl_pid, sent_x_fun) do 	#sent_x_fun needed because initial sentence map will be different to subsequent ones - need to ratioalise tokensbinary
-		#don't think we need the continuation_wfl_pid
-		#IO.inspect(sent_map)
-		sents = Stream.map(sent_map, fn({sentence_id, _}) -> sentence_id end)
-		{:ok, phrase_wfl_pid} = WFL.start_link(parent_wfl_pid)
-		Parallel.pjob(sents, [{Collocation, :x_phrases, [sent_map, phrase_wfl_pid, sent_x_fun]}]) ##could we not use sent_map instead of sents? tk
-
-		# we now have a wfl with collocation frequencies.  we want to do the loop again	for which we need a combination map
-		# which is indexed on sentence, then continuations indexed on offset.
-		#so we are going to call process_sent_map again
-		{new_sent_map, freq_token_count} = create_sent_map_from_wfl(phrase_wfl_pid)
-
-		##new_sent_x_fun = fn(x) -> x end
-
-		##process_sent_map(sent_map, continuation_wfl_pid, colloc_wfl_pid, sent_x_fun)
-		##IO.inspect(new_sent_map)
-	end
-
 	def create_sent_map_from_wfl(wfl_pid) do
 		types = WFL.get_wfl(wfl_pid).types	#ideally this would be a stream tk.  can we reduce from a stream - i would have thought so.
 		#cutoff = get_cutoff()
@@ -217,45 +196,6 @@ defmodule Collocation do
 		end)
 	end
 
-	def do_concretisation({_key, wfl_type}, _root_wfl_pid, _last_wfl_pid, _deadend_wfl_pid) do
-
-		#if this is a frequent phrase, then addd to root wfl.  Note that we don't know how far down the phrase chain we are which may affect cutoff TK
-		_cutoff = get_cutoff()
-		if wfl_type.freq > 1 do
-			## each phrase is concretisation of the set of phrases that is itself minus one token cat sat on -> {cat, [saton, _on sat]}
-			#get a stream of this phrase minus one token - what form do we have the phrase in - presumably token ids
-			expansion = 1
-			###abstractions = lose_one_bin(wfl_type)
-
-			#for each abstraction - check deadend
-
-			#then check freq in wfl - need to be able to search up the wfl tree
-			#if over c/o add to concretisations in wfl - otherwise add to dead_end
-
-		#else
-			#otherwise we can delete the node - though possibly that does not matter as we will let go of the whole wfl.
-		end
-
-	end
-
-	def konkret_machen() do
-		#get list/stream from concretisation
-		#for each of these, get abstraction list.
-		#for each item in the abstraction list, add
-		expansion_phrases = Expansion.get_expansion_map()
-		#Parallel.pjob(phrases, [{Collocation, :concretise_phrase_temp, []}])
-
-		#concretise_abstractions(expanded_phrase, %Concretisation{phrase_id: concretiser}) do
-	Parallel.pjob(expansion_phrases, [{Collocation, :concretise_abstractions, []}])
-	###root_colloc_phrases = #we need the root_colloc_pid here.
-		#Parallel.pjob(phrases, [{Collocation, :translate_expansions, []}])
-
-
-		#we can let go of processed_phrases now
-
-		#concretise_phrase(phrase, wfl_pid) does abstraction via lose_one
-	end
-
 	def expand_phrases() do
 		#get list of all colloc wfls
 		#we are going to go through these in order from smallest to largest, look up smallest and stick on the rhs.
@@ -271,7 +211,7 @@ defmodule Collocation do
 			#for each frequent phrase in the root colloc (token pairs) add to concretisation dictionary
 			#for the incremental approach to concretisation, we are going to have to be able to look up concretisation by token id
 			#start Expansion gen_server
-			{:ok, pid} = Expansion.start_link(wfl_pid, colloc_pid)
+			{:ok, _pid} = Expansion.start_link(wfl_pid, colloc_pid)
 
 			exp_phrases(colloc_chain)
 		end
@@ -328,12 +268,12 @@ defmodule Collocation do
 		#the id is in phrase map
 		#the expansion is in expansion map
 		%WFL_Data{type_ids: type_ids} = WFL.get_wfl(wfl_pid)
-		Enum.each(type_ids, fn({phrase_id, short_phrase}) ->
+		Enum.each(type_ids, fn({phrase_id, _short_phrase}) ->
 			token_info = WFL.get_token_info_from_id(wfl_pid, phrase_id)
 			if token_info.freq > 1 do
 				#we should be able to find phrase_id in Expansion.phrase_map
 				z = Expansion.get_phrase(phrase_id)
-				#IO.inspect({phrase_id, z})
+				IO.inspect({phrase_id, z})
 				expanded_phrase = X_WFL.expand_type_id(wfl_pid, phrase_id, false)
 				expanded_phrase2 = X_WFL.expand_type_id(wfl_pid, phrase_id, true)
 				IO.inspect({:xp, expanded_phrase2})
@@ -426,7 +366,7 @@ IO.puts("That's all folks")
 		# the only way forward for the moment is to call the end function directly so that we stay on this thread.
 		#later we need to review which modules have which functions
 		expanded_phrase = X_WFL.expand_type_id(concretiser_pid, type.type_id, false)	#false leaves the expansion as binary token ids
-		conc_space_count = get_space_count(expanded_phrase)
+		conc_space_count = Utils.get_space_count(expanded_phrase)
 		#may not be so simple.  I think we are going to have to find a way not to start this exercise from inside X_WFL
 		#IO.inspect({:expanded_phrase, expanded_phrase})
 
@@ -459,13 +399,13 @@ IO.puts("That's all folks")
 		#we are going to have to find the tokens at some point.
 		#IO.inspect({:next_abstraction, next_abstraction})
 
-		abstraction_space_count = get_space_count(next_abstraction)
+		abstraction_space_count = Utils.get_space_count(next_abstraction)
 
 		new_spaces = abstraction_space_count > conc_space_count
 
 		size_abstraction = byte_size(next_abstraction)
 		if size_abstraction > 0 do
-			jj = Expansion.add_concretisation(next_abstraction, concretiser_info, new_spaces)
+			_jj = Expansion.add_concretisation(next_abstraction, concretiser_info, new_spaces)
 			#IO.inspect({:owner, next_abstraction, :conc, concretiser_id})
 
 		else
@@ -474,22 +414,6 @@ IO.puts("That's all folks")
 		end
 		make_concrete(rest_abstractions, concretiser_info, conc_space_count)
 	end
-
-	def get_space_count(token_bin) do
-		get_space_count(token_bin, 0)
-	end
-
-
-	defp get_space_count(<<>>, space_count) do
-		space_count
-	end
-
-
-	defp get_space_count(<<byte4 :: binary-size(4), rest :: binary>>, space_count) do
-			<<count :: integer-unit(8)-size(1), _token_bytes :: binary>> = byte4
-			get_space_count(rest, space_count + count)
-	end
-
 
 	def lose_one_bin(bin4) do
 		#returns a list of binaries each one token shorter than the initial input binary
@@ -921,7 +845,7 @@ defmodule PhraseStream do
 		get_pairs(rest, t, cutoff, pair_accum)
 	end
 
-	def get_pairs([a | []], phrase_indices, cutoff, pair_accum) do
+	def get_pairs([_a | []], phrase_indices, cutoff, pair_accum) do
 		#last token in phrase can't start anything - so see if there are more contestants
 		next_indices = case phrase_indices do
 	 		[_next_player | opponents] -> opponents
@@ -935,7 +859,7 @@ defmodule PhraseStream do
 		{new_players, new_phrase_indices, new_accum} = if b - a - 1 > cutoff do
 		 	#a loses so someone else's turn to play
 		 	next_indices = case phrase_indices do
-		 		[next_player | opponents] -> opponents
+		 		[_next_player | opponents] -> opponents
 		 		_  -> []
 		 	end
 			{phrase_indices, next_indices, pair_accum}

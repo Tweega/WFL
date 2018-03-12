@@ -5,7 +5,7 @@ end
 #end wfl_types.ex
 
 defmodule WFL do
-	@defaults %WFL_Data{}	#set default text processing module here
+	#@defaults %WFL_Data{}	#set default text processing module here
 
 	use GenServer
 
@@ -25,7 +25,6 @@ defmodule WFL do
   def get_sorted_wfl(wfl_pid, field, order) do
 		:gen_server.call(wfl_pid, {:get_sorted_wfl, field, order})
 	end
-
 
 	def get_wfl_state(wfl_pid) do
 		:gen_server.call(wfl_pid, :get_state)
@@ -55,8 +54,10 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, {:translate_phrase, phrase})
 	end
 
-	def add_concretisation(wfl_pid, phrase, is_phrase_id, concretisation_info, new_spaces) do
-		:gen_server.cast(wfl_pid, {:add_concretisation, {phrase, is_phrase_id, concretisation_info, new_spaces}})
+  def add_concretisation(wfl_pid, phrase, is_phrase_id, concretisation_info, new_spaces) do
+    #IO.inspect("wfl add concretisation")
+		:gen_server.call(wfl_pid, {:add_concretisation, {phrase, is_phrase_id, concretisation_info, new_spaces}})
+    #IO.inspect("wfl LEAVE concretisation")
 	end
 
   def flag_tree_node(wfl_pid, phrase_id) do
@@ -71,6 +72,9 @@ defmodule WFL do
     :gen_server.call(wfl_pid, {:free_hapax})
   end
 
+  def drop_types(wfl_pid, redundant_types) do
+    :gen_server.call(wfl_pid, {:drop_types, redundant_types})
+  end
 
 	def start_link(parent_wfl_pid \\ nil) do		#pass in an initial wfl?
 		:gen_server.start_link(__MODULE__, {%WFL_Data{}, parent_wfl_pid}, [])
@@ -134,21 +138,19 @@ defmodule WFL do
 	end
 
 	def handle_call({:translate_phrase, phrase}, _client, {wfl, _parent} = state) do
-		me = self()
 		translation = translate_phrase(phrase, wfl, [])
 		{:reply, translation, state}
 	end
 
-
-	def handle_cast({:add_concretisation, concretisation_info}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+  def handle_call({:add_concretisation, concretisation_info}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
 		#handle_cast?  we're not returning anything here.  we just need to know that the concretisation process is finished before we start using it.
 		#this might be achieved by putting in a dummy call to WFL at the end which will only be processed when all other messages already on the stack are dealt with
-
+#IO.inspect("Do we get here?")
 		%WFL_Data{} = new_wfl = add_concretisation(wfl_data, concretisation_info)
+    #IO.inspect("What about here?")
 #IO.inspect("hello there how are you?")
-    {:noreply, {new_wfl, parent_wfl_pid}}
+    {:reply, :ok, {new_wfl, parent_wfl_pid}}
 	end
-
 
   def handle_call({:flag_tree_node, phrase_id}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
     phrase_type = Map.get(wfl_data.type_ids, phrase_id)
@@ -187,6 +189,20 @@ defmodule WFL do
     new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
 
     {:reply, {:ok, num_released}, {new_wfl, parent_wfl_pid}}
+  end
+
+  def handle_call({:drop_types, redundancies}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+
+    {redundant_types, redundant_ids, redundancy_count} = Enum.reduce(redundancies, {[], [], 0}, fn {red_type, red_id}, {red_types, red_ids, red_count} ->
+      {[red_type | red_types], [red_id | red_ids], red_count + 1}
+    end)
+
+    new_types = Map.drop(wfl_data.types, redundant_types)
+    new_ids = Map.drop(wfl_data.type_ids, redundant_ids)
+
+    new_wfl = %WFL_Data{wfl_data | types: new_types, type_ids: new_ids}
+
+    {:reply, {:ok, redundancy_count}, {new_wfl, parent_wfl_pid}}
   end
 
 
@@ -319,7 +335,7 @@ defmodule WFL do
 
     #IO.inspect({:Concretising, phrase_id, :with, concretisation_id, :is_phrase, is_phrase_id})
     #IO.inspect(phrase_type)
-Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
+    ###Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)  #debug only
 		new_wfl_types = Map.update!(wfl.types, phrase_type, fn %WFL_Type{concretisations: concretisations} = wfl_type ->
 			#get_and_update returns a tuple of {the current value, and the value to be stored under the key, which in this case is phrase_type}
       #IO.inspect(concretisations)
@@ -337,7 +353,8 @@ Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
       #{<<0, 0, 3, 32>>, true, %{conc: %Concretisation{pid: #PID<0.341.0>, token_id: <<0, 0, 3, 64>>}, freq: 2}}
 
       #if new_spaces and not abs_freq > conc_freq, then flag this abstraction as ineligible as a concretiser
-      %RootInfo{freq: conc_freq, conc: %Concretisation{pid: conc_pid, token_id: conc_id}} = conc_info =
+
+      %RootInfo{} = conc_info =
         cond do
           new_spaces == true && !(abstractionFreq > concretiser_freq) ->
             %RootInfo{root_conc | valid: false}
@@ -346,7 +363,6 @@ Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
           true ->
             root_conc
         end
-
 
       concMap = case concretisations do
         nil ->
@@ -370,7 +386,7 @@ Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)
 		%WFL_Data{wfl | types: new_wfl_types}
 	end
 
-	def translate_phrase(<<>>, wfl, phrase) do
+	def translate_phrase(<<>>, _wfl, phrase) do
 		phrase
 	end
 

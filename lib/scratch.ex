@@ -337,38 +337,6 @@ def test_wfl_stream(wfl_pid) do
 
 end
 
-
-def test_stream(wfl_pid) do
-	file = File.stream!("wfl.txt")
-
-	#s = WFLStream.get_wfl_stream(wfl_pid)
-	#Stream.map(WFL.get_wfl(wfl_pid).types, fn (k) ->
-	#after all this faffing around with streams - I actually want to sort the wfl by freq.
-	#Stream.map(WFL.get_wfl(wfl_pid).types, fn ({k, v}) ->
-
-  wfl_types = WFL.get_sorted_wfl(wfl_pid, :freq, :asc)
-
-  Stream.transform(wfl_types, [], fn (v, acc) ->
-	IO.inspect(v)
-  case v do
-    [] -> {:halt, acc}
-  end
-		#{}"{" <> k <> ":" <> "\"" v.freq <> "}"
-		# "{#{k}: #{v.freq}}"
-    {tl(v), acc}
-	end)
-  # i don't think that we want stream.transform.
-  # we want to forward a single wfl_type
-  # may want to forget streaming just for the moment.
-	#File.close(file)
-
-#   stream = File.stream!("code")
-# |> Stream.map(&String.replace(&1, "#", "%"))
-# |> Stream.into(File.stream!("new"))
-# |> Stream.run
-
-end
-
 def save_tokens([token | tokens], f) do
   save_token(token, f, false)
   #IO.inspect({:instances, token.instances})
@@ -417,7 +385,7 @@ end
 def save_sents([sent | sents], iolist) do
   #wrapper for sents here
 
-  bb = [?,, 34, "sentences", 34, ?:, ?[]
+  #bb = [?,, 34, "sentences", 34, ?:, ?[]
   ##IO.binwrite f, bb
   iolist2 = save_sent(sent, [?] | iolist], false)
   iolist3 = save_rest_sents(sents, iolist2)
@@ -505,7 +473,7 @@ end
 def save_concretisation_tree() do
 	#start with the main wfl and then process all concretisations,depth first
 root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
-root_colloc_pid = get_root_colloc_pid()
+#root_colloc_pid = get_root_colloc_pid()
 		{:ok, file} = File.open "wfl_tree.txt", [:write]
 		tree_open = [?{, 34, "wfl_tree", 34,   ?:, ?[]
 		tree_close = [?], ?}]
@@ -582,7 +550,7 @@ def save_wfl(wfl_pid, file_name \\"wfl.txt") do
 IO.inspect("Trying to save file")
   {:ok, file} = File.open file_name, [:write]
 IO.binwrite file, [?{, 34, "wfl", 34,   ?:, ?[]
-  
+
   wfl_types = WFL.get_sorted_wfl(wfl_pid, :freq, :desc)
 
 save_tokens(wfl_types, file)

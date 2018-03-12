@@ -23,11 +23,6 @@ defmodule X_WFL do
 		:gen_server.call(:xwfl, {:get_pid_from_name, pid_name})
 	end
 
-	def free_hapax(pid_list) do
-		#this may not get used in favour of freeing hapax as we go for each wfl
-		:gen_server.call(:xwfl, {:free_hapax, pid_list})
-	end
-
 	def start_link(first_last_pid) do
     GenServer.start_link(__MODULE__, first_last_pid, name: :xwfl)
 		#:gen_server.start_link(__MODULE__, [root_wfl_pid], :name :XWFL)
@@ -40,7 +35,7 @@ defmodule X_WFL do
 	end
 
 
-	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, {root_wfl_pid, last_wfl_pid} = pids) do
+	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, {root_wfl_pid, _last_wfl_pid} = pids) do
 
 		#add a check to see if wfl_pid is the root wfl pid, in which case we just want a dump of the wfl - or at least the types.
 		{wfl, parent_pid} = WFL.get_wfl_state(wfl_pid)
@@ -55,7 +50,7 @@ defmodule X_WFL do
 	end
 
 
-  def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, {root_wfl_pid, last_wfl_pid} = pids) do
+  def handle_call({:expand_type_id, wfl_pid, token_id, to_text}, _from, {root_wfl_pid, _last_wfl_pid} = pids) do
     parent_wfl_pid = WFL.get_parent(wfl_pid)
 
 		tok = exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, to_text)
@@ -63,7 +58,7 @@ defmodule X_WFL do
 		{:reply, tok, pids}
 	end
 
-	def handle_call({:get_wfl_chain}, _from, {root_wfl_pid, last_wfl_pid} = pids) do  #should also store last_wfl_pid here
+	def handle_call({:get_wfl_chain}, _from, {_root_wfl_pid, last_wfl_pid} = pids) do  #should also store last_wfl_pid here
 		wfl_chain = get_chain(last_wfl_pid)
 		{:reply, wfl_chain, pids}
 	end
@@ -113,7 +108,7 @@ defmodule X_WFL do
 #defp fetch_token_from_id({%WFL_Data{} = wfl_data, parent_wfl_pid}, token_id) do
 #so we need to be able to call get_token_from_id without calling the API.  need to call it directly.
 
-		{token_type, lhs_parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, token_id_without_gap)
+		{token_type, _lhs_parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, token_id_without_gap)
     #IO.inspect("comment allez vous")
 		grandparent_wfl_pid = WFL.get_parent(parent_wfl_pid) # if this is a problem then we will need the colloc chain and parentage in named wfl
 		<<lhs :: binary-size(4), rhs :: binary-size(4)>> = token_type
@@ -138,14 +133,5 @@ defmodule X_WFL do
 		new_acc = [wfl_pid | acc]
 		get_chain(parent_wfl_pid, grandparent_wfl_pid, new_acc)
 	end
-
-	def free_hapax([]) do
-	end
-
-	def free_hapax([wfl_pid | rest_wfl_pids]) do
-		WFL.free_hapax(wfl_pid)
-		free_hapax(rest_wfl_pids)
-	end
-
 
 end

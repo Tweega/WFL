@@ -22,10 +22,10 @@ defmodule WFLScratch.Server do
 
 	def handle_cast( {:wfl_file, {filePath, readerModule}}, state) do
 		{:ok, wfl_pid} = WFL.start_link()	#store this in map with filename as key? we need to have a completed status flag in state
-		new_state = Map.put_new(state, "root_wfl_pid", wfl_pid)	#originally used filename as key but want access to root - need another level to manage mutiple files
-		process_file(filePath, readerModule, wfl_pid)	#should process_file be async?  what is the effect of handle_info calls which set state before this call terminates?
 
-		{:noreply, new_state}	#note that new_state will not yet have an up-to-date wfl - we get a handle_info notification when file has been read.
+		process_file(filePath, readerModule, wfl_pid)
+
+		{:noreply, state}
 	end
 
 	def handle_info( {:file_complete, wfl_pid}, state) do
@@ -38,7 +38,7 @@ defmodule WFLScratch.Server do
 
 		X_WFL.start_link({wfl_pid, last_wfl_pid})
 
-			{wfl_pid, colloc_pid, colloc_chain} = Collocation.expand_phrases()	#expand_phrases needs to include root_colloc
+			_res = Collocation.expand_phrases()	#expand_phrases needs to include root_colloc
 			Collocation.concretise_phrases()
 		IO.inspect("finished")
 		{:noreply, state}	end
@@ -86,7 +86,7 @@ defmodule WFLScratch.Server do
 
 
 	defp process_collocations(source_wfl_pid) do
-		{root_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(source_wfl_pid) 	#we may want to get back count of items with freq > c/o
+		{root_sent_map, _freq_token_count} = Collocation.create_sent_map_from_wfl(source_wfl_pid) 	#we may want to get back count of items with freq > c/o
 		process_collocations2(root_sent_map, root_sent_map, source_wfl_pid)
 	end
 
@@ -94,6 +94,10 @@ defmodule WFLScratch.Server do
 defp process_collocations2(sent_map, root_sent_map, source_wfl_pid, depth \\1) do
 	IO.inspect(depth)
 	cutoff = 2	#this will have to be in config or similar.
+	{:ok, num_released} = WFL.free_hapax(source_wfl_pid)
+	IO.inspect({:released, num_released})
+	#check that abstractions created in previous wfl are not redundant
+	remove_redundant_abstractions(source_wfl_pid)
 	Scratch.save_wfl(source_wfl_pid, "wfl_" <> Integer.to_string(depth) <> ".js")
 
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
@@ -101,12 +105,106 @@ defp process_collocations2(sent_map, root_sent_map, source_wfl_pid, depth \\1) d
 
 		{colloc_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(colloc_wfl_pid) 	#we may want to get back count of items with freq > c/o
 IO.inspect(freq_token_count: freq_token_count, depth: depth)
-		if freq_token_count > cutoff && depth < 8 do #freq_token_count is the number of types whose frequency is > cutoff
+		if freq_token_count > cutoff do #freq_token_count is the number of types whose frequency is > cutoff
 		  process_collocations2(colloc_sent_map, root_sent_map, colloc_wfl_pid, depth + 1)
 		else
 			#this wfl has nothing in it, return the parent/source which will be the last wfl to have frequent tokens
 			source_wfl_pid
 		end
 	end
+
+	def remove_redundant_abstractions(wfl_pid) do  #this could be on x_wfl as it involves two wfls
+		wfls = X_WFL.get_chain(wfl_pid)
+			|> Enum.reverse()
+IO.inspect(Wwfl_pid)
+		{wfl, parent_wfl_pid} =
+			case wfls do
+				[_w, _p, []] ->
+					{nil, nil}
+				[w, p, _r] ->
+					{w, p}
+			_ ->
+				{nil, nil}
+			end
+
+		redundant_abstractions =
+			if wfl == nil do
+				[]
+			else
+				cutoff = 2
+				#for each type in current wfl
+				wfl_types = WFL.get_wfl(wfl_pid).types
+				{abstractions, concretisations} =
+					Enum.reduce(wfl_types, {[], %{}}, fn {token, token_info}, {acc, concs} ->
+						{lhs1, rhs1} = Utils.split_token(token)
+
+						lhs1_token = WFL.get_token_info_from_id(parent_wfl_pid, lhs1).type  	#if we ever want to remove type from data, then will need to get all get_info functions to return key
+						{lhs2, rhs2} = Utils.split_token(lhs1_token)
+IO.inspect({:lhs1, lhs2})
+						rhs1_spaces = Utils.get_space_count(rhs1)
+						rhs2_spaces = Utils.get_space_count(rhs2)
+						intermediate_spaces = rhs1_spaces + rhs2_spaces
+
+						if intermediate_spaces < 2 do
+							abstraction_type = lhs2 <> Utils.set_spaces(rhs1, intermediate_spaces + 1)
+							new_concs = Map.update(concs, abstraction_type, {1, 1}, fn ({count, total}) ->
+								{count + 1, total + token_info.freq}
+							end)
+							{[abstraction_type | acc], new_concs}
+						else
+							{acc, concs}
+						end
+					end)
+
+				#index lhs for the current wfl
+				#abstractions is a list, made from the current wfl of types with added spaces that should be present in parent wfl
+				case abstractions do
+					[_h | _t] ->
+						#create index on lhs
+						lhs_map = Enum.reduce(wfl_types, %{}, fn {k, v}, lhs_acc ->
+							{lhs, _rhs} = Utils.split_token(k)
+							Map.update(lhs_acc, lhs, [{k, v.type_id}], fn lhs_children ->
+								[{k, v.type_id} | lhs_children]
+							end)
+						end)
+
+						IO.inspect(lhs_map)
+
+						Enum.reduce(abstractions, [], fn (abstraction, reds) ->
+							#find the abstraction in previous wfl
+							{concretisation_count, concretisation_cum_freq} = Map.get(concretisations, abstraction)
+							enough_concretisations = concretisation_count >= cutoff
+							abs_spaces = Utils.get_space_count(abstraction)
+
+							{is_redundant, redundant_id} =
+								case enough_concretisations do
+									true ->
+										{false, nil}
+									false ->
+										abs_info = WFL.get_token_info(parent_wfl_pid, abstraction)   #this may not be found if limit on spaces
+										{abs_info.freq < concretisation_cum_freq + cutoff + abs_spaces, abs_info.type_id}
+								end
+
+							if is_redundant do
+								IO.inspect({:redundant, redundant_id})
+								# get list of tokens in wfl where LHS == abstraction
+								##!##[Map.get(lhs_map, abstraction) | reds]
+								reds #remove this
+							else
+								reds
+							end
+						end)
+						|> List.flatten()
+				_ ->
+						[]
+				end
+			end
+
+		IO.inspect(redundant_abstractions)
+		{:ok, count_dropped} = WFL.drop_types(wfl_pid, redundant_abstractions)
+		IO.inspect({count_dropped, count_dropped})
+	end
+
+
 
 end

@@ -27,7 +27,7 @@ defmodule Concretiser do
 
     def list_concretisations() do
       Agent.get(:concretiser, fn(list) ->
-        Enum.each(list, fn({abs, abs_pid, concretiser_id, conc_pid} = jj) ->
+        Enum.each(list, fn({abs, abs_pid, concretiser_id, conc_pid}) ->
             p = WFL.get_parent(abs_pid)
             abstraction = case p do
               nil ->
