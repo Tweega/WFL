@@ -52,15 +52,17 @@ defmodule Collocation do
 	end
 
 	def create_sent_map_from_wfl(wfl_pid) do
+		#we could free the hapax here - but they should have been freed by now.
 		types = WFL.get_wfl(wfl_pid).types	#ideally this would be a stream tk.  can we reduce from a stream - i would have thought so.
 		#cutoff = get_cutoff()
 		#could we parallelise this? to do this we would have to replace the reduce mechanism wiht parallel_job - otherwise should be no problem. probably should fo the frequency filter before parralellising
 		#anonymous fn({15, {3, 3}}, %{})
+		#sent map tels me how to extend a phrase given sentence and last offset
 
 		Enum.reduce(types, {%{}, 0}, fn({token_key, %WFL_Type{} = wfl_type}, {sent_map, freq_token_count}) ->
 		#IO.inspect(sent_map)
 			if wfl_type.freq > 1 do
-
+#IO.inspect(wfl_type.instances)
 				Enum.reduce(wfl_type.instances, {sent_map, freq_token_count}, fn({sent_id, {first_offset, last_offset}}, {sent_map_acc, tok_count}) ->
 					#IO.inspect({sent_id, first_offset, last_offset})
 					{_, new_sent_map} = Map.get_and_update(sent_map_acc, sent_id, fn(cm) ->
@@ -86,11 +88,11 @@ defmodule Collocation do
 					{new_sent_map, tok_count + 1}
 				end)
 			else
+				IO.inspect("que?")
 				{sent_map, freq_token_count}
 			end
 		end)
 	end
-
 
 	def pre_pair_up({sent_id,  lhs_cont_map}, root_sent_map, colloc_wfl_pid) do
 		{:ok, rhs_cont_map} = Map.fetch(root_sent_map, sent_id)

@@ -185,6 +185,7 @@ def rev_bin4(bin) do
   end
 
   def get_space_count(token_bin) do
+    #expects an expanded token sequence making up a phrase and goes through each 4 byte chunk counting up spaces
 		get_space_count(token_bin, 0)
 	end
 
@@ -199,8 +200,4 @@ def rev_bin4(bin) do
 			get_space_count(rest, space_count + count)
 	end
 
-  def get_spaces(<<byte4 :: binary-size(4), rest :: binary>>) do
-			<<count :: integer-unit(8)-size(1), _token_bytes :: binary>> = byte4
-			count
-	end
 end

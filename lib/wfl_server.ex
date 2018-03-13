@@ -39,7 +39,7 @@ defmodule WFLScratch.Server do
 		X_WFL.start_link({wfl_pid, last_wfl_pid})
 
 			_res = Collocation.expand_phrases()	#expand_phrases needs to include root_colloc
-			Collocation.concretise_phrases()
+			##!##Collocation.concretise_phrases()
 		IO.inspect("finished")
 		{:noreply, state}	end
 
@@ -86,6 +86,8 @@ defmodule WFLScratch.Server do
 
 
 	defp process_collocations(source_wfl_pid) do
+		{:ok, num_released} = WFL.free_hapax(source_wfl_pid) #pass in a save flag?
+		IO.inspect({:released, num_released})
 		{root_sent_map, _freq_token_count} = Collocation.create_sent_map_from_wfl(source_wfl_pid) 	#we may want to get back count of items with freq > c/o
 		process_collocations2(root_sent_map, root_sent_map, source_wfl_pid)
 	end
@@ -93,20 +95,27 @@ defmodule WFLScratch.Server do
 
 defp process_collocations2(sent_map, root_sent_map, source_wfl_pid, depth \\1) do
 	IO.inspect(depth)
-	cutoff = 2	#this will have to be in config or similar.
+	#cutoff = 2	#this will have to be in config or similar.
+	#Scratch.save_wfl(source_wfl_pid, "wfl_" <> Integer.to_string(depth) <> ".js")
+
+
 	Scratch.save_wfl(source_wfl_pid, "wfl_" <> Integer.to_string(depth) <> ".js")
-	{:ok, num_released} = WFL.free_hapax(source_wfl_pid)
-	IO.inspect({:released, num_released})
 	#check that abstractions created in previous wfl are not redundant
 	remove_redundant_abstractions(source_wfl_pid)
 	##!##Scratch.save_wfl(source_wfl_pid, "wfl_" <> Integer.to_string(depth) <> ".js")
 
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
 		Parallel.pjob(sent_map, [{Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]}])  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
-
+		{:ok, num_released} = WFL.free_hapax(colloc_wfl_pid)
+		IO.inspect({:released, num_released})
 		{colloc_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(colloc_wfl_pid) 	#we may want to get back count of items with freq > c/o
 IO.inspect(freq_token_count: freq_token_count, depth: depth)
-		if freq_token_count > cutoff do #freq_token_count is the number of types whose frequency is > cutoff
+		if freq_token_count > 1 do #freq_token_count is the number of types whose frequency is > cutoff (actually cum freq of these - change tk)
+		#may want to see if we can find an alternative to recursion here as we have a lot of data on stack.
+		##perhaps we can send a message to wfl_server - can we send a message to self.  it would have to be a cast
+		##we don't want to run into timeouts as this is a long running process
+		##alternatively use an agent and open that up when we are done.
+
 		  process_collocations2(colloc_sent_map, root_sent_map, colloc_wfl_pid, depth + 1)
 		else
 			#this wfl has nothing in it, return the parent/source which will be the last wfl to have frequent tokens
@@ -117,17 +126,17 @@ IO.inspect(freq_token_count: freq_token_count, depth: depth)
 	def remove_redundant_abstractions(wfl_pid) do  #this could be on x_wfl as it involves two wfls
 		wfls = X_WFL.get_chain(wfl_pid)
 			|> Enum.reverse()
-IO.inspect(Wwfl_pid)
+IO.inspect(wfls)
 		{wfl, parent_wfl_pid} =
 			case wfls do
-				[_w, _p, []] ->
+				[_w, _p | []] ->
 					{nil, nil}
-				[w, p, _r] ->
+				[w, p | _r] ->
 					{w, p}
 			_ ->
 				{nil, nil}
 			end
-
+IO.inspect({:wfl, wfl, :parent, parent_wfl_pid})
 		redundant_abstractions =
 			if wfl == nil do
 				[]
@@ -138,12 +147,13 @@ IO.inspect(Wwfl_pid)
 				{abstractions, concretisations} =
 					Enum.reduce(wfl_types, {[], %{}}, fn {token, token_info}, {acc, concs} ->
 						{lhs1, rhs1} = Utils.split_token(token)
+						IO.inspect({:lhs1, lhs1})
 
 						lhs1_token = WFL.get_token_info_from_id(parent_wfl_pid, lhs1).type  	#if we ever want to remove type from data, then will need to get all get_info functions to return key
 						{lhs2, rhs2} = Utils.split_token(lhs1_token)
-IO.inspect({:lhs1, lhs2})
-						rhs1_spaces = Utils.get_space_count(rhs1)
-						rhs2_spaces = Utils.get_space_count(rhs2)
+IO.inspect({:rhs1, rhs1})
+						rhs1_spaces = get_rhs_spaces(rhs1)
+						rhs2_spaces = get_rhs_spaces(rhs2)
 						intermediate_spaces = rhs1_spaces + rhs2_spaces
 
 						if intermediate_spaces < 2 && token_info.freq >= cutoff + intermediate_spaces do
@@ -175,7 +185,6 @@ IO.inspect({:lhs1, lhs2})
 							#find the abstraction in previous wfl
 							{concretisation_count, concretisation_cum_freq} = Map.get(concretisations, abstraction)
 							enough_concretisations = concretisation_count >= cutoff
-							#abs_spaces = Utils.get_space_count(abstraction)
 
 							{is_redundant, redundant_id} =
 								case enough_concretisations do
@@ -187,14 +196,15 @@ IO.inspect({:lhs1, lhs2})
 											nil ->
 												{false, nil}
 											_ ->
-												{abs_info.freq < concretisation_cum_freq + cutoff + abs_info.spaces, abs_info.type_id}
+												#{abs_info.freq < concretisation_cum_freq + cutoff + abs_info.spaces, abs_info.type_id}
+												{abs_info.freq < concretisation_cum_freq + cutoff, abs_info.type_id}
 										end
-
 								end
 
 							if is_redundant do
 								IO.inspect({:redundant, redundant_id})
 								# get list of tokens in wfl where LHS == abstraction
+								IO.inspect({:abstraction, abstraction})
 								##!##[Map.get(lhs_map, abstraction) | reds]
 								reds #remove this
 							else
@@ -213,5 +223,8 @@ IO.inspect({:lhs1, lhs2})
 	end
 
 
-
+	def get_rhs_spaces(<<count :: integer-unit(8)-size(1), _rest :: binary>>) do
+		#expects only a single token binary (4 bytes- rhs of a phrase)
+		count
+	end
 end

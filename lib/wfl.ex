@@ -178,6 +178,8 @@ defmodule WFL do
     cutoff = 2
     {new_wfl_types, num_released} =
       Enum.reduce(wfl_data.types, {wfl_data.types, 0}, fn({token_key, wfl_type}, {types, n})  ->
+        #place an absolute limit on spaces? eg 4
+        #if wfl_type.freq < cutoff + wfl_type.spaces do
         if wfl_type.freq < cutoff do
           new_types = Map.delete(types, token_key)
           {new_types, n + 1}
@@ -275,7 +277,7 @@ defmodule WFL do
       nil ->
         0
       _ ->
-      Utils.get_spaces(token)
+      Utils.get_space_count(token)
     end
 
 		#see if we already have this token in wfl
