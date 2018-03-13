@@ -94,11 +94,12 @@ defmodule WFLScratch.Server do
 defp process_collocations2(sent_map, root_sent_map, source_wfl_pid, depth \\1) do
 	IO.inspect(depth)
 	cutoff = 2	#this will have to be in config or similar.
+	Scratch.save_wfl(source_wfl_pid, "wfl_" <> Integer.to_string(depth) <> ".js")
 	{:ok, num_released} = WFL.free_hapax(source_wfl_pid)
 	IO.inspect({:released, num_released})
 	#check that abstractions created in previous wfl are not redundant
 	remove_redundant_abstractions(source_wfl_pid)
-	Scratch.save_wfl(source_wfl_pid, "wfl_" <> Integer.to_string(depth) <> ".js")
+	##!##Scratch.save_wfl(source_wfl_pid, "wfl_" <> Integer.to_string(depth) <> ".js")
 
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
 		Parallel.pjob(sent_map, [{Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]}])  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
@@ -145,7 +146,7 @@ IO.inspect({:lhs1, lhs2})
 						rhs2_spaces = Utils.get_space_count(rhs2)
 						intermediate_spaces = rhs1_spaces + rhs2_spaces
 
-						if intermediate_spaces < 2 do
+						if intermediate_spaces < 2 && token_info.freq >= cutoff + intermediate_spaces do
 							abstraction_type = lhs2 <> Utils.set_spaces(rhs1, intermediate_spaces + 1)
 							new_concs = Map.update(concs, abstraction_type, {1, 1}, fn ({count, total}) ->
 								{count + 1, total + token_info.freq}
@@ -174,7 +175,7 @@ IO.inspect({:lhs1, lhs2})
 							#find the abstraction in previous wfl
 							{concretisation_count, concretisation_cum_freq} = Map.get(concretisations, abstraction)
 							enough_concretisations = concretisation_count >= cutoff
-							abs_spaces = Utils.get_space_count(abstraction)
+							#abs_spaces = Utils.get_space_count(abstraction)
 
 							{is_redundant, redundant_id} =
 								case enough_concretisations do
@@ -182,7 +183,13 @@ IO.inspect({:lhs1, lhs2})
 										{false, nil}
 									false ->
 										abs_info = WFL.get_token_info(parent_wfl_pid, abstraction)   #this may not be found if limit on spaces
-										{abs_info.freq < concretisation_cum_freq + cutoff + abs_spaces, abs_info.type_id}
+										case abs_info do
+											nil ->
+												{false, nil}
+											_ ->
+												{abs_info.freq < concretisation_cum_freq + cutoff + abs_info.spaces, abs_info.type_id}
+										end
+
 								end
 
 							if is_redundant do

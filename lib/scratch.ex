@@ -337,6 +337,38 @@ def test_wfl_stream(wfl_pid) do
 
 end
 
+
+def test_stream(wfl_pid) do
+	file = File.stream!("wfl.txt")
+
+	#s = WFLStream.get_wfl_stream(wfl_pid)
+	#Stream.map(WFL.get_wfl(wfl_pid).types, fn (k) ->
+	#after all this faffing around with streams - I actually want to sort the wfl by freq.
+	#Stream.map(WFL.get_wfl(wfl_pid).types, fn ({k, v}) ->
+
+  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
+
+  Stream.transform(wfl_types, [], fn (v, acc) ->
+	IO.inspect(v)
+  case v do
+    [] -> {:halt, acc}
+  end
+		#{}"{" <> k <> ":" <> "\"" v.freq <> "}"
+		# "{#{k}: #{v.freq}}"
+    {tl(v), acc}
+	end)
+  # i don't think that we want stream.transform.
+  # we want to forward a single wfl_type
+  # may want to forget streaming just for the moment.
+	#File.close(file)
+
+#   stream = File.stream!("code")
+# |> Stream.map(&String.replace(&1, "#", "%"))
+# |> Stream.into(File.stream!("new"))
+# |> Stream.run
+
+end
+
 def save_tokens([token | tokens], f) do
   save_token(token, f, false)
   #IO.inspect({:instances, token.instances})
@@ -356,6 +388,8 @@ end
 
 def save_token({k, v}, file, leading_comma \\true) do
 
+	token = Utils.binary_to_string(k)
+	type_id = Utils.binary_to_string(v.type_id)
 	iolist = [?}]
 
 	iolist2 = save_sents(v.instances, iolist)
@@ -366,7 +400,7 @@ def save_token({k, v}, file, leading_comma \\true) do
 			iolist2
 		end
 
-  a = [123, 34, "type", 34, ?:, 34, k, 34, ?,, 34, "freq", 34, ?:, "#{v.freq}", 10, 13]
+  a = [123, 34, "type", 34, ?:, 34, token, 34, ?,, 34, "type_id", 34, ?:, 34, type_id, 34, ?,, 34, "freq", 34, ?:, "#{v.freq}", 10, 13]
 
   aa = case leading_comma do
     false ->
@@ -385,7 +419,7 @@ end
 def save_sents([sent | sents], iolist) do
   #wrapper for sents here
 
-  #bb = [?,, 34, "sentences", 34, ?:, ?[]
+  bb = [?,, 34, "sentences", 34, ?:, ?[]
   ##IO.binwrite f, bb
   iolist2 = save_sent(sent, [?] | iolist], false)
   iolist3 = save_rest_sents(sents, iolist2)
@@ -414,6 +448,39 @@ b = [?[, "#{s}", ?,, "#{o1}", ?,, "#{o2}", ?]]
 
   end
   [bb | iolist]
+end
+
+def save_sentences_with_token(token) do
+	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
+	{:ok, file} = File.open "sent_tokens.txt", [:write]
+	token_info = WFL.get_token_info(root_wfl_pid, token)
+	file_name = token <> "_sentences.txt"
+	{:ok, file} = File.open file_name, [:write]
+	token_info.instances
+		|> Enum.map(fn({sent_id, _}) ->
+			sent_id
+		end)
+		|> Enum.uniq
+		|> Enum.each(fn(s_id) ->
+				s = Sentences.get(s_id)
+				s_io = [String.reverse(s), 10, 13]
+				IO.binwrite(file, s_io)
+			end)
+	File.close(file)
+end
+
+def save_wfl(wfl_pid, file_name \\"wfl.txt") do
+#once we have a sorted main wfl - may be an idea to hang onto it until done
+#also - check where we get rid of hapax legomena.
+  {:ok, file} = File.open file_name, [:write]
+IO.binwrite file, [?{, 34, "wfl", 34,   ?:, ?[]
+  types = WFL.get_wfl(wfl_pid).types
+  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)
+save_tokens(wfl_types, file)
+
+  IO.binwrite file, [?], ?}]
+
+  File.close(file)
 end
 
 def save_sentence_tokens() do
@@ -473,13 +540,13 @@ end
 def save_concretisation_tree() do
 	#start with the main wfl and then process all concretisations,depth first
 root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
-#root_colloc_pid = get_root_colloc_pid()
+root_colloc_pid = get_root_colloc_pid()
 		{:ok, file} = File.open "wfl_tree.txt", [:write]
 		tree_open = [?{, 34, "wfl_tree", 34,   ?:, ?[]
 		tree_close = [?], ?}]
 		IO.binwrite file, tree_open
 		#types = WFL.get_wfl(root_wfl_pid).types
-		wfl_types = WFL.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
+		wfl_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
 		Enum.scan(wfl_types, 0, fn({_key, wfl_type}, tally) ->
 
 				if wfl_type.freq > 1 && wfl_type.is_common != true && wfl_type.concretisations != nil do
@@ -500,7 +567,7 @@ end
 
 def process_concretisation_type(wfl_pid, %WFL_Type{type: wfl_type, type_id: type_id, concretisations: concSet}, tally, iolist) do
 	#,{type: "cat", concs: [{type: "cat sat", concs:[]}]}
-IO.inspect({:processing_for, wfl_type})
+#IO.inspect({:processing_for, wfl_type})
 	#add this token to the iolist pipeline, and recurse over each element in the concretisation map.
 	#is it worth seeing if we can revert back to a list of concretisations as opposed to a map?
 
@@ -510,7 +577,7 @@ IO.inspect({:processing_for, wfl_type})
 		_ ->
 			MapSet.to_list(concSet)
 	end
-IO.inspect({:conc_list, conc_list})
+#IO.inspect({:conc_list, conc_list})
 	xx = X_WFL.expand_type_id(wfl_pid, type_id, true)
 	type_op = [?{, 34, "phrase", 34, ?:, 34, "#{xx}", 34, ?,, 34, "concs", 34, ?:, ?[]
 	type_open = if tally == 0 do
@@ -528,7 +595,7 @@ IO.inspect({:conc_list, conc_list})
 		{_, io2} = Enum.reduce(conc_list, {0, []}, fn(%Concretisation{pid: conc_pid, token_id: conc_id}, {tally, acc})->
 			#IO.inspect(IO.iodata_length(acc))
 			conc_info = WFL.get_token_info_from_id(conc_pid, conc_id)
-			IO.inspect(conc_info.type)
+			#IO.inspect(conc_info.type)
 			iolist = process_concretisation_type(conc_pid, conc_info, tally, [])
 			{tally + 1, [[acc] | iolist]}
 		end)	#this will output a new iolist
@@ -536,29 +603,163 @@ IO.inspect({:conc_list, conc_list})
 
 end
 
-
 def get_root_colloc_pid() do
-	last_wfl_pid = X_WFL.get_pid_from_name("last_wfl_pid")
-	[_root, root_colloc_pid | _] = Collocation.get_wfl_chain(last_wfl_pid)
+	[_root, root_colloc_pid | _] = X_WFL.get_wfl_chain()
 	root_colloc_pid
 end
 
+def flag_expression_tree_nodes() do
+	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
+	#root_colloc_pid = get_root_colloc_pid()
+	cut_off = 2
+	sorted_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once - we should be streaming this too
 
-def save_wfl(wfl_pid, file_name \\"wfl.txt") do
-#once we have a sorted main wfl - may be an idea to hang onto it until done
-#also - check where we get rid of hapax legomena.
-IO.inspect("Trying to save file")
-  {:ok, file} = File.open file_name, [:write]
-IO.binwrite file, [?{, 34, "wfl", 34,   ?:, ?[]
+	concretisations = Enum.reduce_while(sorted_types, [], fn ({_key, wfl_item}, acc) ->
+		if wfl_item.freq < cut_off do
+			 {:halt, acc}
+		else
+			{:cont, [{root_wfl_pid, wfl_item.type_id} | acc]}
+		end
+	end)
+	#wfl_types now looks like a list of concretisations
+	flag_tree_nodes(concretisations)
+end
 
-  wfl_types = WFL.get_sorted_wfl(wfl_pid, :freq, :desc)
+def flag_tree_nodes([]) do
+	:ok
+end
 
-save_tokens(wfl_types, file)
+#we need the pid of the  type in order to update it.
+def flag_tree_nodes([{wfl_pid, type_id} | rest]) do
+	#this function should be on x_wfl as it crosses all WFLs
+	#set root info.freq to -1 to flag that this node is on the expression tree
+	wfl_type = WFL.flag_tree_node(wfl_pid, type_id)
 
-  IO.binwrite file, [?], ?}]
-
-  File.close(file)
+	#now process all the concretisations of this node
+	next_concretisations =
+		case wfl_type.concretisations do
+			nil ->
+				rest
+			_ ->
+				Enum.reduce(wfl_type.concretisations, rest, fn (%Concretisation{pid: conc_pid, token_id: conc_id}, acc) ->
+						[{conc_pid, conc_id} | acc]
+				end)
+		end
+	flag_tree_nodes(next_concretisations)
 end
 
 
+def require_scenic_route() do
+	flag_expression_tree_nodes()
+	#where a tree provides more than one path to a concretisation, delete any path that is direct
+	#other -> other hand -> on the other hand
+	#other -> on the other hand  (this direct route is redundant)
+	#start with the parent of the last WFL
+	[_last_wfl_pid | wfl_chain] = Enum.reverse(X_WFL.get_wfl_chain())
+	remove_direct_paths(wfl_chain)
+end
+
+def remove_direct_paths([]) do
+	:ok
+end
+
+
+def remove_direct_paths([wfl_pid | rest]) do
+	#get a list of all types in this wfl that are part of the expression tree - have root_info.freq == -1
+	#no leapfrogging allowed.
+	# if B -> AB -> ABCD, then B -> ABCD is redundant
+	IO.inspect({:remove, wfl_pid})
+
+	%WFL_Data{types: wfl_types} =  WFL.get_wfl(wfl_pid)
+	#for each type that is part of the expression tree, get a set of all destinations
+
+	yy = Enum.filter(wfl_types, fn {_key, wfl_type} ->
+		wfl_type.root_info.freq == -1 && wfl_type.concretisations != nil
+	end)
+
+	remove_leapfroggers(yy, wfl_pid)
+
+	remove_direct_paths(rest)
+end
+
+def remove_leapfroggers([], _wfl_pid) do
+	:ok
+end
+
+def remove_leapfroggers([{type_key, wfl_type} | rest], wfl_pid) do
+	#get descendants of this node's concretisaions
+	grandchildren = Enum.reduce(wfl_type.concretisations, [], fn (%Concretisation{pid: conc_pid, token_id: conc_token_id}, acc) ->
+			conc_info = WFL.get_token_info_from_id(conc_pid, conc_token_id)
+			case conc_info.concretisations do
+				nil ->
+					acc
+				_ ->
+					acc ++ Enum.to_list(conc_info.concretisations)
+					# Enum.reduce(conc_info.concretisations, acc, fn (%Concretisation{} = conc2, acc2)->
+					# 	#all i am doing here is joining two lists. Just use ++?
+					# 	[conc2 | acc2]
+					# end)
+			end
+	end)
+
+	descendants = get_concretisation_descendants(grandchildren, MapSet.new())
+	_ww = X_WFL.expand_type_id(wfl_pid, wfl_type.type_id, true)
+		#IO.inspect({:grandchildren,  grandchildren, :ww, ww, :descendants, descendants})
+
+	# we now want to see if any of the list of wfl_type.concretisations is in the descendant set
+	{rejects, filtered_concretisations} =
+		Enum.split_with(wfl_type.concretisations, fn (%Concretisation{} = conc) ->
+			 MapSet.member?(descendants, conc)
+		 end)
+
+	if rejects != [] do
+		#update this wfl type to reflect new concretisation list
+		dd = X_WFL.expand_type_id(wfl_pid, wfl_type.type_id, true)
+		IO.inspect({:reject, rejects, :pid, wfl_pid, :dd, dd})
+
+		WFL.update_concretisations(wfl_pid, type_key, Enum.into(filtered_concretisations, MapSet.new()))
+	end
+
+	remove_leapfroggers(rest, wfl_pid)
+
+end
+
+def get_concretisation_descendants([], descendants) do
+	descendants
+end
+
+def get_concretisation_descendants([%Concretisation{pid: conc_pid, token_id: conc_token_id} = conc | rest], descendants) do
+	new_descendants = MapSet.put(descendants, conc)
+	conc_info = WFL.get_token_info_from_id(conc_pid, conc_token_id)
+
+	child_descendants = case conc_info.concretisations do
+		nil ->
+			new_descendants
+		_ ->
+			get_concretisation_descendants(Map.to_list(conc_info.concretisations), new_descendants)
+	end
+	get_concretisation_descendants(rest, child_descendants)
+end
+
+def binary8_to_int(bin8) do
+	list = for << b::8 <- bin8>>, do: b
+	{total, _d} =
+			List.foldl(list, {0, 7}, fn(x, {total, depth}) ->
+				total2 = total + (round(:math.pow(256,  depth)) * x)
+				{total2, depth - 1}
+			end)
+	total
+end
+
+
+def int_to_binary8(int8) do
+
+	{_x, bin4} =
+			List.foldl([0,0,0,0,0,0,0,0], {int8, <<>>}, fn(_x, {remaining, acc}) ->
+				divisor = Kernel.trunc(remaining / 256)
+				remainder = rem(remaining, 256)
+				{divisor, << remainder >> <> acc}
+			end)
+	bin4
+end
 end

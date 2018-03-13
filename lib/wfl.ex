@@ -106,7 +106,7 @@ defmodule WFL do
 
 	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
 
-		{token_id, new_wfl} = process_token(token, sentence_id, offset, wfl_data)
+		{token_id, new_wfl} = process_token(token, sentence_id, offset, wfl_data, parent_wfl_pid)
 
 		{:reply, {:ok, token_id}, {new_wfl, parent_wfl_pid}}
 	end
@@ -226,7 +226,7 @@ defmodule WFL do
             #sentence at this stage is back to front, but we can reverse that later for just the sentences that we need.
 			Sentences.new(sentence_id, sentence)
 
-			{_token_offset, tokens_binary, offset_map, wfl_data2} = process_tokens(tokens, sentence_id, wfl_data1)
+			{_token_offset, tokens_binary, offset_map, wfl_data2} = process_tokens(tokens, sentence_id, wfl_data1, parent_wfl_pid)
 
 			_sample_offset_map = %{0 => <<0, 0, 0, 4>>, 1 => <<0, 0, 0, 188>>, 2 => <<0, 0, 0, 158>>}
 
@@ -239,7 +239,7 @@ defmodule WFL do
 	end
 
 
-	defp process_tokens(tokens, sentence_id, %WFL_Data{} = wfl_data) do
+	defp process_tokens(tokens, sentence_id, %WFL_Data{} = wfl_data, parent_wfl_pid) do
 
 		#we want to end up with
 		#		defstruct([:type, :type_id, :freq, instances: []]) WFL_Type for each new token and with instances/freq update for existing types
@@ -249,13 +249,13 @@ defmodule WFL do
 		#update / create WFL_Type for each token
 		toke_offset = length(tokens) -1 # -1 for 1 based vs 0 based index.  tokens in reverse sentence order, start with count of words in sentence
 		List.foldl(tokens, {toke_offset, <<"">>, %{}, wfl_data}, fn (token, {token_offset, tokens_binary, token_offset_map, wfl_data1}) ->
-			{token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1)
+			{token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1, parent_wfl_pid)
 			offset_map = Map.put(token_offset_map, token_offset, token_id)
 			{token_offset - 1, << token_id <> tokens_binary >>, offset_map, wfl_data2}	#next accumulator value
 		end)
 	end
 
-	defp process_token(token, sentence_id, offset, %WFL_Data{types: types, type_ids: type_ids}) do
+	defp process_token(token, sentence_id, offset, %WFL_Data{types: types, type_ids: type_ids}, parent_wfl_pid) do
 
 		offsets = case offset do
 
@@ -271,16 +271,23 @@ defmodule WFL do
 
 		new_instance = {sentence_id,  offsets}
 
+    space_count = case parent_wfl_pid do
+      nil ->
+        0
+      _ ->
+      Utils.get_spaces(token)
+    end
+
 		#see if we already have this token in wfl
 		{type_id, new_types} = Map.get_and_update(types, token, fn type_info ->
 			new_type_info = case type_info do
-				%WFL_Type{freq: freq, instances: instances} ->
+				%WFL_Type{freq: freq, spaces: spaces, instances: instances} ->
 					#existing type
-					%WFL_Type{type_info | freq: freq + 1, instances: [new_instance | instances]}
+					%WFL_Type{type_info | freq: freq + 1, spaces: spaces + space_count, instances: [new_instance | instances]}
 				_ ->
 					#token not seen before
 					new_type_id = TokenCounter.get_token_id()
-					%WFL_Type{type: token, type_id: new_type_id, freq: 1, instances: [new_instance]}
+					%WFL_Type{type: token, type_id: new_type_id, freq: 1, spaces: space_count, instances: [new_instance]}
 			end
 			{new_type_info.type_id, new_type_info}
 		end)
