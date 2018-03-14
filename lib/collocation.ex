@@ -61,7 +61,7 @@ defmodule Collocation do
 
 		Enum.reduce(types, {%{}, 0}, fn({token_key, %WFL_Type{} = wfl_type}, {sent_map, freq_token_count}) ->
 		#IO.inspect(sent_map)
-			if wfl_type.freq > 1 do
+			if wfl_type.freq > 1 do  #his will be redundant if the hapax have been filtered already tk
 #IO.inspect(wfl_type.instances)
 				Enum.reduce(wfl_type.instances, {sent_map, freq_token_count}, fn({sent_id, {first_offset, last_offset}}, {sent_map_acc, tok_count}) ->
 					#IO.inspect({sent_id, first_offset, last_offset})
@@ -70,7 +70,6 @@ defmodule Collocation do
 							nil -> %{}
 							_ -> cm
 						end
-
 
 						{_, new_continuation_map} = Map.get_and_update(continuation_map, first_offset, fn(continuation_list) ->
 							continuations = case continuation_list do

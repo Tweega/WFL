@@ -179,8 +179,8 @@ defmodule WFL do
     {new_wfl_types, num_released} =
       Enum.reduce(wfl_data.types, {wfl_data.types, 0}, fn({token_key, wfl_type}, {types, n})  ->
         #place an absolute limit on spaces? eg 4
-        #if wfl_type.freq < cutoff + wfl_type.spaces do
-        if wfl_type.freq < cutoff do
+        if (wfl_type.freq < cutoff + wfl_type.spaces) || wfl_type.spaces > 4 do
+          #IO.inspect({:deleted, wfl_type.type_id})
           new_types = Map.delete(types, token_key)
           {new_types, n + 1}
         else
