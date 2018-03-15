@@ -200,4 +200,8 @@ def rev_bin4(bin) do
 			get_space_count(rest, space_count + count)
 	end
 
+  def get_rhs_spaces(<<count :: integer-unit(8)-size(1), _rest :: binary>>) do
+    #expects only a single token binary (4 bytes- rhs of a phrase)
+    count
+  end
 end

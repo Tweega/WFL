@@ -1,0 +1,28 @@
+WFLScratch.Server.processFile("testIn.txt", TextReader)
+WFLScratch.Server.processFile("stages_sentences.txt", TextReader)
+
+--select * from staging.phrase_candidate
+wp = X_WFL.get_pid_from_name("root_wfl_pid")
+lp = X_WFL.get_pid_from_name("last_wfl_pid")
+p1 = WFL.get_parent(lp)
+p2 = WFL.get_parent(p1)
+p3 = WFL.get_parent(p2)
+p4 = WFL.get_parent(p3)
+p5 = WFL.get_parent(p4)
+p6 = WFL.get_parent(p5)
+p7 = WFL.get_parent(p6)
+
+wp = WFLScratch.Server.get_wfl_pid("first_wfl_pid")
+lp = WFLScratch.Server.get_wfl_pid("last_wfl_pid")
+
+wp = X_WFL.get_pid_from_name("root_wfl_pid")
+WFL.free_hapax(wp)
+t = WFL.get_types_as_list(wp)
+s = WFL.get_instance_stream(t)
+
+WFL.get_token_info_from_id(wp, <<0,0,0,30>>)
+the = <<0,0,0,7>>
+WFL.get_token_info_from_id(wp, the)
+Scratch.test_wfl_stream(wp)
+
+WFLScratch.Server.processFile("newutm.txt", TextReader)

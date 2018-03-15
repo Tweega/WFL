@@ -110,10 +110,7 @@ IO.inspect(freq_token_count: freq_token_count, depth: depth)
 			# not interested in super long phrases.  May handle these later through some form of sentence subtraction
 			#freq_token_count is the number of types whose frequency is > cutoff (actually cum freq of these - change tk)
 			#may want to see if we can find an alternative to recursion here as we have a lot of data on stack.
-			##perhaps we can send a message to wfl_server - can we send a message to self.  it would have to be a cast
-			##we don't want to run into timeouts as this is a long running process
-			##alternatively use an agent and open that up when we are done.
-			## should depend on whether this is tail recursive or not.  I would have thought not. check tk
+			## Depends on whether this is tail recursive or not.  I would have thought it is though the else statement may rule that out. check tk
 
 		  process_collocations2(colloc_sent_map, root_sent_map, colloc_wfl_pid, depth + 1)
 		else
@@ -123,6 +120,11 @@ IO.inspect(freq_token_count: freq_token_count, depth: depth)
 	end
 
 	def remove_redundant_abstractions(wfl_pid) do  #this could be on x_wfl as it involves two wfls
+		#the aim of this function is to prevent the number of prospectove collocations getting out of hand in the event of
+		#two long sentences being duplicated. It does this by looking at ABC, removing B to give A_C
+		#then checking whether the freq. of A_C is any higher than ABC.
+		#This only kicks in if frequency of A_C is at least 3, otherwise it is rejected in free_hapax
+
 		wfls = X_WFL.get_chain(wfl_pid)
 			|> Enum.reverse()
 		{wfl, parent_wfl_pid} =
@@ -143,28 +145,24 @@ IO.inspect(freq_token_count: freq_token_count, depth: depth)
 				wfl_types = WFL.get_wfl(wfl_pid).types
 				{abstractions, concretisations} =
 					Enum.reduce(wfl_types, {[], %{}}, fn {token, token_info}, {acc, concs} ->
-						{lhs1, rhs1} = Utils.split_token(token)
 
+						{lhs1, rhs1} = Utils.split_token(token)
 						lhs1_token = WFL.get_token_info_from_id(parent_wfl_pid, lhs1).type  	#if we ever want to remove type from data, then will need to get all get_info functions to return key
 						{lhs2, rhs2} = Utils.split_token(lhs1_token)
 
-						rhs1_spaces = get_rhs_spaces(rhs1)
-						rhs2_spaces = get_rhs_spaces(rhs2)
+						rhs1_spaces = Utils.get_rhs_spaces(rhs1)
+						rhs2_spaces = Utils.get_rhs_spaces(rhs2)
 						intermediate_spaces = rhs1_spaces + rhs2_spaces
 
 						abst_type = lhs2 <> Utils.set_spaces(rhs1, intermediate_spaces + 1)
-						if abst_type == <<0, 0, 0, 7, 2, 0, 0, 130>> do
-							IO.inspect("other -- hand")
-						end
 
 						if intermediate_spaces < 2 && token_info.freq >= cutoff + intermediate_spaces do
 							abstraction_type = lhs2 <> Utils.set_spaces(rhs1, intermediate_spaces + 1)
-							if abstraction_type == <<0, 0, 0, 7, 2, 0, 0, 130>> do
-								IO.inspect("other -- hand")
-							end
-							new_concs = Map.update(concs, abstraction_type, {1, 1}, fn ({count, total}) ->
+
+							new_concs = Map.update(concs, abstraction_type, {1, token_info.freq}, fn ({count, total}) ->
 								{count + 1, total + token_info.freq}
 							end)
+
 							{[abstraction_type | acc], new_concs}
 						else
 							{acc, concs}
@@ -184,7 +182,7 @@ IO.inspect(freq_token_count: freq_token_count, depth: depth)
 						end)
 
 #						IO.inspect(lhs_map)
-
+#IO.inspect(abstractions)
 						Enum.reduce(abstractions, [], fn (abstraction, reds) ->
 							#find the abstraction in previous wfl
 							{concretisation_count, concretisation_cum_freq} = Map.get(concretisations, abstraction)
@@ -194,6 +192,7 @@ IO.inspect(freq_token_count: freq_token_count, depth: depth)
 								true ->
 									{false, nil}
 								false ->
+
 									abs_info = WFL.get_token_info(parent_wfl_pid, abstraction)   #this may not be found if limit on spaces
 									case abs_info do
 										nil ->
@@ -221,14 +220,9 @@ IO.inspect(freq_token_count: freq_token_count, depth: depth)
 				end
 			end
 
-		#IO.inspect({:reds, redundant_abstractions})
 		{:ok, count_dropped} = WFL.drop_types(wfl_pid, redundant_abstractions)
 		IO.inspect({:reds_dropped, count_dropped})
 	end
 
 
-	def get_rhs_spaces(<<count :: integer-unit(8)-size(1), _rest :: binary>>) do
-		#expects only a single token binary (4 bytes- rhs of a phrase)
-		count
-	end
 end

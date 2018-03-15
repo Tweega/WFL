@@ -178,8 +178,16 @@ defmodule WFL do
     cutoff = 2
     {new_wfl_types, num_released} =
       Enum.reduce(wfl_data.types, {wfl_data.types, 0}, fn({token_key, wfl_type}, {types, n})  ->
-        #place an absolute limit on spaces? eg 4
-        if (wfl_type.freq < cutoff + wfl_type.spaces) || wfl_type.spaces > 4 do
+        rhs_spaces = case parent_wfl_pid do
+          nil ->
+            0
+          _ ->
+            Utils.get_space_count(token_key) #only require a phrase to account for most recently added spaces
+        end
+        #place an absolute limit on spaces? eg 4 - the time to impose wfl_type.spaces rule is when creating pairings in the first place
+        if (wfl_type.freq < cutoff + rhs_spaces) || wfl_type.spaces > 4 do
+          #if (wfl_type.freq < cutoff + rhs_spaces) do
+          #if wfl_type.freq < cutoff do
           #IO.inspect({:deleted, wfl_type.type_id})
           new_types = Map.delete(types, token_key)
           {new_types, n + 1}
@@ -273,27 +281,28 @@ defmodule WFL do
 
 		new_instance = {sentence_id,  offsets}
 
-    space_count = case parent_wfl_pid do
-      nil ->
-        0
-      _ ->
-      Utils.get_space_count(token)
-    end
-
 		#see if we already have this token in wfl
 		{type_id, new_types} = Map.get_and_update(types, token, fn type_info ->
 			new_type_info = case type_info do
-				%WFL_Type{freq: freq, spaces: spaces, instances: instances} ->
+				%WFL_Type{freq: freq, instances: instances} ->
 					#existing type
-					%WFL_Type{type_info | freq: freq + 1, spaces: spaces + space_count, instances: [new_instance | instances]}
+					%WFL_Type{type_info | freq: freq + 1, instances: [new_instance | instances]}
 				_ ->
 					#token not seen before
 					new_type_id = TokenCounter.get_token_id()
+          space_count = case parent_wfl_pid do
+            nil ->
+              0
+            _ ->
+              {lhs, rhs} = Utils.split_token(token)
+              rhs_spaces = Utils.get_rhs_spaces(rhs)
+              lhs2 = WFL.get_token_info_from_id(parent_wfl_pid, lhs)
+              rhs_spaces + lhs2.spaces
+          end
 					%WFL_Type{type: token, type_id: new_type_id, freq: 1, spaces: space_count, instances: [new_instance]}
 			end
 			{new_type_info.type_id, new_type_info}
 		end)
-
 
 		#we want to be able to look up type from id
 		new_type_ids = Map.put_new(type_ids, type_id, token)

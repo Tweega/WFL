@@ -24,33 +24,6 @@ defmodule Collocation do
 
 	defstruct([token_ids: <<>>, concretisations: []])	#anything that further defines a pattern is a concretisation - though a shorter word would be nice.  ab is concretisation of a and b as is a_b.  acb is concretisation of a_b
 
-	def add_collocs_to_wfl(collocs, wfl_pid) do
-		#[{2, [{<<0, 0, 0, 6, 0, 0, 0, 5>>, 32}, {<<0, 0, 0, 7, 0, 0, 0, 6>>, 31},...]},
-		#for each sentence
-		inputs = Enum.reduce(collocs, [], fn({sent_id, token_offsets}, token_inputs_accum) ->
-			#for each token_offset
-			toke_inputs = Enum.reduce(token_offsets, [], fn({bin_token, offset}, token_inputs) ->
-				#create instance
-				instance = %TokenInstance{sentence_id: sent_id, offset: offset}
-				[%TokenInput{token: bin_token, instance: instance}  | token_inputs]
-			end)
-			toke_inputs ++ token_inputs_accum	#better to recurse?
-		end)
-		#add each input to the supplied wfl
-
-		Enum.each(inputs, fn(input) ->
-			WFL.addToken(wfl_pid, input)
-		end)
-
-		wfl_pid
-	end
-
-
-	def check_wfl(wfl_pid) do
-		x = WFL.get_sorted_wfl(wfl_pid, :freq, :desc)
-		IO.inspect(x)
-	end
-
 	def create_sent_map_from_wfl(wfl_pid) do
 		#we could free the hapax here - but they should have been freed by now.
 		types = WFL.get_wfl(wfl_pid).types	#ideally this would be a stream tk.  can we reduce from a stream - i would have thought so.
@@ -142,59 +115,13 @@ defmodule Collocation do
 							_ ->
 									#don't seem to be handling a failure return type
 									#IO.puts("Not handling failure to retrieve value from continuation map.")
-									#we do come here quite a lot.  Need to check if this is expected behaviour.
+									#we do come here quite a lot.  Need to check if this is expected behaviour. tk
 									nil
 						end
 					end
 				end)
 			end)
 	 	end)
-	end
-
-	def temp_get_x(_sentence_map, sent_id) do
-		#IO.inspect({:sent_id, sent_id})
-		%TokensBinary{offset_maps: %OffsetMaps{token_map: _index_map,  combination_map: combination_map}} = TokensBinary.get(sent_id)
-
-		combination_map
-	end
-
-	def x_phrases(sentence_id, sentence_map, colloc_wfl_pid, sent_x_fun) do
-		#do a checkout from master to get back oringinal code
-		combination_map = sent_x_fun.(sentence_map, sentence_id)
-
-		#from the combination map get the continuation list for each offset - it should not matter what order we do this in
-		#might want a map_reduce here
-		#first_off, {max_off, {[<<token_id>>, length} ...] = new_offset_combinations})
-
-		Enum.each(combination_map, fn({lhs_offset, {lhs_max_offset, lhs_combinations}}) ->
-
-
-
-				#get the RHS continuation map
-				case Map.fetch(combination_map, lhs_max_offset) do
-					#there will not be rhs continuations for all lhs combinations so rhs_combination_map may be nil
-					{:ok, {rhs_max_offset, rhs_continuations}} ->
-						#for each lhs combination
-						######rhs_max_offset not being used - won't this be needed to record the max_offset of the whole phrase? No, what is recorded in wfl is how the token actually is, it is in sentence map that spaces are recorded
-						#then how do I know where to continue when building the sentence map from a wfl? I need to record this in the wfl if the wfl is what the map is built from.
-						Enum.each(lhs_combinations, fn({lhs_token_id, _lhs_token_length}) ->
-							Enum.each(rhs_continuations, fn({rhs_token_id, rhs_token_length}) ->
-								last_offset = lhs_max_offset + rhs_token_length
-								phrase_candidate = lhs_token_id <> rhs_token_id
-								#IO.inspect({lhs_token_id, rhs_token_id})
-								#IO.inspect({:phrase, phrase_candidate, :instance, {sentence_id, :offset, {lhs_offset, last_offset}}})
-
-								WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sentence_id, offset: {lhs_offset, last_offset, rhs_max_offset}}})
-							end)
-						end)
-						:ok
-
-					_ ->
-						#no continuation exists for this combination
-						#IO.puts("no continuation for offset: #{lhs_max_offset}")
-						:ok
-				end
-		end)
 	end
 
 	def expand_phrases() do
@@ -284,21 +211,6 @@ defmodule Collocation do
 
 		end)
 		check_expansions(rest_wfls)
-	end
-
-	def get_wfl_chain(wfl_pid) do
-		parent_wfl_pid = WFL.get_parent(wfl_pid)
-		get_wfl_chain(wfl_pid, parent_wfl_pid, [])
-	end
-
-	defp get_wfl_chain(wfl_pid, parent_wfl_pid, acc) when is_nil(parent_wfl_pid)  do
-		[wfl_pid | acc]
-	end
-
-	defp get_wfl_chain(wfl_pid, parent_wfl_pid, acc) do
-		grandparent_wfl_pid = WFL.get_parent(parent_wfl_pid)
-		new_acc = [wfl_pid | acc]
-		get_wfl_chain(parent_wfl_pid, grandparent_wfl_pid, new_acc)
 	end
 
 	defp do_concretise_phrases([_wfl_pid | []]) do
@@ -533,81 +445,6 @@ IO.puts("That's all folks")
 			phrases
 		end
 	end
-
-	def merge_pairs([], accum) do
-		accum
-	end
-
-	def merge_pairs([{%TokenFreq{} = tf_a, %TokenFreq{} = tf_b} | t], accum) do
-
-		_sample = {
-			%TokenFreq{freq: 5, index: 2, token_id: <<0, 0, 0, 2>>},
-	  		%TokenFreq{freq: 2, index: 3, token_id: <<0, 0, 0, 1>>}
-  		}
-
-  		a_ndx = tf_a.index
-  		a_len = round(byte_size(tf_a.token_id) / 4)
-  		b_ndx = tf_b.index
-  		###b_len = round(byte_size(tf_b.token_id) / 4)
-
-  		overlap = a_ndx + a_len - b_ndx
-
-  		merged_token = merge_pair(tf_a.token_id, tf_b.token_id, overlap)
-
-  		abstractions = get_abstractions(merged_token)
-
-  		new_accum = [%TokenAbstractions{token: merged_token, abstractions: abstractions} | accum]
-
-		merge_pairs(t, new_accum)
-
-	end
-
-
-	def merge_pair(tok_a, tok_b, overlap) when overlap <= 0 do
-		#we need abs(overlap) gaps between a and b
-		gap_bytes = abs(overlap) * 4
-		tok_a <> <<0x00 :: integer-unit(8)-size(gap_bytes)>> <> tok_b
-	end
-
-	def merge_pair(tok_a, tok_b, overlap) when overlap > 0 do
-		IO.puts("overlap: #{overlap}")
-		n_bytes = 4 * overlap
-		<<_h :: binary-size(n_bytes),  rhs :: binary>> = tok_b
-		tok_a <> rhs
-	end
-
-
-	def get_abstractions(merged_token) do
-		_combinations = get_set_bits(merged_token, 0, [])
-			|> get_abstraction_tree()
-	end
-
-	def set_bits([], abstract_token) do
-		#set bits replaces flagged tokens with a blank <0,0,0,0> token
-		abstract_token
-	end
-
-	def set_bits([index | indices], abstract_token) do
-		start = index * 4
-		<< left :: binary-size(start), _token_id :: binary-size(4), rest :: binary >> = abstract_token
-		new_token = left <> <<0 :: integer-unit(8)-size(4)>> <> rest
-
-		set_bits(indices, new_token)
-	end
-
-	def get_set_bits(<<>>, _index, accum) do
-		accum
-	end
-
-	def get_set_bits(<< left :: integer-unit(8)-size(4), rest :: binary >>, index, accum) do
-		new_accum = if left >  0 do
-			[index | accum]
-		else
-			accum
-		end
-		get_set_bits(rest, index + 1, new_accum)
-	end
-
 
 	def combine_list(list) do
 		combine_list(list, [[]], [], [])
