@@ -354,52 +354,59 @@ defmodule WFL do
     #IO.inspect({:Concretising, phrase_id, :with, concretisation_id, :is_phrase, is_phrase_id})
     #IO.inspect(phrase_type)
     ###Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)  #debug only
-		new_wfl_types = Map.update!(wfl.types, phrase_type, fn %WFL_Type{concretisations: concretisations} = wfl_type ->
-			#get_and_update returns a tuple of {the current value, and the value to be stored under the key, which in this case is phrase_type}
-      #IO.inspect(concretisations)
-      #we have the abstraction type thast we are going to concretise
-      #do we have access to the root concretisation if it comes to use that instead of this one?
-      #so if this abstraction is not more expressive, which concretising id do we use?
-      abstractionFreq = wfl_type.freq
+    #try - rescue block better than has_key??
+		new_wfl_types =
+      case Map.has_key?(wfl.types, phrase_type) do  #abstraction may not exist - some deleted when creating collocations
+        false ->
+          wfl.types
+        true ->
+        Map.update!(wfl.types, phrase_type, fn %WFL_Type{concretisations: concretisations} = wfl_type ->
+  			#get_and_update returns a tuple of {the current value, and the value to be stored under the key, which in this case is phrase_type}
+        #IO.inspect(concretisations)
+        #we have the abstraction type thast we are going to concretise
+        #do we have access to the root concretisation if it comes to use that instead of this one?
+        #so if this abstraction is not more expressive, which concretising id do we use?
+        abstractionFreq = wfl_type.freq
 
-      if phrase_id == <<0,0,1,38>> do
-        IO.inspect({:concretiser, concretiser_id})
-      end
-      #get the spacecount on the abstraction (and also on concretiser)
-      spacecount = 0
-      cut_off = 1
-      #{<<0, 0, 3, 32>>, true, %{conc: %Concretisation{pid: #PID<0.341.0>, token_id: <<0, 0, 3, 64>>}, freq: 2}}
+        if phrase_id == <<0,0,1,38>> do
+          IO.inspect({:concretiser, concretiser_id})
+        end
+        #get the spacecount on the abstraction (and also on concretiser)
+        spacecount = 0
+        cut_off = 1
+        #{<<0, 0, 3, 32>>, true, %{conc: %Concretisation{pid: #PID<0.341.0>, token_id: <<0, 0, 3, 64>>}, freq: 2}}
 
-      #if new_spaces and not abs_freq > conc_freq, then flag this abstraction as ineligible as a concretiser
+        #if new_spaces and not abs_freq > conc_freq, then flag this abstraction as ineligible as a concretiser
 
-      %RootInfo{} = conc_info =
-        cond do
-          new_spaces == true && !(abstractionFreq > concretiser_freq) ->
-            %RootInfo{root_conc | valid: false}
-          abstractionFreq > (concretiser_freq + spacecount + cut_off) ->
-            %RootInfo{valid: true, freq: abstractionFreq, conc: %Concretisation{pid: self(), token_id: wfl_type.type_id}}
-          true ->
-            root_conc
+        %RootInfo{} = conc_info =
+          cond do
+            new_spaces == true && !(abstractionFreq > concretiser_freq) ->
+              %RootInfo{root_conc | valid: false}
+            abstractionFreq > (concretiser_freq + spacecount + cut_off) ->
+              %RootInfo{valid: true, freq: abstractionFreq, conc: %Concretisation{pid: self(), token_id: wfl_type.type_id}}
+            true ->
+              root_conc
+          end
+
+        concMap = case concretisations do
+          nil ->
+            MapSet.new()
+          _ ->
+          concretisations
         end
 
-      concMap = case concretisations do
-        nil ->
-          MapSet.new()
-        _ ->
-        concretisations
-      end
-
-      new_concretisations =
-        if concretiser_valid == true do
-          MapSet.put(concMap, root_conc.conc)
-        else
-          concMap
-        end
+        new_concretisations =
+          if concretiser_valid == true do
+            MapSet.put(concMap, root_conc.conc)
+          else
+            concMap
+          end
 
 
-			%WFL_Type{wfl_type | concretisations: new_concretisations, root_info: conc_info}
+  			%WFL_Type{wfl_type | concretisations: new_concretisations, root_info: conc_info}
 
-    end)
+      end)
+    end
 
 		%WFL_Data{wfl | types: new_wfl_types}
 	end

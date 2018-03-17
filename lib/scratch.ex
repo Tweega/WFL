@@ -450,7 +450,7 @@ b = [?[, "#{s}", ?,, "#{o1}", ?,, "#{o2}", ?]]
   [bb | iolist]
 end
 
-def save_sentences_with_token(token) do
+def save_sentences_containing_token(token) do
 	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
 	{:ok, file} = File.open "sent_tokens.txt", [:write]
 	token_info = WFL.get_token_info(root_wfl_pid, token)
@@ -736,7 +736,7 @@ def get_concretisation_descendants([%Concretisation{pid: conc_pid, token_id: con
 		nil ->
 			new_descendants
 		_ ->
-			get_concretisation_descendants(Map.to_list(conc_info.concretisations), new_descendants)
+			get_concretisation_descendants(MapSet.to_list(conc_info.concretisations), new_descendants)
 	end
 	get_concretisation_descendants(rest, child_descendants)
 end

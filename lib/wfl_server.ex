@@ -32,14 +32,19 @@ defmodule WFLScratch.Server do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
 		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
 		#if working with multiple files, create common tokens once and clone
-
+		IO.puts("Mark common")
 		WFL.mark_common(wfl_pid, ["the", "a"])
+
+		IO.puts("process collocations")
 		last_wfl_pid = process_collocations(wfl_pid)	#capturing last_wfl_pid only needed to allow us to keep it in scope after text has been processed so we ca interrogate from the command line
 
 		X_WFL.start_link({wfl_pid, last_wfl_pid})
+		IO.puts("Expand phrases")
+		
+		_res = Collocation.expand_phrases()	#expand_phrases needs to include root_colloc
+		IO.puts("Concretise phrases")
 
-			_res = Collocation.expand_phrases()	#expand_phrases needs to include root_colloc
-			##!##Collocation.concretise_phrases()
+		Collocation.concretise_phrases()
 		IO.inspect("finished")
 		{:noreply, state}	end
 
