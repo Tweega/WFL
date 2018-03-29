@@ -45,7 +45,7 @@ defmodule TextReader do
 				IO.puts "File complete: Normal"
 				send(server, {:file_complete, wfl_pid})
 			{_DOWN, _ref, _process, _pid, {{:nocatch, _}, _}} ->
-				IO.puts "File read: Unhandled exception"				
+				IO.puts "File read: Unhandled exception"
 				send(server, {:file_error, filePath})
 			msg ->
 				IO.puts "File read: Something else"
@@ -146,6 +146,7 @@ def handleToken(%ReaderInfo{token_info: %TokenInfo{token: token, token_count: to
 end
 
 def handleSentence(%ReaderInfo{token_info: %TokenInfo{token: token, defs: [next_char_type | defs], punct_len: punct_len}, sentence_info: %SentenceInfo{sentence: sentence, tokens: tokens} = sentence_info, sentences: sentence_infos}) do
+
 #output looks strange.  we need to clarify what inputs are and what we should be doing with them.
 #need to check if sentence long enough - has any content
 	trim_len = length(defs) - punct_len
@@ -172,10 +173,15 @@ end
 
 def handleEndline(%TextReader{reader_info: %ReaderInfo{token_info: %TokenInfo{defs: defs} = token_info} = reader_info}) do
 	#{token, _token_count, tokens, defs, sentence, sentences, punct_len} = token_data
+	##handleSentence(%ReaderInfo{token_info: %TokenInfo{token_info |  token: char, defs: [char_type | defs], punct_len: punct_len}, sentence_info: sentence_info, sentences: sentence_infos})
 
+{_result, punct_len} =
+	Enum.reverse(defs)
+	|> isSentence?("")
+#IO.inspect(isSentence?(, ""))
 	case token_info.token_count do
 		token_count when token_count > 0 ->
-			new_token_info = %TokenInfo{token_info | defs: [:end | defs]}
+			new_token_info = %TokenInfo{token_info | defs: [:end | defs], punct_len: punct_len}
 			new_reader_info = %ReaderInfo{reader_info | token_info: new_token_info}
 			handleSentence(new_reader_info)
 
@@ -184,7 +190,8 @@ def handleEndline(%TextReader{reader_info: %ReaderInfo{token_info: %TokenInfo{de
 
 end
 
-def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: token, defs: defs} = token_info, sentence_info: %SentenceInfo{sentence: sentence} = sentence_info, sentences: sentence_infos }) do
+def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: token, defs: defs} = token_info, sentence_info: %SentenceInfo{sentence: sentence} = sentence_info, sentences: sentence_infos } = zz) do
+	IO.inspect(zz)
 	#looking for an alpha numeric to start a new token - also for sentence boundary
 
 	case char_type do
@@ -202,12 +209,21 @@ def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: toke
 			%TextReader{reader_info: new_reader_info,  handler: &TextReader.cx_read_token/3}
 		else
 			new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | token: char, defs: [char_type], period_count: 0}, sentence_info: %SentenceInfo{sentence_info | sentence: <<char <> sentence>>}, sentences: sentence_infos}
+			#IO.inspect(new_reader_info)
 			%TextReader{reader_info: new_reader_info,  handler: &TextReader.cx_read_token/3}
 		end
 
 	_ ->
+		new_sent = if token_info.token_count > 0 do
+			<<char <> sentence>>
+		else
+			sentence
+		end
+
+		IO.inspect(new_sent)
+
 		#add token info to idefs, and continue to look for token start
-		new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | defs: [char_type|defs]}, sentence_info: %SentenceInfo{sentence_info | sentence: <<char <> sentence>>}, sentences: sentence_infos}
+		new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | defs: [char_type|defs]}, sentence_info: %SentenceInfo{sentence_info | sentence: new_sent}, sentences: sentence_infos}
 		%TextReader{reader_info: new_reader_info, handler: &TextReader.cx_new_token/3}
 
 	end
@@ -216,7 +232,7 @@ end
 
 def cx_read_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{} = token_info, sentence_info: %SentenceInfo{} = sentence_info, sentences: sentence_infos}) do
 	#we are collecting characters for a token - keep going till we get whitespace, count any periods on the way
-
+#IO.inspect (sentence_info)
 	new_sentence = <<char <> sentence_info.sentence>>
 	new_defs = [char_type|token_info.defs]
 

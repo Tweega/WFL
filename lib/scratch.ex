@@ -392,7 +392,7 @@ def save_token({k, v}, file, leading_comma \\true) do
 	type_id = Utils.binary_to_string(v.type_id)
 	iolist = [?}]
 
-	iolist2 = save_sents(v.instances, iolist)
+	iolist2 = save_sent_offs(v.instances, iolist)
 	iolist3 =
 		if v.is_common == true do
 			[?,, 32, 34, "common", 34, ?:, "#{1}" | iolist2]
@@ -416,25 +416,25 @@ def save_token({k, v}, file, leading_comma \\true) do
 
 end
 
-def save_sents([sent | sents], iolist) do
+def save_sent_offs([sent | sents], iolist) do
   #wrapper for sents here
 
   bb = [?,, 34, "sentences", 34, ?:, ?[]
   ##IO.binwrite f, bb
-  iolist2 = save_sent(sent, [?] | iolist], false)
-  iolist3 = save_rest_sents(sents, iolist2)
+  iolist2 = save_sent_off(sent, [?] | iolist], false)
+  iolist3 = save_rest_sent_offs(sents, iolist2)
 	[[?,, 34, "sentences", 34, ?:, ?[] | iolist3]
   #cc = [?]]
   #IO.binwrite f, cc
 end
 
-def save_rest_sents(sents, iolist) do
+def save_rest_sent_offs(sents, iolist) do
 	Enum.reduce(sents, iolist, fn(sent, acc) ->
-    save_sent(sent, acc)
+    save_sent_off(sent, acc)
   end)
 end
 
-def save_sent({s, {o1, o2}}, iolist, leading_comma \\true) do
+def save_sent_off({s, {o1, o2}}, iolist, leading_comma \\true) do
 
 #b = [?,, 34, "sentences", 34, ?:, 32, ?[, ?[, "#{10}", ?,, "#{2}", ?], ?], 125]
 #{2, {30, 30}} --> {"s":2, "o":[30,30]}
@@ -468,6 +468,20 @@ def save_sentences_containing_token(token) do
 			end)
 	File.close(file)
 end
+
+
+def save_sentences() do
+	file_name = "sentences.txt"
+	s = Sentences.get_stream()
+	{:ok, file} = File.open file_name, [:write]
+	s
+		|> Enum.each(fn({k, v}) ->
+				s_io = [String.reverse(v), 10, 13]
+				IO.binwrite(file, s_io)
+			end)
+	File.close(file)
+end
+
 
 def save_wfl(wfl_pid, file_name \\"wfl.txt") do
 #once we have a sorted main wfl - may be an idea to hang onto it until done
