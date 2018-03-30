@@ -483,6 +483,99 @@ def save_sentences() do
 end
 
 
+def save_wfl_to_iolist(wfl_pid) do
+#once we have a sorted main wfl - may be an idea to hang onto it until done
+#also - check where we get rid of hapax legomena.
+ioresult = [?], ?}]
+
+  types = WFL.get_wfl(wfl_pid).types
+  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
+# wfl_types2 = Enum.filter(wfl_types, fn({k,v}) ->
+# 	case k do
+# 		"hand" -> true
+# 	#	"the" -> true
+# 		"other" -> true
+# 	#	"on" -> true
+# 		_ -> false
+# 	end
+# end)
+	#reduce the wfl list to an iolist - an array for each wfl type
+	{io_json, _token_count} = Enum.reduce(wfl_types, {[], 0}, fn ({key, token_info}, {token_acc, token_count}) ->
+		token_json = token_io(key, token_info, token_count > 0)
+		# #reduce the sentence offset list to an iolist
+		# {offset_json, _offset_count} = Enum.reduce(token_info.instances, {[], 0}, fn (instance, {inst_acc, inst_count}) ->
+		# 		x = sent_off_io(instance, inst_count > 0)
+		# 		{[x | inst_acc], inst_count + 1}
+		# end)
+		{[token_json | token_acc], token_count + 1}
+	end)
+	wfl_io = [?{, 34, "wfl", 34,   ?:, ?[, io_json, ?], ?}]
+
+	#wfl_io = [?{, 34, "wfl", 34,   ?:, ?[, ?], ?}]
+	IO.inspect(wfl_io)
+
+	file_name = "wfl.txt"
+	{:ok, file} = File.open file_name, [:write]
+	IO.binwrite(file, wfl_io)
+	File.close(file)
+  #intention now is to save this to postgres wfl db
+	corpus_name = "testIn" #this should be supplied when creating the wfl in the first place
+
+	#case PostgrexHelper.query(["INSERT INTO public.corpora(corpus_name, wfl_jsonb) VALUES(", 39, corpus_name, 39, ?,, 39, wfl_io, 39, ");"], []) do
+	#case PostgrexHelper.query(["INSERT INTO public.corpora(corpus_name, wfl_jsonb) VALUES(", 39, "testIn", 39, ?,, 39, [?{, 34, "a", 34, 58, 34, "2", 34, ?}], 39, ");"], []) do
+	xxx = [?{, 34, "a", 34, 58, 34, "2", 34, ?}]
+	case PostgrexHelper.query(["INSERT INTO public.corpora(corpus_name, wfl_jsonb) VALUES(", 39, "testIn", 39, ?,, 39, wfl_io, 39, ");"], []) do
+		:ok ->
+			IO.puts("saved #{corpus_name}")
+		%Postgrex.Error{} = pge ->
+			IO.inspect(pge)
+		other ->
+		IO.puts("Unexpected event during saving of corpus #{corpus_name}: #{other}")
+	end
+
+end
+
+def token_io(k, v, trailing_comma) do
+
+	token = Utils.binary_to_string(k)
+	type_id = Utils.binary_to_string(v.type_id)
+	iolist = case trailing_comma do
+		true -> [?},?,]
+		false -> [?}]
+	end
+
+
+	iolist2 = save_sent_offs_io(v.instances, iolist)
+	iolist3 =
+		if v.is_common == true do
+			[?,, 32, 34, "common", 34, ?:, "#{1}" | iolist2]
+		else
+			iolist2
+		end
+
+  a = [123, 34, "type", 34, ?:, 34, token, 34, ?,, 34, "type_id", 34, ?:, 34, type_id, 34, ?,, 34, "freq", 34, ?:, "#{v.freq}", 10, 13]
+
+	[a | iolist3]
+end
+
+
+def sent_off_io({s, {o1, o2}}, leading_comma \\true) do
+
+#b = [?,, 34, "sentences", 34, ?:, 32, ?[, ?[, "#{10}", ?,, "#{2}", ?], ?], 125]
+#{2, {30, 30}} --> {"s":2, "o":[30,30]}
+b = [?[, "#{s}", ?,, "#{o1}", ?,, "#{o2}", ?]]
+
+  case leading_comma do
+    false ->
+      b
+    _ ->
+      [b | [?,]]
+  end
+
+end
+
+
+
 def save_wfl(wfl_pid, file_name \\"wfl.txt") do
 #once we have a sorted main wfl - may be an idea to hang onto it until done
 #also - check where we get rid of hapax legomena.
@@ -776,4 +869,39 @@ def int_to_binary8(int8) do
 			end)
 	bin4
 end
+
+
+def save_sent_offs_io([sent | sents], iolist) do
+  #wrapper for sents here
+
+  iolist2 = save_sent_off_io(sent, [?] | iolist], false)
+  iolist3 = save_rest_sent_offs_io(sents, iolist2)
+	[[?,, 34, "sentences", 34, ?:, ?[] | iolist3]
+  #cc = [?]]
+  #IO.binwrite f, cc
+end
+
+def save_rest_sent_offs_io(sents, iolist) do
+	Enum.reduce(sents, iolist, fn(sent, acc) ->
+    save_sent_off_io(sent, acc)
+  end)
+end
+
+def save_sent_off_io({s, {o1, o2}}, iolist, trailing_comma \\true) do
+
+#b = [?,, 34, "sentences", 34, ?:, 32, ?[, ?[, "#{10}", ?,, "#{2}", ?], ?], 125]
+#{2, {30, 30}} --> {"s":2, "o":[30,30]}
+b = [?[, "#{s}", ?,, "#{o1}", ?,, "#{o2}", ?]]
+
+  bb = case trailing_comma do
+    false ->
+      b
+    _ ->
+      [b | [?,]]
+
+  end
+  [bb | iolist]
+end
+
+
 end
