@@ -486,6 +486,11 @@ end
 def save_wfl_to_iolist(wfl_pid) do
 #once we have a sorted main wfl - may be an idea to hang onto it until done
 #also - check where we get rid of hapax legomena.
+
+#would it not be much simpler to create an object with profle that you want,
+#and then get Poison to create the json?
+
+
 ioresult = [?], ?}]
 
   types = WFL.get_wfl(wfl_pid).types
@@ -581,7 +586,7 @@ def save_wfl(wfl_pid, file_name \\"wfl.txt") do
 #also - check where we get rid of hapax legomena.
   {:ok, file} = File.open file_name, [:write]
 IO.binwrite file, [?{, 34, "wfl", 34,   ?:, ?[]
-  types = WFL.get_wfl(wfl_pid).types
+  #types = WFL.get_wfl(wfl_pid).types
   wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)
 save_tokens(wfl_types, file)
 
@@ -904,4 +909,118 @@ b = [?[, "#{s}", ?,, "#{o1}", ?,, "#{o2}", ?]]
 end
 
 
+def easier_io (wfl_pid) do
+	  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :desc)
+		# wfl_types2 = Enum.filter(wfl_types, fn({k,v}) ->
+		# 	case k do
+		# 		"hand" -> true
+		# 	#	"the" -> true
+		# 	#	"other" -> true
+		# 	#	"on" -> true
+		# 		_ -> false
+		# 	end
+		# end)
+
+		new_types = Enum.map(wfl_types, fn ({k, %WFL_Type{freq: freq, type_id: type_id, instances: instances}}) ->
+			new_instances = Enum.map(instances, fn({sent_id, {first_off, last_off}}) ->
+					[sent_id, first_off,  last_off]
+			end)
+
+			t_id = Utils.binary_to_string(type_id)
+			%{type: k, type_id: t_id, freq: freq, instances: new_instances}
+		end)
+
+		#possible to decorate the struct definitions to include only some fields - however we still need to change token_id and instances
+		#if we want to be able to reconstruct the entire wfl then we will have to encode and decode all fields
+		xx = %{wfl: %{stats: %{token_count: 1000, type_count: 100}}, types: new_types}
+		{:ok, wfl_json} = Poison.encode(xx)
+		IO.inspect(wfl_json)
+corpus_name = "testIn6"
+#poison escapes quote marks so don't send as io list - build string or pass json is as parameter
+sql = "insert into public.corpora(corpus_name, wfl_jsonb) VALUES ($1::character varying(20), $2::jsonb)"
+
+#sql = "INSERT INTO public.corpora(corpus_name, wfl_jsonb) VALUES(?, ?)\"" <> corpus_name <> "\", " <> wfl_json <> ")"
+#IO.inspect(sql)
+
+		case PostgrexHelper.query(sql, [corpus_name, wfl_json]) do
+			:ok ->
+				IO.puts("saved #{corpus_name}")
+			%Postgrex.Error{} = pge ->
+				IO.inspect(pge)
+			other ->
+			IO.puts("Unexpected event during saving of corpus #{corpus_name}: #{other}")
+		end
+
+end
+
+def getCollocs(bin_tokens, offset, wfl_pid) do
+	throwAwayCount = max(offset - 3, 0)
+	{_throwAway, keep} = Enum.split(bin_tokens, throwAwayCount)
+	{lhs, [key | rest]} = Enum.split(keep, offset - throwAwayCount)
+	rhs =  Enum.slice(rest, 0, 3)
+
+	{key_token, _} = WFL.get_token_from_id(wfl_pid, key)
+
+	lhs_token_list = Enum.map(lhs, fn(token_id) ->
+			{lhs_token, _} = WFL.get_token_from_id(wfl_pid, token_id)
+			lhs_token
+	end)
+
+	lhs_tokens = Enum.join(lhs_token_list, " ")
+
+	rhs_tokens = Enum.map_join(rhs, " ", fn(token_id) ->
+			{rhs_token, _} = WFL.get_token_from_id(wfl_pid, token_id)
+			rhs_token
+	end)
+
+	lhs_sort = Enum.reverse(lhs_token_list) |> Enum.join(" ")
+	%{key: key_token, lhs: lhs_tokens, rhs: rhs_tokens, lhs_sort: lhs_sort}
+
+end
+
+def getCollocations(instances, wfl_pid) do
+	# for each instance, get the sentence and extract the collocation
+	# at the moment we are just doing this for individual tokens.
+	# when we do this  for phrases, we will need to record finish also.
+
+	collocs =
+		instances
+			|> Enum.map(fn({sent_id, {start, _finish}}) ->
+				bin_tokens = TokensBinary.get_bin_tokens(sent_id)
+				token_list = for << b::binary-size(4) <- bin_tokens>>, do: b
+				getCollocs(token_list, start, wfl_pid)
+			end)
+	#now sort by lhs_rev
+	lhs_sort = Enum.sort(collocs, fn(a, b) ->
+		a.lhs_sort <=  b.lhs_sort
+	end)
+
+	#IO.inspect(lhs_sort)
+
+	{lhs_num_sort, _counter} = List.foldl(lhs_sort, {[], 1}, fn (colloc_map, {collocs, counter}) ->
+		{[Map.put(colloc_map, :lhs_sort, counter) | collocs], counter + 1}
+	end)
+
+	lhs_num_sort |> Enum.reverse
+end
+
+def save_collocations() do
+	wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
+	corpus_name = "testIn6"
+	#poison escapes quote marks so don't send as io list - build string or pass json is as parameter
+	sql = "insert into public.collocations(token_id, colloc_jsonb) VALUES ($1::character varying(30), $2::jsonb)"
+	types = WFL.get_wfl(wfl_pid).types
+	Enum.each(types, fn({key, token_info}) ->
+		collocMap = getCollocations(token_info.instances, wfl_pid)
+		{:ok, colloc_json} = Poison.encode(collocMap)
+			case PostgrexHelper.query(sql, [key, colloc_json]) do
+				:ok ->
+					IO.puts("saved #{key}")
+				%Postgrex.Error{} = pge ->
+					IO.inspect(pge)
+				other ->
+				IO.puts("Unexpected event during saving of collocation #{key}: #{other}")
+			end
+		end)
+end
 end
