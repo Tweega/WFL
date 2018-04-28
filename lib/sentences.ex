@@ -19,8 +19,12 @@ defmodule Sentences do
   end
 
   def get_stream() do
-    sent_map = Agent.get(:sentences, &(&1)) #this returns agent state.
-    sent_map |> Stream.map(&(&1))
+
+    get_map() |> Stream.map(&(&1))
+  end
+
+  def get_map() do
+    Agent.get(:sentences, &(&1)) #this returns agent state.
   end
 
 end

@@ -470,7 +470,7 @@ def save_sentences_containing_token(token) do
 end
 
 
-def save_sentences() do
+def save_sentences_to_file() do
 	file_name = "sentences.txt"
 	s = Sentences.get_stream()
 	{:ok, file} = File.open file_name, [:write]
@@ -930,12 +930,21 @@ def easier_io (wfl_pid) do
 			%{type: k, type_id: t_id, freq: freq, instances: new_instances}
 		end)
 
+		sentenceMap = Sentences.get_map()
+
+
+		sentenceList = Enum.map(sentenceMap, fn ({sent_id, sent}) ->
+			%{sent_id: sent_id, sent: String.reverse(sent)}
+		end)
+		|> Enum.sort(fn(s1, s2) -> s1.sent_id < s2.sent_id end)
+
+corpus_name = "testIn11"
 		#possible to decorate the struct definitions to include only some fields - however we still need to change token_id and instances
 		#if we want to be able to reconstruct the entire wfl then we will have to encode and decode all fields
-		xx = %{wfl: %{stats: %{token_count: 1000, type_count: 100}}, types: new_types}
+		xx = %{wfl: %{stats: %{corpus_name: corpus_name, token_count: 1000, type_count: 100}, types: new_types}, sentences: sentenceList}
 		{:ok, wfl_json} = Poison.encode(xx)
 		IO.inspect(wfl_json)
-corpus_name = "testIn6"
+
 #poison escapes quote marks so don't send as io list - build string or pass json is as parameter
 sql = "insert into public.corpora(corpus_name, wfl_jsonb) VALUES ($1::character varying(20), $2::jsonb)"
 
@@ -1019,8 +1028,33 @@ def save_collocations() do
 				%Postgrex.Error{} = pge ->
 					IO.inspect(pge)
 				other ->
-				IO.puts("Unexpected event during saving of collocation #{key}: #{other}")
+					IO.puts("Unexpected event during saving of collocation #{key}: #{other}")
 			end
 		end)
+end
+
+def save_sentences() do
+	corpus_name = "testIn6"
+	#poison escapes quote marks so don't send as io list - build string or pass json is as parameter
+	sql = "insert into public.sentences(corpus_name, sentence_jsonb) VALUES ($1::character varying(30), $2::jsonb)"
+	sentenceMap = Sentences.get_map()
+
+
+	sentenceList = Enum.map(sentenceMap, fn ({sent_id, sent}) ->
+		%{sent_id: sent_id, sent: String.reverse(sent)}
+	end)
+	|> Enum.sort(fn(s1, s2) -> s1.sent_id < s2.sent_id end)
+
+	{:ok, sentence_json} = Poison.encode(sentenceList)
+
+	case PostgrexHelper.query(sql, [corpus_name, sentence_json]) do
+		:ok ->
+			IO.puts("saved sentences")
+		%Postgrex.Error{} = pge ->
+			IO.inspect(pge)
+		other ->
+			IO.puts("Unexpected event during saving of sentences #{corpus_name}: #{other}")
+	end
+
 end
 end
