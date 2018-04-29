@@ -524,12 +524,12 @@ ioresult = [?], ?}]
 	IO.binwrite(file, wfl_io)
 	File.close(file)
   #intention now is to save this to postgres wfl db
-	corpus_name = "testIn" #this should be supplied when creating the wfl in the first place
+	corpus_name = WFLScratch.Server.getCorpusName
 
 	#case PostgrexHelper.query(["INSERT INTO public.corpora(corpus_name, wfl_jsonb) VALUES(", 39, corpus_name, 39, ?,, 39, wfl_io, 39, ");"], []) do
 	#case PostgrexHelper.query(["INSERT INTO public.corpora(corpus_name, wfl_jsonb) VALUES(", 39, "testIn", 39, ?,, 39, [?{, 34, "a", 34, 58, 34, "2", 34, ?}], 39, ");"], []) do
 	xxx = [?{, 34, "a", 34, 58, 34, "2", 34, ?}]
-	case PostgrexHelper.query(["INSERT INTO public.corpora(corpus_name, wfl_jsonb) VALUES(", 39, "testIn", 39, ?,, 39, wfl_io, 39, ");"], []) do
+	case PostgrexHelper.query(["INSERT INTO public.corpora(corpus_name, wfl_jsonb) VALUES(", 39, corpus_name, 39, ?,, 39, wfl_io, 39, ");"], []) do
 		:ok ->
 			IO.puts("saved #{corpus_name}")
 		%Postgrex.Error{} = pge ->
@@ -938,7 +938,7 @@ def easier_io (wfl_pid) do
 		end)
 		|> Enum.sort(fn(s1, s2) -> s1.sent_id < s2.sent_id end)
 
-corpus_name = "testIn11"
+corpus_name = WFLScratch.Server.getCorpusName
 		#possible to decorate the struct definitions to include only some fields - however we still need to change token_id and instances
 		#if we want to be able to reconstruct the entire wfl then we will have to encode and decode all fields
 		xx = %{wfl: %{stats: %{corpus_name: corpus_name, token_count: 1000, type_count: 100}, types: new_types}, sentences: sentenceList}
@@ -962,7 +962,7 @@ sql = "insert into public.corpora(corpus_name, wfl_jsonb) VALUES ($1::character 
 
 end
 
-def getCollocs(bin_tokens, offset, wfl_pid) do
+def getCollocs(bin_tokens, offset, sent_id, wfl_pid) do
 	throwAwayCount = max(offset - 3, 0)
 	{_throwAway, keep} = Enum.split(bin_tokens, throwAwayCount)
 	{lhs, [key | rest]} = Enum.split(keep, offset - throwAwayCount)
@@ -983,7 +983,7 @@ def getCollocs(bin_tokens, offset, wfl_pid) do
 	end)
 
 	lhs_sort = Enum.reverse(lhs_token_list) |> Enum.join(" ")
-	%{key: key_token, lhs: lhs_tokens, rhs: rhs_tokens, lhs_sort: lhs_sort}
+	%{key: key_token, sent_id: sent_id, lhs: lhs_tokens, rhs: rhs_tokens, lhs_sort: lhs_sort}
 
 end
 
@@ -997,7 +997,7 @@ def getCollocations(instances, wfl_pid) do
 			|> Enum.map(fn({sent_id, {start, _finish}}) ->
 				bin_tokens = TokensBinary.get_bin_tokens(sent_id)
 				token_list = for << b::binary-size(4) <- bin_tokens>>, do: b
-				getCollocs(token_list, start, wfl_pid)
+				getCollocs(token_list, start, sent_id, wfl_pid)
 			end)
 	#now sort by lhs_rev
 	lhs_sort = Enum.sort(collocs, fn(a, b) ->
@@ -1015,14 +1015,14 @@ end
 
 def save_collocations() do
 	wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
-	corpus_name = "testIn6"
+	corpus_name = WFLScratch.Server.getCorpusName
 	#poison escapes quote marks so don't send as io list - build string or pass json is as parameter
-	sql = "insert into public.collocations(token_id, colloc_jsonb) VALUES ($1::character varying(30), $2::jsonb)"
+	sql = "insert into public.collocations(corpus_name, token_id, colloc_jsonb) VALUES ($1::character varying(30), $2::character varying(30), $3::jsonb)"
 	types = WFL.get_wfl(wfl_pid).types
 	Enum.each(types, fn({key, token_info}) ->
 		collocMap = getCollocations(token_info.instances, wfl_pid)
 		{:ok, colloc_json} = Poison.encode(collocMap)
-			case PostgrexHelper.query(sql, [key, colloc_json]) do
+			case PostgrexHelper.query(sql, [corpus_name, key, colloc_json]) do
 				:ok ->
 					IO.puts("saved #{key}")
 				%Postgrex.Error{} = pge ->
@@ -1034,7 +1034,7 @@ def save_collocations() do
 end
 
 def save_sentences() do
-	corpus_name = "testIn6"
+	corpus_name = WFLScratch.Server.getCorpusName
 	#poison escapes quote marks so don't send as io list - build string or pass json is as parameter
 	sql = "insert into public.sentences(corpus_name, sentence_jsonb) VALUES ($1::character varying(30), $2::jsonb)"
 	sentenceMap = Sentences.get_map()

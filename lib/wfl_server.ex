@@ -6,12 +6,17 @@ defmodule WFLScratch.Server do
 	#we only have one of these? this creates a text reader for each file (could be handed an array of files or a wildcard file path)
 	#and then collates all the results
 
-	def processFile(filePath, readerModule) do
-		:gen_server.cast(:WFL, {:wfl_file, {filePath, readerModule}})
+	def processFile(corpus_name, filePath, readerModule) do
+		:gen_server.cast(:WFL, {:wfl_file, {corpus_name, filePath, readerModule}})
+	end
+
+
+	def getCorpusName() do
+		:gen_server.call(:WFL, :get_corpus_name)
 	end
 
 	def start_link(_x) do 	#we could initialise with an existing wfl or lemma file? if so we could spawn the process that reads those in.
-		:gen_server.start_link({:local, @name}, __MODULE__, %{}, [])
+		:gen_server.start_link({:local, @name}, __MODULE__, %{corpus_name: ""}, [])
 	end
 
 	#Server
@@ -20,12 +25,17 @@ defmodule WFLScratch.Server do
 		{:ok, state}
 	end
 
-	def handle_cast( {:wfl_file, {filePath, readerModule}}, state) do
+	def handle_call(:get_corpus_name, _from, %{corpus_name: corpus_name} = state) do
+		{:reply, corpus_name, state}
+	end
+
+	def handle_cast( {:wfl_file, {corpus_name, filePath, readerModule}}, state) do
 		{:ok, wfl_pid} = WFL.start_link()	#store this in map with filename as key? we need to have a completed status flag in state
 
 		process_file(filePath, readerModule, wfl_pid)
+		newState = %{state | corpus_name: corpus_name}
 
-		{:noreply, state}
+		{:noreply, newState}
 	end
 
 	def handle_info( {:file_complete, wfl_pid}, state) do
@@ -40,7 +50,7 @@ defmodule WFLScratch.Server do
 
 		X_WFL.start_link({wfl_pid, last_wfl_pid})
 		IO.puts("Expand phrases")
-		
+
 		_res = Collocation.expand_phrases()	#expand_phrases needs to include root_colloc
 		IO.puts("Concretise phrases")
 
