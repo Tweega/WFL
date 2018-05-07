@@ -11,6 +11,10 @@ defmodule X_WFL do
 		:gen_server.call(:xwfl, {:expand_type_id, wfl_pid, type_id, to_text})
 	end
 
+	def expand_type_id_to_string(wfl_pid, type_id) do
+		:gen_server.call(:xwfl, {:expand_type_id_to_string, wfl_pid, type_id})
+	end
+
 	def expand_wfl(wfl_pid, to_text \\ true) do
 		:gen_server.call(:xwfl, {:expand_wfl, wfl_pid, to_text})
 	end
@@ -57,6 +61,16 @@ defmodule X_WFL do
     #IO.inspect({:exp_tok, tok})
 		{:reply, tok, pids}
 	end
+
+	def handle_call({:expand_type_id_to_string, wfl_pid, token_id}, _from, {root_wfl_pid, _last_wfl_pid} = pids) do
+    parent_wfl_pid = WFL.get_parent(wfl_pid)
+
+		tok = exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, true)
+		phrase = Enum.join(tok, " ")
+    #IO.inspect({:exp_tok, tok})
+		{:reply, phrase, pids}
+	end
+
 
 	def handle_call({:get_wfl_chain}, _from, {_root_wfl_pid, last_wfl_pid} = pids) do  #should also store last_wfl_pid here
 		wfl_chain = get_chain(last_wfl_pid)

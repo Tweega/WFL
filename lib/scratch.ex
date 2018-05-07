@@ -649,6 +649,66 @@ def save_sentences_with_punctuation() do
 end
 
 
+def save_concs() do
+	#start with the main wfl and then process all concretisations,depth first
+	require_scenic_route
+	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
+	#we want to end upp with a list
+	#[{phrase: "hello", concs: [{phrase: "hello there", concs: []}]}]
+	corpus_name = WFLScratch.Server.getCorpusName
+		#types = WFL.get_wfl(root_wfl_pid).types
+		wfl_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
+		Enum.each(wfl_types, fn({token, wfl_type}) ->
+
+		if wfl_type.freq > 1 && wfl_type.is_common != true && wfl_type.concretisations != nil do
+			new_instances = Enum.map(wfl_type.instances, fn({sent_id, {first_off, last_off}}) ->
+					[sent_id, first_off,  last_off]
+			end)
+			concList = MapSet.to_list(wfl_type.concretisations)
+			childConcs = getConcretisations(concList, [])
+			concTree = [%{phrase: token, freq: wfl_type.freq, instances: new_instances, concs: childConcs}]
+			sql = "insert into public.concretisations(corpus_name, token_id, conc_jsonb) VALUES ($1::character varying(30), $2::character varying(30), $3::jsonb)"
+			case Poison.encode(concTree) do
+				{:ok, conc_json} ->
+					case PostgrexHelper.query(sql, [corpus_name, token, conc_json]) do
+						:ok ->
+							IO.puts("saved #{token}")
+						%Postgrex.Error{} = pge ->
+							IO.inspect(pge)
+						other ->
+							IO.puts("Unexpected event during saving of concretisation #{token}: #{other}")
+					end
+				_ ->
+					IO.inspect({:error, concTree})
+			end
+		end
+	end)
+end
+
+
+
+def getConcretisations([], phraseTree)  do
+	phraseTree
+end
+
+def getConcretisations([%Concretisation{pid: pid, token_id: token_id} | restConcs], phraseTree) do
+	IO.inspect({:phraseTree, phraseTree})
+	phrase = X_WFL.expand_type_id_to_string(pid, token_id)
+	token_info = WFL.get_token_info_from_id(pid, token_id)
+	new_instances = Enum.map(token_info.instances, fn({sent_id, {first_off, last_off}}) ->
+			[sent_id, first_off,  last_off]
+	end)
+	concList =
+		case  token_info.concretisations do
+			nil ->
+				[]
+			concSet -> MapSet.to_list(concSet)
+		end
+  childList = getConcretisations(concList, [])
+	getConcretisations(restConcs, [%{phrase: phrase, freq: token_info.freq, instances: new_instances, concs: childList} | phraseTree])
+end
+
+
 def save_concretisation_tree() do
 	#start with the main wfl and then process all concretisations,depth first
 root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
