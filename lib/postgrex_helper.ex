@@ -4,10 +4,11 @@ defmodule PostgrexHelper do
       #opts = Keyword.put_new(opts, :pool, DBConnection.Poolboy)
       #IO.inspect({:opts, opts})
       pid = Process.whereis(:pgpg)
-
-      case Postgrex.query(pid, stat,
-                                     params, opts) do
+      xx = Postgrex.query(pid, stat, params, opts)
+       #IO.inspect (xx)
+      case xx do
         {:ok, %Postgrex.Result{rows: nil}} -> :ok
+        {:ok, %Postgrex.Result{rows: [[:void]], num_rows: num_rows}} -> {:ok, num_rows}
         {:ok, %Postgrex.Result{rows: rows}} -> rows
         {:error, %Postgrex.Error{} = err} -> err
       end

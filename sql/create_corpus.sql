@@ -22,8 +22,8 @@ DECLARE
 BEGIN
 	INSERT INTO public.corpora(
 	corpus_name, wfl_jsonb, token_count, type_count)
-	VALUES (corpusName, wflJsonb, tokenCount, typeCount)
-	RETURNING corpus_id;
+	VALUES (corpusName, wflJsonb, tokenCount, typeCount);
+	--RETURNING corpus_id;
 END;
 
 $BODY$;

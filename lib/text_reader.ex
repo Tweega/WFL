@@ -190,8 +190,8 @@ def handleEndline(%TextReader{reader_info: %ReaderInfo{token_info: %TokenInfo{de
 
 end
 
-def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: token, defs: defs} = token_info, sentence_info: %SentenceInfo{sentence: sentence} = sentence_info, sentences: sentence_infos } = zz) do
-	IO.inspect(zz)
+def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: token, defs: defs} = token_info, sentence_info: %SentenceInfo{sentence: sentence} = sentence_info, sentences: sentence_infos }) do
+	#IO.inspect(zz)
 	#looking for an alpha numeric to start a new token - also for sentence boundary
 
 	case char_type do
@@ -220,7 +220,7 @@ def cx_new_token(char, char_type, %ReaderInfo{token_info: %TokenInfo{token: toke
 			sentence
 		end
 
-		IO.inspect(new_sent)
+		#IO.inspect(new_sent)
 
 		#add token info to idefs, and continue to look for token start
 		new_reader_info = %ReaderInfo{token_info: %TokenInfo{token_info | defs: [char_type|defs]}, sentence_info: %SentenceInfo{sentence_info | sentence: new_sent}, sentences: sentence_infos}

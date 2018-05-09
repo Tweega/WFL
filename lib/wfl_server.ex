@@ -38,7 +38,7 @@ defmodule WFLScratch.Server do
 		{:noreply, newState}
 	end
 
-	def handle_info( {:file_complete, wfl_pid}, state) do
+	def handle_info( {:file_complete, wfl_pid}, %{corpus_name: corpus_name} = state) do
 		IO.puts "Handle info: File read: complete - next make a call into wfl to see what it has got."
 		#mark grammar/common words - for the moment just using ["the", "a", "an"] - we should add these at the start.
 		#if working with multiple files, create common tokens once and clone
@@ -55,7 +55,9 @@ defmodule WFLScratch.Server do
 		IO.puts("Concretise phrases")
 
 		Collocation.concretise_phrases()
+		WFL_Repo.saveAll(corpus_name)
 		IO.inspect("finished")
+
 		{:noreply, state}	end
 
 	def handle_info( {:file_error, _filePath}, state) do
@@ -120,7 +122,7 @@ defp process_collocations2(sent_map, root_sent_map, source_wfl_pid, depth \\1) d
 		IO.inspect({:released, num_released})
 		remove_redundant_abstractions(colloc_wfl_pid)
 		{colloc_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(colloc_wfl_pid) 	#we may want to get back count of items with freq > c/o
-IO.inspect(freq_token_count: freq_token_count, depth: depth)
+#IO.inspect(freq_token_count: freq_token_count, depth: depth)
 		if freq_token_count > 1 && depth < 10 do
 			# not interested in super long phrases.  May handle these later through some form of sentence subtraction
 			#freq_token_count is the number of types whose frequency is > cutoff (actually cum freq of these - change tk)
@@ -169,7 +171,7 @@ IO.inspect(freq_token_count: freq_token_count, depth: depth)
 						rhs2_spaces = Utils.get_rhs_spaces(rhs2)
 						intermediate_spaces = rhs1_spaces + rhs2_spaces
 
-						abst_type = lhs2 <> Utils.set_spaces(rhs1, intermediate_spaces + 1)
+						##? this did not seem to do anythingabst_type = lhs2 <> Utils.set_spaces(rhs1, intermediate_spaces + 1)
 
 						if intermediate_spaces < 2 && token_info.freq >= cutoff + intermediate_spaces do
 							abstraction_type = lhs2 <> Utils.set_spaces(rhs1, intermediate_spaces + 1)

@@ -368,9 +368,6 @@ defmodule WFL do
         #so if this abstraction is not more expressive, which concretising id do we use?
         abstractionFreq = wfl_type.freq
 
-        if phrase_id == <<0,0,1,38>> do
-          IO.inspect({:concretiser, concretiser_id})
-        end
         #get the spacecount on the abstraction (and also on concretiser)
         spacecount = 0
         cut_off = 1
