@@ -76,6 +76,10 @@ defmodule WFL do
     :gen_server.call(wfl_pid, {:drop_types, redundant_types})
   end
 
+  def replace_concs(%Concretisation{pid: wfl_pid, token_id: typeID}, childConc, grandChildConc) do
+      :gen_server.call(wfl_pid, {:replace_concs, typeID, childConc, grandChildConc})
+    end
+
 	def start_link(parent_wfl_pid \\ nil) do		#pass in an initial wfl?
 		:gen_server.start_link(__MODULE__, {%WFL_Data{}, parent_wfl_pid}, [])
 	end
@@ -214,6 +218,23 @@ defmodule WFL do
 
     {:reply, {:ok, redundancy_count}, {new_wfl, parent_wfl_pid}}
   end
+
+  def handle_call({:replace_concs, typeID, childConc, grandChildConc}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+      #the concretisations mapSet for typeID will change so that its reference to childConc is replaced by grandchildConc
+      token = Map.get(wfl_data.type_ids, typeID)
+
+      {current_wfl_type, new_wfl_types} = Map.get_and_update!(wfl_data.types, token, fn %WFL_Type{concretisations: concretisations} = wfl_type ->
+        new_concretisations = MapSet.delete(concretisations, childConc)
+          |> MapSet.put(grandChildConc)
+
+        {wfl_type, %WFL_Type{wfl_type | concretisations: new_concretisations}}
+      end)
+
+      new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
+      {:reply, current_wfl_type, {new_wfl, parent_wfl_pid}}
+
+    end
+
 
 
 	def handle_cast({:add_tokens, sentences}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do

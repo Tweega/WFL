@@ -1117,4 +1117,86 @@ def save_sentences() do
 	end
 
 end
+
+def ditch_redundant_abstractions() do
+		#this is different to the other remove_redundant_abstractions function
+		# here we want to remove abstractions that don't add anything to their single concretisation
+		# the information we need in this case is
+				#the count of concretisations for the abstraction,
+				# abstraction freq
+				# concretiser freq
+		#get list of root wfl types - presumably by this time we have flagged - maybe we could do this during the flagging
+		root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
+		#root_colloc_pid = get_root_colloc_pid()
+		cut_off = 2
+		sorted_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once - we should be streaming this too
+
+		concretisations = Enum.reduce_while(sorted_types, [], fn ({_key, wfl_item}, acc) ->
+			if wfl_item.freq < cut_off do
+				 {:halt, acc}
+			else
+				{:cont, [{%Concretisation{pid: root_wfl_pid, token_id: wfl_item.type_id}, %Concretisation{pid: nil, token_id: nil}} | acc]}
+			end
+		end)
+
+		#wfl_types now looks like a list of concretisations
+		#IO.inspect(concretisations)
+		ditch_redundant_abstractions(concretisations)
+:ok
+end
+
+def ditch_redundant_abstractions([]) do
+	#IO.inspect("finished redundant abstractions")
+	:ok
+end
+
+
+def ditch_redundant_abstractions([{%Concretisation{pid: wfl_pid, token_id: type_id} = currentConc, parentConc} | rest]) do
+			#IO.inspect("hello")
+#	IO.inspect({:x, rest})
+	wfl_type = WFL.get_token_info_from_id(wfl_pid, type_id)
+	#IO.inspect(wfl_type)
+	cutoff = 2
+
+	# if wfl_type.concretisations != nil && length(MapSet.to_list(wfl_type.concretisations)) == 1 do
+	# 	IO.inspect(MapSet.to_list(wfl_type.concretisations))
+	# end
+
+
+	conc_list = case wfl_type.concretisations do
+		nil ->
+			[]
+		_ -> MapSet.to_list(wfl_type.concretisations)
+	end
+
+
+
+	next_concs =
+		case conc_list do
+			[] ->
+				rest
+			[%Concretisation{pid: child_conc_pid, token_id: child_conc_id} = childConc | []] ->
+				#IO.inspect(:hello)
+#IO.inspect(WFL.get_token_info_from_id(conc_pid, conc_id))
+
+				%WFL_Type{freq: conc_freq, concretisations: concs} = WFL.get_token_info_from_id(child_conc_pid, child_conc_id) #we might be able to perform this in one go
+				if parentConc.pid != nil && wfl_type.freq < conc_freq + cutoff do
+					#IO.inspect({:replace_concs, wfl_type.concretisations, concs, wfl_type.freq, conc_freq})
+					#my parent (parentConc) has a reference to me (currentConc).  it should replace that reference with a reference to my only child (conc_pid, conc_id)
+					WFL.replace_concs(parentConc, currentConc, childConc )
+					rest
+				else
+					[{childConc, currentConc} | rest]
+					# rest
+				end
+
+			_ ->
+				Enum.reduce(conc_list, rest, fn (conc, acc) ->
+						[{conc, currentConc} | acc]
+				end)
+				# rest
+		end
+		ditch_redundant_abstractions(next_concs)
+end
+
 end

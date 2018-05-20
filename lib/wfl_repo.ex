@@ -3,7 +3,6 @@ defmodule WFL_Repo do
   def saveAll(corpusName) do
       saveWFL(corpusName)
       saveCollocations(corpusName)
-      saveSentences(corpusName)
       saveConcretisations(corpusName)
   end
 
@@ -159,6 +158,7 @@ defmodule WFL_Repo do
   def saveConcretisations(corpus_name) do
   	#start with the main wfl and then process all concretisations,depth first
   	require_scenic_route()
+    Scratch.ditch_redundant_abstractions()
   	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
   	#we want to end upp with a list
   	#[{phrase: "hello", concs: [{phrase: "hello there", concs: []}]}]
