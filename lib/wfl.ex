@@ -54,9 +54,9 @@ defmodule WFL do
 		:gen_server.call(wfl_pid, {:translate_phrase, phrase})
 	end
 
-  def add_concretisation(wfl_pid, phrase, is_phrase_id, concretisation_info, new_spaces) do
+  def add_concretisation(wfl_pid, phrase, is_phrase_id, concretisation_info, absSpaces, concSpaces) do
     #IO.inspect("wfl add concretisation")
-		:gen_server.call(wfl_pid, {:add_concretisation, {phrase, is_phrase_id, concretisation_info, new_spaces}})
+		:gen_server.call(wfl_pid, {:add_concretisation, {phrase, is_phrase_id, concretisation_info, absSpaces, concSpaces}})
     #IO.inspect("wfl LEAVE concretisation")
 	end
 
@@ -187,6 +187,9 @@ defmodule WFL do
             0
           _ ->
             Utils.get_space_count(token_key) #only require a phrase to account for most recently added spaces
+        end
+        if rhs_spaces > 0 do
+          IO.inspect({:spaces, wfl_type.type, rhs_spaces})
         end
         #place an absolute limit on spaces? eg 4 - the time to impose wfl_type.spaces rule is when creating pairings in the first place
         if (wfl_type.freq < cutoff + rhs_spaces) || wfl_type.spaces > 4 do
@@ -364,7 +367,7 @@ defmodule WFL do
 
 	defp add_concretisation(wfl, {phrase_id, is_phrase_id,
     %RootInfo{valid: concretiser_valid, freq: concretiser_freq,
-      conc: %Concretisation{pid: concretiser_pid, token_id: concretiser_id}} = root_conc, new_spaces}) do
+      conc: %Concretisation{}} = concretiser, concSpaces, absSpaces}) do
 
     phrase_type = if is_phrase_id == true do
 			Map.get(wfl.type_ids, phrase_id)
@@ -390,20 +393,21 @@ defmodule WFL do
         abstractionFreq = wfl_type.freq
 
         #get the spacecount on the abstraction (and also on concretiser)
-        spacecount = 0
+
         cut_off = 1
         #{<<0, 0, 3, 32>>, true, %{conc: %Concretisation{pid: #PID<0.341.0>, token_id: <<0, 0, 3, 64>>}, freq: 2}}
 
-        #if new_spaces and not abs_freq > conc_freq, then flag this abstraction as ineligible as a concretiser
+        #if new_spaces (absSpaces > concSpaces) and not abs_freq > conc_freq, then flag this abstraction as ineligible as a concretiser
+        # i think this is to stop cat _ mat concretising cat or mat, which will be concretised by cat sat, sat mat.  cat _ mat here adds nothing
 
         %RootInfo{} = conc_info =
           cond do
-            new_spaces == true && !(abstractionFreq > concretiser_freq) ->
-              %RootInfo{root_conc | valid: false}
-            abstractionFreq > (concretiser_freq + spacecount + cut_off) ->
+            absSpaces > concSpaces && !(abstractionFreq > concretiser_freq) ->
+              %RootInfo{concretiser | valid: false}
+            abstractionFreq > (concretiser_freq + absSpaces + cut_off) ->
               %RootInfo{valid: true, freq: abstractionFreq, conc: %Concretisation{pid: self(), token_id: wfl_type.type_id}}
             true ->
-              root_conc
+              concretiser
           end
 
         concMap = case concretisations do
@@ -415,7 +419,7 @@ defmodule WFL do
 
         new_concretisations =
           if concretiser_valid == true do
-            MapSet.put(concMap, root_conc.conc)
+            MapSet.put(concMap, concretiser.conc)
           else
             concMap
           end

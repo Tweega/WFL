@@ -314,11 +314,9 @@ IO.puts("That's all folks")
 
 		abstraction_space_count = Utils.get_space_count(next_abstraction)
 
-		new_spaces = abstraction_space_count > conc_space_count
-
 		size_abstraction = byte_size(next_abstraction)
 		if size_abstraction > 0 do
-			_jj = Expansion.add_concretisation(next_abstraction, concretiser_info, new_spaces)
+			_jj = Expansion.add_concretisation(next_abstraction, concretiser_info, abstraction_space_count, conc_space_count)
 			#IO.inspect({:owner, next_abstraction, :conc, concretiser_id})
 
 		else

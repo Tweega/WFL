@@ -82,27 +82,65 @@ defmodule WFL_Repo do
   end
 
   def saveCollocations(corpus_name) do
-  	wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
-  	#corpus_name = WFLScratch.Server.getCorpusName
-  	#poison escapes quote marks so don't send as io list - build string or pass json is as parameter
+    wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
+    #corpus_name = WFLScratch.Server.getCorpusName
+    #poison escapes quote marks so don't send as io list - build string or pass json is as parameter
     sql = "select collocations_insert($1::character varying(30), $2::character varying(30), $3::jsonb)"
     #perhaps we could look at a transaction for these
-  	types = WFL.get_wfl(wfl_pid).types
-  	Enum.each(types, fn({key, token_info}) ->
-  		collocMap = getCollocations(token_info.instances, wfl_pid)
-  		{:ok, colloc_json} = Poison.encode(collocMap)
-  			case PostgrexHelper.query(sql, [corpus_name, key, colloc_json]) do
-  				{:ok, _num_collocs} ->
-  					#IO.puts("saved #{key}")
+    types = WFL.get_wfl(wfl_pid).types
+    Enum.each(types, fn({key, token_info}) ->
+      instances = getRichInstances(token_info)
+      collocMap = getCollocations(instances, wfl_pid)
+      {:ok, colloc_json} = Poison.encode(collocMap)
+        case PostgrexHelper.query(sql, [corpus_name, key, colloc_json]) do
+          {:ok, _num_collocs} ->
+            #IO.puts("saved #{key}")
             _z = 1
-  				%Postgrex.Error{} = pge ->
-  					IO.inspect(pge)
-  				other ->
-  					IO.puts("Unexpected event during saving of collocation #{key}: #{other}")
-  			end
-  		end)
+          %Postgrex.Error{} = pge ->
+            IO.inspect(pge)
+          other ->
+            IO.puts("Unexpected event during saving of collocation #{key}: #{other}")
+        end
+      end)
       IO.puts("saved collocations")
   end
+
+  def getRichInstances(tokenInfo) do
+    #go through each concretisation {wfl_pid,  token_id} and get those instances
+    concretisations = case tokenInfo.concretisations do   #better to initiate to MapSet.new?
+      nil -> MapSet.new()
+      concs -> concs
+    end
+
+    Enum.reduce(concretisations, MapSet.new(), fn (%Concretisation{pid: conc_pid, token_id: conc_token}, instances) ->
+      #IO.inspect("hello")
+      %WFL_Type{instances: concInstances} = WFL.get_token_info_from_id(conc_pid, conc_token)
+      #IO.inspect({:instances, instances})
+      Enum.reduce(concInstances, instances, fn ({sent_id, {first_off, last_off}}, instanceAcc) ->
+        bin_tokens = TokensBinary.get_bin_tokens(sent_id)
+      #	IO.inspect("how are you?")
+      first_bytes = first_off * 4
+      last_bytes = (last_off * 4) - first_bytes
+
+      <<x::binary-size(first_bytes), phrase::binary-size(last_bytes), _rest::binary>> = bin_tokens
+
+      token_list = for << b::binary-size(4) <- phrase>>, do: b
+
+      keyIndex = Enum.reduce_while(token_list, first_off, fn (token_bin, index) ->
+        {spacelessToken, spaceCount} = Utils.strip_space_x(token_bin)
+        spaces = Utils.get_space_count(token_bin)
+        if  spacelessToken != tokenInfo.type_id do
+          {:cont, index + 1 + spaces }
+        else
+          {:halt, index + spaces}
+        end
+      end)
+
+      MapSet.put(instanceAcc, {sent_id, keyIndex})
+      end)
+    end)
+  end
+
 
   def getCollocations(instances, wfl_pid) do
   	# for each instance, get the sentence and extract the collocation

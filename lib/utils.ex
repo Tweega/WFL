@@ -179,6 +179,11 @@ def rev_bin4(bin) do
     <<0>> <> rest
   end
 
+  def strip_space_x(token) do
+    <<space_count :: integer-unit(8)-size(1), rest :: binary>> = token
+    {<<0>> <> rest, space_count}
+  end
+
   def set_spaces(token, space_count) do
     <<_space_count :: integer-unit(8)-size(1), rest :: binary>> = token	#rest may have a leading space - we have dropped the first token
     <<space_count>> <> rest
