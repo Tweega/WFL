@@ -711,30 +711,31 @@ end
 
 def save_concretisation_tree() do
 	#start with the main wfl and then process all concretisations,depth first
-root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
-root_colloc_pid = get_root_colloc_pid()
-		{:ok, file} = File.open "wfl_tree.txt", [:write]
-		tree_open = [?{, 34, "wfl_tree", 34,   ?:, ?[]
-		tree_close = [?], ?}]
-		IO.binwrite file, tree_open
-		#types = WFL.get_wfl(root_wfl_pid).types
-		wfl_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
-		Enum.scan(wfl_types, 0, fn({_key, wfl_type}, tally) ->
+	cutoff = 1
+	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
+	root_colloc_pid = get_root_colloc_pid()
+	{:ok, file} = File.open "wfl_tree.txt", [:write]
+	tree_open = [?{, 34, "wfl_tree", 34,   ?:, ?[]
+	tree_close = [?], ?}]
+	IO.binwrite file, tree_open
+	#types = WFL.get_wfl(root_wfl_pid).types
+	wfl_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
+	Enum.scan(wfl_types, 0, fn({_key, wfl_type}, tally) ->
 
-				if wfl_type.freq > 1 && wfl_type.is_common != true && wfl_type.concretisations != nil do
-				#this is where we want to create an iolist and output to disk
-				#IO.inspect(wfl_type)
-					iolist = process_concretisation_type(root_wfl_pid, wfl_type, tally, [])
-					#now output the iolist to file
-					IO.binwrite file, iolist
-					tally + 1
-				else
-					tally
-				end
+			if wfl_type.freq > cutoff  && wfl_type.concretisations != nil do
+			#this is where we want to create an iolist and output to disk
+			#IO.inspect(wfl_type)
+				iolist = process_concretisation_type(root_wfl_pid, wfl_type, tally, [])
+				#now output the iolist to file
+				IO.binwrite file, iolist
+				tally + 1
+			else
+				tally
+			end
 
-		end)
-		IO.binwrite file, tree_close
-		File.close(file)
+	end)
+	IO.binwrite file, tree_close
+	File.close(file)
 end
 
 def process_concretisation_type(wfl_pid, %WFL_Type{type: wfl_type, type_id: type_id, concretisations: concSet}, tally, iolist) do

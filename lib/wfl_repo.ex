@@ -149,17 +149,15 @@ defmodule WFL_Repo do
 
   	collocs =
   		instances
-  			|> Enum.map(fn({sent_id, {start, _finish}}) ->
+  			|> Enum.map(fn({sent_id, offset}) ->
   				bin_tokens = TokensBinary.get_bin_tokens(sent_id)
   				token_list = for << b::binary-size(4) <- bin_tokens>>, do: b
-  				getCollocs(token_list, start, sent_id, wfl_pid)
+  				getCollocs(token_list, offset, sent_id, wfl_pid)
   			end)
   	#now sort by lhs_rev
   	lhs_sort = Enum.sort(collocs, fn(a, b) ->
   		a.lhs_sort <=  b.lhs_sort
   	end)
-
-  	#IO.inspect(lhs_sort)
 
   	{lhs_num_sort, _counter} = List.foldl(lhs_sort, {[], 1}, fn (colloc_map, {collocs, counter}) ->
   		{[Map.put(colloc_map, :lhs_sort, counter) | collocs], counter + 1}

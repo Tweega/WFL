@@ -179,23 +179,58 @@ defmodule WFL do
   end
 
   def handle_call({:free_hapax}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+    #aim is to set a different cutoff where lhs or rhs of first colloc is common
+    #try calling out to get grandparent pid
+
     cutoff = 2
     {new_wfl_types, num_released} =
       Enum.reduce(wfl_data.types, {wfl_data.types, 0}, fn({token_key, wfl_type}, {types, n})  ->
+        isCommon =
+          if parent_wfl_pid == nil do
+            false
+          else
+            gp = WFL.get_parent(parent_wfl_pid) # if this is a problem then we will need the colloc chain and parentage in named wfl
+            if gp == nil do
+              #this is first collocation wfl
+              <<lhs :: binary-size(4), rhs_s :: binary-size(4)>> = token_key
+              #IO.inspect({:qq, lhs, parent_wfl_pid})
+              %WFL_Type{ is_common: lhs_common} = WFL.get_token_info_from_id(parent_wfl_pid, lhs)
+              if lhs_common == true do
+                true
+              else
+                rhs = Utils.strip_space(rhs_s)
+                %WFL_Type{ is_common: rhs_common} = WFL.get_token_info_from_id(parent_wfl_pid, rhs)
+                rhs_common
+              end
+              false
+            else
+              false
+            end
+          end
+
+        cutoff =
+          case isCommon do
+            true -> 20
+            false -> 2
+          end
+
         rhs_spaces = case parent_wfl_pid do
           nil ->
             0
           _ ->
             Utils.get_space_count(token_key) #only require a phrase to account for most recently added spaces
         end
-        if rhs_spaces > 0 do
-          IO.inspect({:spaces, wfl_type.type, rhs_spaces})
+        if wfl_type.type == <<0, 0, 0, 9, 1, 0, 0, 19>> do
+          IO.inspect({:spaces, wfl_type.type, rhs_spaces, wfl_type.freq, token_key})
         end
         #place an absolute limit on spaces? eg 4 - the time to impose wfl_type.spaces rule is when creating pairings in the first place
         if (wfl_type.freq < cutoff + rhs_spaces) || wfl_type.spaces > 4 do
           #if (wfl_type.freq < cutoff + rhs_spaces) do
           #if wfl_type.freq < cutoff do
-          #IO.inspect({:deleted, wfl_type.type_id})
+          if wfl_type.type == <<0, 0, 0, 9, 1, 0, 0, 19>> do
+            IO.inspect({:deleted, wfl_type.type})
+          end
+
           new_types = Map.delete(types, token_key)
           {new_types, n + 1}
         else

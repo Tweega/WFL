@@ -409,33 +409,6 @@ IO.puts("That's all folks")
 		colloc_length(rest, len + gap_count + 1)
 	end
 
-	def get_phrases(bin_tok_freq_list, cutoff) do
-		get_phrases(bin_tok_freq_list, cutoff, 0, [], [])
-	end
-
-	def get_phrases([], _cutoff, gap_count, phrase, phrases) do
-		new_phrase = Enum.drop(phrase, gap_count)
-		add_phrase(new_phrase, phrases)
-	end
-
-	def get_phrases(bin_tok_freq_list, cutoff, gap_count, phrase, phrases) when gap_count > 1 do #ideally want to pull max_gap_count out of config
-		new_phrase = Enum.drop(phrase, gap_count)
-		new_phrases = add_phrase(new_phrase, phrases)
-		get_phrases(bin_tok_freq_list, cutoff, 0, [], new_phrases)
-	end
-
-	def get_phrases([tok_freq | rest], cutoff, gap_count, phrase, phrases) do
-		{new_phrase, new_gap_count}  = if tok_freq.freq < cutoff || tok_freq.is_common == true do
-			{phrase, gap_count + 1}
-		else
-			{[tok_freq.offset | phrase], 0}
-		end
-
-		#need to keep track of definite article instances - perhaps and as well an pronouns but?- so that we can see if they concretise the phrase
-		#we would need to stick this onto an accumulator associated with the phrase.
-		get_phrases(rest, cutoff, new_gap_count, new_phrase, phrases)
-	end
-
 	def add_phrase(phrase, phrases) do
 		if length(phrase) > 1 do
 			[Enum.reverse(phrase) | phrases]
