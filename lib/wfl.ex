@@ -182,7 +182,6 @@ defmodule WFL do
     #aim is to set a different cutoff where lhs or rhs of first colloc is common
     #try calling out to get grandparent pid
 
-    cutoff = 2
     {new_wfl_types, num_released} =
       Enum.reduce(wfl_data.types, {wfl_data.types, 0}, fn({token_key, wfl_type}, {types, n})  ->
         isCommon =

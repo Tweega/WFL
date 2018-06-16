@@ -14,11 +14,11 @@
 	end
 
 	defmodule TokenInfo do
-		defstruct([token: "" , token_count: 0, char_type: :none, defs: [], period_count: 0, punct_len: 0])
+		defstruct([token: "" , token_count: 0, offset: 0, char_type: :none, defs: [], period_count: 0, punct_len: 0])
 	end
 
 	defmodule ReaderInfo do
-		defstruct([token_info: %TokenInfo{}, sentence_info: %SentenceInfo{}, sentences: []])  #sentences is an array of %SentenceInfo
+		defstruct([sent_index: 0, token_info: %TokenInfo{}, sentence_info: %SentenceInfo{}, sentences: []])  #sentences is an array of %SentenceInfo
 	end
 
 	defmodule Concretisation do
