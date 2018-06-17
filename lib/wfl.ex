@@ -77,8 +77,12 @@ defmodule WFL do
   end
 
   def replace_concs(%Concretisation{pid: wfl_pid, token_id: typeID}, childConc, grandChildConc) do
-      :gen_server.call(wfl_pid, {:replace_concs, typeID, childConc, grandChildConc})
-    end
+    :gen_server.call(wfl_pid, {:replace_concs, typeID, childConc, grandChildConc})
+  end
+
+  def addTokens(pid, sentences) do
+    :gen_server.cast(pid, {:add_tokens, sentences })
+  end
 
 	def start_link(parent_wfl_pid \\ nil) do		#pass in an initial wfl?
 		:gen_server.start_link(__MODULE__, {%WFL_Data{}, parent_wfl_pid}, [])
@@ -192,7 +196,7 @@ defmodule WFL do
             if gp == nil do
               #this is first collocation wfl
               <<lhs :: binary-size(4), rhs_s :: binary-size(4)>> = token_key
-              #IO.inspect({:qq, lhs, parent_wfl_pid})
+
               %WFL_Type{ is_common: lhs_common} = WFL.get_token_info_from_id(parent_wfl_pid, lhs)
               if lhs_common == true do
                 true
@@ -201,7 +205,6 @@ defmodule WFL do
                 %WFL_Type{ is_common: rhs_common} = WFL.get_token_info_from_id(parent_wfl_pid, rhs)
                 rhs_common
               end
-              false
             else
               false
             end
@@ -209,7 +212,7 @@ defmodule WFL do
 
         cutoff =
           case isCommon do
-            true -> 20
+            true -> 20  #this should be a percentage of the corpus
             false -> 2
           end
 
@@ -219,15 +222,13 @@ defmodule WFL do
           _ ->
             Utils.get_space_count(token_key) #only require a phrase to account for most recently added spaces
         end
-        if wfl_type.type == <<0, 0, 0, 9, 1, 0, 0, 19>> do
-          IO.inspect({:spaces, wfl_type.type, rhs_spaces, wfl_type.freq, token_key})
-        end
+
         #place an absolute limit on spaces? eg 4 - the time to impose wfl_type.spaces rule is when creating pairings in the first place
         if (wfl_type.freq < cutoff + rhs_spaces) || wfl_type.spaces > 4 do
           #if (wfl_type.freq < cutoff + rhs_spaces) do
           #if wfl_type.freq < cutoff do
-          if wfl_type.type == <<0, 0, 0, 9, 1, 0, 0, 19>> do
-            IO.inspect({:deleted, wfl_type.type})
+          if cutoff == 20 do
+              IO.inspect({:qq, token_key, cutoff})
           end
 
           new_types = Map.delete(types, token_key)
@@ -299,7 +300,7 @@ defmodule WFL do
 			_sample_offset_map = %{0 => <<0, 0, 0, 4>>, 1 => <<0, 0, 0, 188>>, 2 => <<0, 0, 0, 158>>}
 
 			#store tokens binary data - this will be the input 'text' for the next round of tokens.
-			TokensBinary.new(sentence_id, %TokensBinary{bin_tokens: tokens_binary, offset_maps: %OffsetMaps{token_map: offset_map}})
+			TokensBinary.new(sentence_id, %TokensBinary{bin_tokens: tokens_binary, offset_map: offset_map})
 			wfl_data2
 		end)
 
@@ -316,9 +317,10 @@ defmodule WFL do
 		#we want a map of tokens so that we have [97, 123, 554, 98, 222, 27] etc. for e.g. the cat sat on the mat....except we want that as a binary string with 4 bytes per number
 		#update / create WFL_Type for each token
 		toke_offset = length(tokens) -1 # -1 for 1 based vs 0 based index.  tokens in reverse sentence order, start with count of words in sentence
-		List.foldl(tokens, {toke_offset, <<"">>, %{}, wfl_data}, fn (token, {token_offset, tokens_binary, token_offset_map, wfl_data1}) ->
-			{token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1, parent_wfl_pid)
-			offset_map = Map.put(token_offset_map, token_offset, token_id)
+		List.foldl(tokens, {toke_offset, <<"">>, %{}, wfl_data}, fn (%{offset: sent_off, token: token}, {token_offset, tokens_binary, token_offset_map, wfl_data1}) ->
+      #we want a map from sentence id and offset to an actual offset in the sentence
+      {token_id, wfl_data2} = process_token(token, sentence_id, token_offset, wfl_data1, parent_wfl_pid)
+			offset_map = Map.put(token_offset_map, token_offset, sent_off)
 			{token_offset - 1, << token_id <> tokens_binary >>, offset_map, wfl_data2}	#next accumulator value
 		end)
 	end

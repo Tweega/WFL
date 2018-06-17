@@ -73,13 +73,13 @@ def process_line(str, wfl_pid, char_tree) when is_binary(str) do
 		|> handleToken()
 		|> handleEndline()	#handleToken and handleEndline are only called once after line has been processed to mop up last word/sentence
 
-	IO.inspect(sentences)
+	#IO.inspect(sentences)
 
 	#sample_sentenceInfo = [%SentenceInfo{sentence: "yad ykcul ruoy eb thgim tI",
   										#tokens: ["day", "lucky", "your", "be", "might", "it"]}]
 	#note that the full stop is missing here, perhaps because it coincides with an endline.
 
-	###!GenServer.cast(wfl_pid, {:add_tokens, sentences})	#this should accept spawn acknowledge
+	GenServer.cast(wfl_pid, {:add_tokens, sentences})	#this should accept spawn acknowledge
 end
 
 def process_line(_str, _wfl_pid, _char_tree) do
@@ -181,8 +181,8 @@ def handleEndline(%TextReader{reader_info: %ReaderInfo{token_info: %TokenInfo{de
 #IO.inspect(isSentence?(, ""))
 	case token_info.token_count do
 		token_count when token_count > 0 ->
-			new_token_info = %TokenInfo{token_info | offset: 0,  defs: [:end | defs], punct_len: punct_len}
-			new_reader_info = %ReaderInfo{reader_info | sent_index: 0, token_info: new_token_info}
+			new_token_info = %TokenInfo{token_info | defs: [:end | defs], punct_len: punct_len}
+			new_reader_info = %ReaderInfo{reader_info | token_info: new_token_info}
 			handleSentence(new_reader_info)
 
 		_ -> %ReaderInfo{}

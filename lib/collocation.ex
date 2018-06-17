@@ -133,7 +133,7 @@ defmodule Collocation do
 
 		{wfl_pid, colloc_pid, colloc_chain} = case wfl_chain do
 			[root_wfl_pid, root_colloc_pid | rest_chain] -> {root_wfl_pid, root_colloc_pid, rest_chain}
-			_ -> {nil, []}
+			_ -> {nil, nil, []}
 		end
 		unless is_nil(colloc_pid) do
 			#for each frequent phrase in the root colloc (token pairs) add to concretisation dictionary
@@ -541,95 +541,6 @@ defmodule TokenStream do
   end
 end
 
-defmodule CollocStream do
-	def get_colloc_stream(quartet, token_map) do
-	    Stream.resource(
-	      fn ->
-	      	{key_type, colloc_types} = quartet
-	      	#this quartet results in a sequence of combinations
-	      	#for a, [b, c, d] - if we end up only with a, b, c because d is too far away there could not be a continuation.
-	      	#for there to be a continuation then d must be in range  if I have ab__ then e must be in range of b - certainly d
-	      	#if such a combination were to have a follow-up / continuation
-
-	      	combinations = Collocation.combine_list(colloc_types, [key_type])
-
-			{combinations, token_map}
-	      end,
-	      fn({combinations, token_map}) ->
-	        case combinations do 	#return next quartet as a token binary.  {:halt, accumulator} when finished.
-	        	[] -> {:halt, []}
-	        	[combination | rest] ->
-	            	colloc = get_colloc(combination, token_map)
-	            	{[colloc], {rest, token_map}}
-
-	        end
-	      end,
-	      fn(empty_combination_list) -> empty_combination_list end 	#tidy up - returns the final value of the stream if there is one.
-	    )
-  	end
-
-	def get_colloc(combination, token_map) do
-		get_colloc(combination,  0, token_map, {nil, nil, <<>>})
-	end
-
-	def get_colloc([], _prev_offset, _token_map, acc) do
-		acc
-	end
-
-	def get_colloc([index | indices], prev_offset, token_map, {first_offset, last_offset, colloc}) do
-		#this gets a colloc from a list of sentence offsets - eg [0, 2, 3] - here we have a gap from 0 to 2 (except i think we process colloc backwards [3, 2, 0]
-		tok_freq = Map.get(token_map, index)
-		_sample_tok_freq = %TokenFreq{freq: 6, index: -1, is_common: false, offset: 3,  token_id: <<0, 0, 0, 30>>} # 'that'	index always seems to be -1 tk
-		_sample_tok_frek = %TokenFreq{freq: 2, index: -1, is_common: false, offset: 28, token_id: <<0, 0, 0, 9>>} #  'might'  (offset is from start of sentence - first = 0)
-
-		new_gap = case prev_offset do
-			0 ->
-				 prev_offset
-			_ ->
-				prev_offset - tok_freq.offset - 1
-		end
-
-		last_off = case colloc do
-			<<>> ->
-				tok_freq.offset
-			_ ->
-				last_offset
-		end
-
-		first_off = case indices do
-			[] ->
-				tok_freq.offset
-			_ ->
-				first_offset
-		end
-
-		IO.inspect({:new_gap, new_gap}) #don't think we come here
-
-		#shift_new_gap = new_gap * round(:math.pow(2, 6))	 #or left shift 6 times  - use shift_new for very large corpora where we need 4th byte for colloc ids
-
-		<<token_id :: binary-size(1),  rest :: binary-size(3)>> = tok_freq.token_id
-		new_token_int = :binary.decode_unsigned(token_id) + new_gap 	#need to update this so that new_gap is two most sig bits of integer - this only works if token_id = 0
-		new_token_id = <<new_token_int :: integer-unit(8)-size(1)>> <> <<rest :: binary >>
-
-		new_colloc = << new_token_id <> colloc >>
-
-		#{first_off, last_off, <<2, 0, 0, 130, 1, 0, 0, 112, 0, 0, 0, 109>>},
-
-		get_colloc(indices, tok_freq.offset, token_map, {first_off, last_off, new_colloc})
-	end
-
-	def quartet_combination(3) do
-		[[3, 1, 0], [3, 2, 0], [3, 2, 1, 0], [3, 0], [2, 1, 0], [2, 0], [1, 0]]
-	end
-
-	def quartet_combination(2) do
-		[[2, 1, 0], [2, 0], [1, 0]]
-	end
-
-	def quartet_combination(1) do
-		[[1, 0]]
-	end
-end
 
 
 defmodule PhraseStream do

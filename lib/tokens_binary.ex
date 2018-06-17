@@ -1,11 +1,7 @@
-# defmodule OffsetMaps do
-#   defstruct([token_map: %{}, combination_map: %{}])
-# end
-
 defmodule TokensBinary do
   #stores a binary representation of a sentence <<11, 43, 41, 2, 83>> - keyed on sentence, where each number represents a word such as cat.  numbers will actually be 4 bytes
   #also stores a map between first offset and token
-  defstruct(bin_tokens: <<>>, offset_maps: %OffsetMaps{})
+  defstruct(bin_tokens: <<>>, offset_map: %{})
 
   @name :tokens_bin
 
@@ -22,11 +18,6 @@ defmodule TokensBinary do
     Agent.update(:tokens_bin, &Map.update!(&1, sentence_id, fn(_x) -> tokens_bin end))
   end
 
-  def set_offset_maps(sentence_id, toke_bin, token_map, combination_map) do
-    new_tokens_binary = %TokensBinary{toke_bin | offset_maps: {token_map, combination_map}}
-    Agent.update(:tokens_bin, &Map.update!(&1, sentence_id, new_tokens_binary))
-  end
-
   def get(sentence_id) do
     Agent.get(:tokens_bin, &Map.get(&1, sentence_id))
   end
@@ -38,10 +29,10 @@ defmodule TokensBinary do
     end)
   end
 
-  def get_offset_maps(sentence_id) do
+  def get_offset_map(sentence_id) do
     Agent.get(:tokens_bin, fn(state) ->
       x = Map.get(state, sentence_id)
-      x.offset_maps
+      x.offset_map
     end)
   end
 

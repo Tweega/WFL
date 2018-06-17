@@ -114,7 +114,7 @@ defp process_collocations2(sent_map, root_sent_map, source_wfl_pid, depth \\1) d
 
 	#check that abstractions created in previous wfl are not redundant
 
-	Scratch.save_wfl(source_wfl_pid, "wfl_" <> Integer.to_string(depth) <> ".js")
+	##Scratch.save_wfl(source_wfl_pid, "wfl_" <> Integer.to_string(depth) <> ".js") -- this line dumps wfls as we go as json
 
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
 		Parallel.pjob(sent_map, [{Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]}])  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
