@@ -152,9 +152,9 @@ defmodule WFL_Repo do
   	collocs =
   		instances
   			|> Enum.map(fn({sent_id, offset}) ->
-  				bin_tokens = TokensBinary.get_bin_tokens(sent_id)
+          %TokensBinary{bin_tokens: bin_tokens, offset_map: offset_map} = TokensBinary.get_sent_info(sent_id)
   				token_list = for << b::binary-size(4) <- bin_tokens>>, do: b
-  				getCollocs(token_list, offset, sent_id, wfl_pid)
+  				getCollocs(token_list, offset, sent_id, offset_map, wfl_pid)
   			end)
   	#now sort by lhs_rev
   	lhs_sort = Enum.sort(collocs, fn(a, b) ->
@@ -168,13 +168,32 @@ defmodule WFL_Repo do
   	lhs_num_sort |> Enum.reverse
   end
 
-  def getCollocs(bin_tokens, offset, sent_id, wfl_pid) do
-  	throwAwayCount = max(offset - 3, 0)
+  def getCollocs(bin_tokens, offset, sent_id, offset_map, wfl_pid) do
+
+    throwAwayCount = max(offset - 3, 0)
   	{_throwAway, keep} = Enum.split(bin_tokens, throwAwayCount)
   	{lhs, [key | rest]} = Enum.split(keep, offset - throwAwayCount)
+    {key_token, _} = WFL.get_token_from_id(wfl_pid, key)
+
   	rhs =  Enum.slice(rest, 0, 3)
 
-  	{key_token, _} = WFL.get_token_from_id(wfl_pid, key)
+    first_off = throwAwayCount
+    last_off = offset + length(rhs)
+
+    first_sent_off = Map.get(offset_map, first_off)
+
+    last_token_len =
+      case Enum.at(rhs, -1) do
+        nil ->
+          String.length(key_token)
+
+        last_token_id ->
+          {last_token, _} = WFL.get_token_from_id(wfl_pid, last_token_id)
+          String.length(last_token)
+      end
+
+    last_sent_off = Map.get(offset_map, last_off)
+    final_sent_off = last_sent_off + last_token_len
 
   	lhs_token_list = Enum.map(lhs, fn(token_id) ->
   			{lhs_token, _} = WFL.get_token_from_id(wfl_pid, token_id)
@@ -189,7 +208,8 @@ defmodule WFL_Repo do
   	end)
 
   	lhs_sort = Enum.reverse(lhs_token_list) |> Enum.join(" ")
-  	%{key: key_token, sent_id: sent_id, lhs: lhs_tokens, rhs: rhs_tokens, lhs_sort: lhs_sort}
+
+  	%{key: key_token, sent_id: sent_id, lhs: lhs_tokens, rhs: rhs_tokens, lhs_sort: lhs_sort, first_off: first_sent_off, last_off: final_sent_off}
 
   end
 

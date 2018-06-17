@@ -36,7 +36,13 @@ defmodule TokensBinary do
     end)
   end
 
-  def get_map() do
+  def get_sent_info(sentence_id) do
+      Agent.get(:tokens_bin, fn(state) ->
+      Map.get(state, sentence_id)
+    end)
+  end
+
+  def get_state() do
     Agent.get(:tokens_bin, &(&1)) #this returns agent state.
   end
 
