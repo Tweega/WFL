@@ -223,11 +223,17 @@ defmodule WFL_Repo do
   	#corpus_name = WFLScratch.Server.getCorpusName
   		#types = WFL.get_wfl(root_wfl_pid).types
   		wfl_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
-  		Enum.each(wfl_types, fn({token, wfl_type}) ->
 
+  		Enum.each(wfl_types, fn({token, wfl_type}) ->
   		if wfl_type.freq > 1 && wfl_type.concretisations != nil do
   			new_instances = Enum.map(wfl_type.instances, fn({sent_id, {first_off, last_off}}) ->
-  					[sent_id, first_off,  last_off]
+          %TokensBinary{offset_map: offset_map} = TokensBinary.get_sent_info(sent_id)
+          first_sent_off = Map.get(offset_map, first_off)
+          last_sent_off = Map.get(offset_map, last_off)
+          #should we have any instances for the root type?  We already have collocations for this.
+          #i am inclined to leave the instance array emptyfor the root
+          last_token_len = String.length(token)
+    			[sent_id, first_off,  last_off, first_sent_off, last_sent_off + last_token_len]
   			end)
   			concList = MapSet.to_list(wfl_type.concretisations)
   			childConcs = getConcretisations(concList, [])
@@ -372,10 +378,16 @@ defmodule WFL_Repo do
 
   def getConcretisations([%Concretisation{pid: pid, token_id: token_id} | restConcs], phraseTree) do
   	#IO.inspect({:phraseTree, phraseTree})
-  	phrase = X_WFL.expand_type_id_to_string(pid, token_id)
+  	phraseList = X_WFL.expand_type_id(pid, token_id, true)
+    phrase = phrase = Enum.join(phraseList, " ")
+    last_token_len = String.length(Enum.at(phraseList, -1))
+
   	token_info = WFL.get_token_info_from_id(pid, token_id)
   	new_instances = Enum.map(token_info.instances, fn({sent_id, {first_off, last_off}}) ->
-  			[sent_id, first_off,  last_off]
+        %TokensBinary{offset_map: offset_map} = TokensBinary.get_sent_info(sent_id)
+        first_sent_off = Map.get(offset_map, first_off)
+        last_sent_off = Map.get(offset_map, last_off)
+  			[sent_id, first_off,  last_off, first_sent_off, last_sent_off + last_token_len]
   	end)
   	concList =
   		case  token_info.concretisations do
