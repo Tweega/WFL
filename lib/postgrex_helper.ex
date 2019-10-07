@@ -38,11 +38,6 @@ defmodule PostgrexHelper do
 
   end
 
-  def stream(query, params, opts \\ []) do
-    pid = Process.whereis(:pgpg)
-      #Postgrex.stream(var!(conn), query, params, opts)
-
-  end
 
   def close(query, opts \\ []) do
     pid = Process.whereis(:pgpg)

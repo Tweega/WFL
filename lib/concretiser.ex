@@ -29,14 +29,14 @@ defmodule Concretiser do
       Agent.get(:concretiser, fn(list) ->
         Enum.each(list, fn({abs, abs_pid, concretiser_id, conc_pid}) ->
             p = WFL.get_parent(abs_pid)
-            abstraction = case p do
+            _abstraction = case p do
               nil ->
                 abs
               _ ->
               abs_id = WFL.get_token_info(abs_pid, abs).type_id
               X_WFL.expand_type_id(abs_pid, abs_id)
             end
-            concretiser = X_WFL.expand_type_id(conc_pid, concretiser_id)
+            _concretiser = X_WFL.expand_type_id(conc_pid, concretiser_id)
             #IO.inspect({abstraction, ":",  concretiser})
         end)
       end)

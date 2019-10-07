@@ -134,7 +134,7 @@ def rev_bin4(bin) do
   end
 
   def text_from_binary(bin, wfl_pid) do
-  	[h | _rest] = list = for << b::8 <- bin>>, do: b
+  	[h | _rest] = for << b::8 <- bin>>, do: b
     IO.inspect(h)
     case h do  #this assumes that binary tokens always start with a zero
       0 ->

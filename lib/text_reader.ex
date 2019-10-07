@@ -190,7 +190,7 @@ def handleEndline(%TextReader{reader_info: %ReaderInfo{token_info: %TokenInfo{de
 
 end
 
-def cx_new_token(char, char_type, %ReaderInfo{sent_index: sent_index, token_info: %TokenInfo{token: token, offset: offset, defs: defs} = token_info, sentence_info: %SentenceInfo{sentence: sentence} = sentence_info, sentences: sentence_infos }) do
+def cx_new_token(char, char_type, %ReaderInfo{sent_index: sent_index, token_info: %TokenInfo{token: token, offset: _offset, defs: defs} = token_info, sentence_info: %SentenceInfo{sentence: sentence} = sentence_info, sentences: sentence_infos }) do
 	#IO.inspect(zz)
 	#looking for an alpha numeric to start a new token - also for sentence boundary
 
@@ -329,7 +329,7 @@ def get_token(token, defs, pc) do
 	case toke_defs do
 		[:number | _rest] ->
 			case Float.parse(toke) do
-				{:error, _} ->
+				:error ->
 					toke
 				{_, ""} ->
 					"#num#"
@@ -388,10 +388,6 @@ end
 #test
 def get_tok(token, defs, pc) do
 	get_token(token, defs, pc)
-end
-
-def handle_tok({token, tokens, defs, sentence, sentences, period_count}) do
-	handleToken({token, tokens, defs, sentence, sentences, period_count})
 end
 
 def trim_sent(sent, num) do

@@ -338,37 +338,6 @@ def test_wfl_stream(wfl_pid) do
 end
 
 
-def test_stream(wfl_pid) do
-	file = File.stream!("wfl.txt")
-
-	#s = WFLStream.get_wfl_stream(wfl_pid)
-	#Stream.map(WFL.get_wfl(wfl_pid).types, fn (k) ->
-	#after all this faffing around with streams - I actually want to sort the wfl by freq.
-	#Stream.map(WFL.get_wfl(wfl_pid).types, fn ({k, v}) ->
-
-  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
-
-  Stream.transform(wfl_types, [], fn (v, acc) ->
-	IO.inspect(v)
-  case v do
-    [] -> {:halt, acc}
-  end
-		#{}"{" <> k <> ":" <> "\"" v.freq <> "}"
-		# "{#{k}: #{v.freq}}"
-    {tl(v), acc}
-	end)
-  # i don't think that we want stream.transform.
-  # we want to forward a single wfl_type
-  # may want to forget streaming just for the moment.
-	#File.close(file)
-
-#   stream = File.stream!("code")
-# |> Stream.map(&String.replace(&1, "#", "%"))
-# |> Stream.into(File.stream!("new"))
-# |> Stream.run
-
-end
-
 def save_tokens([token | tokens], f) do
   save_token(token, f, false)
   #IO.inspect({:instances, token.instances})
@@ -419,7 +388,7 @@ end
 def save_sent_offs([sent | sents], iolist) do
   #wrapper for sents here
 
-  bb = [?,, 34, "sentences", 34, ?:, ?[]
+  _bb = [?,, 34, "sentences", 34, ?:, ?[]
   ##IO.binwrite f, bb
   iolist2 = save_sent_off(sent, [?] | iolist], false)
   iolist3 = save_rest_sent_offs(sents, iolist2)
@@ -452,7 +421,7 @@ end
 
 def save_sentences_containing_token(token) do
 	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
-	{:ok, file} = File.open "sent_tokens.txt", [:write]
+	{:ok, _file} = File.open "sent_tokens.txt", [:write]
 	token_info = WFL.get_token_info(root_wfl_pid, token)
 	file_name = token <> "_sentences.txt"
 	{:ok, file} = File.open file_name, [:write]
@@ -475,7 +444,7 @@ def save_sentences_to_file() do
 	s = Sentences.get_stream()
 	{:ok, file} = File.open file_name, [:write]
 	s
-		|> Enum.each(fn({k, v}) ->
+		|> Enum.each(fn({_k, v}) ->
 				s_io = [String.reverse(v), 10, 13]
 				IO.binwrite(file, s_io)
 			end)
@@ -491,9 +460,9 @@ def save_wfl_to_iolist(wfl_pid) do
 #and then get Poison to create the json?
 
 
-ioresult = [?], ?}]
+_ioresult = [?], ?}]
 
-  types = WFL.get_wfl(wfl_pid).types
+  _types = WFL.get_wfl(wfl_pid).types
   wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
 # wfl_types2 = Enum.filter(wfl_types, fn({k,v}) ->
 # 	case k do
@@ -528,7 +497,6 @@ ioresult = [?], ?}]
 
 	#case PostgrexHelper.query(["INSERT INTO public.corpora(corpus_name, wfl_jsonb) VALUES(", 39, corpus_name, 39, ?,, 39, wfl_io, 39, ");"], []) do
 	#case PostgrexHelper.query(["INSERT INTO public.corpora(corpus_name, wfl_jsonb) VALUES(", 39, "testIn", 39, ?,, 39, [?{, 34, "a", 34, 58, 34, "2", 34, ?}], 39, ");"], []) do
-	xxx = [?{, 34, "a", 34, 58, 34, "2", 34, ?}]
 	case PostgrexHelper.query(["INSERT INTO public.corpora(corpus_name, wfl_jsonb) VALUES(", 39, corpus_name, 39, ?,, 39, wfl_io, 39, ");"], []) do
 		:ok ->
 			IO.puts("saved #{corpus_name}")
@@ -651,7 +619,7 @@ end
 
 def save_concs() do
 	#start with the main wfl and then process all concretisations,depth first
-	require_scenic_route
+	WFL_Repo.require_scenic_route
 	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
 	#we want to end upp with a list
 	#[{phrase: "hello", concs: [{phrase: "hello there", concs: []}]}]
@@ -713,7 +681,7 @@ def save_concretisation_tree() do
 	#start with the main wfl and then process all concretisations,depth first
 	cutoff = 1
 	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
-	root_colloc_pid = get_root_colloc_pid()
+	_root_colloc_pid = get_root_colloc_pid()
 	{:ok, file} = File.open "wfl_tree.txt", [:write]
 	tree_open = [?{, 34, "wfl_tree", 34,   ?:, ?[]
 	tree_close = [?], ?}]
@@ -738,7 +706,7 @@ def save_concretisation_tree() do
 	File.close(file)
 end
 
-def process_concretisation_type(wfl_pid, %WFL_Type{type: wfl_type, type_id: type_id, concretisations: concSet}, tally, iolist) do
+def process_concretisation_type(wfl_pid, %WFL_Type{type: _wfl_type, type_id: type_id, concretisations: concSet}, tally, _iolist) do
 	#,{type: "cat", concs: [{type: "cat sat", concs:[]}]}
 #IO.inspect({:processing_for, wfl_type})
 	#add this token to the iolist pipeline, and recurse over each element in the concretisation map.
@@ -1180,7 +1148,7 @@ def ditch_redundant_abstractions([{%Concretisation{pid: wfl_pid, token_id: type_
 				#IO.inspect(:hello)
 #IO.inspect(WFL.get_token_info_from_id(conc_pid, conc_id))
 
-				%WFL_Type{freq: conc_freq, concretisations: concs} = WFL.get_token_info_from_id(child_conc_pid, child_conc_id) #we might be able to perform this in one go
+				%WFL_Type{freq: conc_freq, concretisations: _concs} = WFL.get_token_info_from_id(child_conc_pid, child_conc_id) #we might be able to perform this in one go
 				if parentConc.pid != nil && wfl_type.freq < conc_freq + cutoff do
 					#IO.inspect({:replace_concs, wfl_type.concretisations, concs, wfl_type.freq, conc_freq})
 					#my parent (parentConc) has a reference to me (currentConc).  it should replace that reference with a reference to my only child (conc_pid, conc_id)

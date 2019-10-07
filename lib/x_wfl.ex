@@ -45,8 +45,8 @@ defmodule X_WFL do
 		{wfl, parent_pid} = WFL.get_wfl_state(wfl_pid)
 		#grandparent_pid = WFL.get_parent(parent_pid)
 		Enum.each(wfl.type_ids, fn({token_id, _phrase})  ->
-			tok = exp_token(token_id, wfl_pid, parent_pid, root_wfl_pid, to_text)
-			f = WFL.get_token_info_from_id(wfl_pid, token_id).freq
+			_tok = exp_token(token_id, wfl_pid, parent_pid, root_wfl_pid, to_text)
+			_f = WFL.get_token_info_from_id(wfl_pid, token_id).freq
 			#IO.inspect({tok, f})
 		end)
 
