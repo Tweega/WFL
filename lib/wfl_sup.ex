@@ -28,7 +28,10 @@ defmodule WFLScratch.Supervisor do
 					worker(ProcessedPhrases, []),
 					worker(TokenCounter, []),
 					worker(Concretiser, []),
-					Postgrex.child_spec(opts)
+					Postgrex.child_spec(opts),
+					#worker(GenstageExample.Producer, [0]),
+					#worker(GenstageExample.ProducerConsumer, []),
+					#worker(GenstageExample.Consumer, [])
 				]
 		supervise children, strategy: :one_for_one
 	end

@@ -90,4 +90,68 @@
               end)
      end)
   end
+
+
+  def g_stage(collection) do
+    {:ok, _p_pid} = GenstageExample.Producer.start_link(collection)
+
+
+    {:ok, pid} = GenstageExample.ProducerConsumer.start_link()
+    # ref = Process.monitor(pid)
+    consume(pid, 4)
+    #_c = GenstageExample.Consumer.start_link()
+
+    # # Wait for a down message for given ref/pid
+    # receive do
+    #   {:DOWN, ^ref, :process, ^pid, :normal} ->
+    #     IO.puts "Normal exit from #{inspect pid}"
+    #   {:DOWN, ^ref, :process, ^pid, msg} ->
+    #     IO.puts "Received :DOWN from #{inspect pid}"
+    #     IO.inspect msg
+    #   xx ->
+    #     IO.inspect ({:xx, xx})
+    # end
+
+    :okay
   end
+
+  def consume(pc_pid, num_consumers) do
+    z =
+    1..num_consumers
+    |> Enum.map(fn (_elem) ->
+      if Process.alive?(pc_pid) do
+        #IO.puts("jj")
+        case GenstageExample.Consumer.start_link() do
+          {:ok, c_pid} ->
+            c_pid
+          _ ->
+            nil
+        end
+      else
+        nil
+      end
+    end)
+    |> Enum.map(fn (pid) ->
+      msg =
+      if pid != nil && Process.alive?(pid) do
+        ref = Process.monitor(pid)
+        IO.inspect({:pid, pid})
+        m =
+        receive do
+          {:DOWN, ^ref, :process, ^pid, :normal} ->
+            "Normal exit from #{inspect pid}"
+          {:DOWN, ^ref, :process, ^pid, msg} ->
+            "Received :DOWN from #{inspect pid}.  msg: #{inspect msg} "
+          _xx ->
+            "eh?"
+        end
+        m
+      else
+        "already closed"
+      end
+      msg
+    end)
+    IO.inspect({:z, z})
+  end
+
+end

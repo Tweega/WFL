@@ -1168,4 +1168,20 @@ def ditch_redundant_abstractions([{%Concretisation{pid: wfl_pid, token_id: type_
 		ditch_redundant_abstractions(next_concs)
 end
 
+def get_colloc_stream(wfl) do
+	Stream.resource(
+		fn ->
+			wfl #list of wfl items.
+		end,	#this fn intitialises the resource - it takes no params and returns 'the resource' - which will be a sorted wfl
+		fn(wfl_item_list) ->
+			case wfl_item_list do 	#return next wfl_item.  {:halt, accumulator} when finished.
+				[] -> {:halt, []}
+
+		[wfl_item | rest] ->
+						{[wfl_item], rest}
+			end
+		end,
+		fn(empty_wfl) -> empty_wfl end 	#this takes accumulator, does clear up and returns the final value if there is one.
+	)
+end
 end

@@ -33,7 +33,8 @@ defmodule WflScratch.Mixfile do
       {:ex_doc, "~> 0.11", only: :dev},
       {:postgrex, "~> 0.13.5"},
 #      {:poolboy, "~> 1.5" },
-      {:poison, "~> 3.1"}]
+      {:poison, "~> 3.1"},
+      {:gen_stage, "~> 0.11"}]
 
   end
 end
