@@ -6,14 +6,7 @@ defmodule GenstageExample.Consumer do
   end
 
   def init(state) do
-    case Process.whereis(GenstageExample.ProducerConsumer) do
-      nil ->
-        :ignore
-      _ ->
-        {:consumer, state, subscribe_to: [{GenstageExample.ProducerConsumer,  max_demand: 1}]}
-
-    end
-
+    {:consumer, state}
   end
 
   def handle_events(events, _from, state) do

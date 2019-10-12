@@ -92,13 +92,23 @@
   end
 
 
+  def pjob2(collection, mfa) do
+    {:ok, _p_pid} = Collocation.Producer.start_link(collection)
+    {:ok, pc_pid} = Collocation.ProducerConsumer.start_link()
+    num_consumers = min(8, div(map_size(collection), 4) + 1)
+    consume2(pc_pid, num_consumers, mfa)
+  end
+
+
   def g_stage(collection) do
     {:ok, _p_pid} = GenstageExample.Producer.start_link(collection)
 
 
-    {:ok, pid} = GenstageExample.ProducerConsumer.start_link()
+    {:ok, pc_pid} = GenstageExample.ProducerConsumer.start_link()
     # ref = Process.monitor(pid)
-    consume(pid, 4)
+    num_c = min(8, div(length(collection), 4) + 1)
+
+    consume(pc_pid, num_c)
     #_c = GenstageExample.Consumer.start_link()
 
     # # Wait for a down message for given ref/pid
@@ -122,6 +132,118 @@
       if Process.alive?(pc_pid) do
         #IO.puts("jj")
         case GenstageExample.Consumer.start_link() do
+          {:ok, c_pid} ->
+            c_ref = Process.monitor(c_pid)
+            IO.inspect({:c_ref, c_ref, c_pid})
+            {c_pid, c_ref}
+          _ ->
+            {nil, nil}
+        end
+      else
+        {nil, nil}
+      end
+    end)
+    |> Enum.map(fn ({pid, _ref} = x) ->
+      if pid != nil do
+        if Process.alive?(pc_pid) do
+          GenStage.sync_subscribe(pid, to: pc_pid, max_demand: 1)
+          x
+        else
+          #shut down the consumer process - producer no longer exists
+          IO.inspect({:killed, pid})
+          Process.exit(pid, :normal)
+          {pid, nil}
+        end
+      else
+        {nil, nil}
+      end
+    end)
+    |> Enum.map(fn ({pid, ref}) ->
+      msg =
+      if pid != nil && Process.alive?(pid) do
+        IO.inspect({:pid, pid})
+        m =
+        receive do
+          {:DOWN, ^ref, :process, ^pid, :normal} ->
+            "Normal exit from #{inspect pid}"
+          {:DOWN, ^ref, :process, ^pid, msg} ->
+            "Received :DOWN from #{inspect pid}.  msg: #{inspect msg} "
+          #xx ->
+          #  "eh? #{inspect xx}"
+        end
+        m
+      else
+        "already closed"
+      end
+      msg
+    end)
+    IO.inspect({:z, z})
+  end
+
+
+  def consume2(pc_pid, num_consumers, mfa) do
+    z =
+    1..num_consumers
+    |> Enum.map(fn (_elem) ->
+      if Process.alive?(pc_pid) do
+        #IO.puts("jj")
+        case Collocation.Consumer.start_link(mfa) do
+          {:ok, c_pid} ->
+            c_pid
+          _ ->
+            nil
+        end
+      else
+        nil
+      end
+    end)
+    |> Enum.map(fn (c_pid) ->
+      if c_pid != nil do
+        if Process.alive?(pc_pid) do
+          c_ref = Process.monitor(c_pid)
+          GenStage.sync_subscribe(c_pid, to: pc_pid, max_demand: 1)
+          IO.inspect({:c_ref, c_ref, c_pid})
+          {c_pid, c_ref}
+        else
+          #shut down the consumer process - producer no longer exists
+          IO.inspect({:killed, c_pid})
+          Process.exit(c_pid, :normal)
+          {nil, nil}
+        end
+      else
+        {nil, nil}
+      end
+    end)
+    |> Enum.map(fn ({pid, ref}) ->
+      msg =
+      #if pid != nil && Process.alive?(pid) do
+      if pid != nil do
+        IO.inspect({:pid, pid})
+        m =
+        receive do
+          {:DOWN, ^ref, :process, ^pid, :normal} ->
+            "Normal exit from #{inspect pid}"
+          {:DOWN, ^ref, :process, ^pid, msg} ->
+            "Received :DOWN from #{inspect pid}.  msg: #{inspect msg} "
+          #xx ->
+          #  "eh? #{inspect xx}"
+        end
+        m
+      else
+        "already closed"
+      end
+      msg
+    end)
+    IO.inspect({:z, z})
+  end
+
+  def consume3(pc_pid, num_consumers, mfa) do
+    z =
+    1..num_consumers
+    |> Enum.map(fn (_elem) ->
+      if Process.alive?(pc_pid) do
+        #IO.puts("jj")
+        case Collocation.Consumer.start_link(mfa) do
           {:ok, c_pid} ->
             c_pid
           _ ->
