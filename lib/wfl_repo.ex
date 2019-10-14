@@ -9,7 +9,8 @@ defmodule WFL_Repo do
   def saveWFL(corpus_name) do
       wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
       if wfl_pid != nil do
-    	  wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
+				#wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
+				wfl_types = WFL.get_freq_stream(wfl_pid)
 
         #IO.inspect(wfl_types)
 
@@ -222,7 +223,8 @@ defmodule WFL_Repo do
   	#[{phrase: "hello", concs: [{phrase: "hello there", concs: []}]}]
   	#corpus_name = WFLScratch.Server.getCorpusName
   		#types = WFL.get_wfl(root_wfl_pid).types
-  		wfl_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
+			#wfl_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once
+			wfl_types = WFL.get_freq_stream(root_wfl_pid)
 
   		Enum.each(wfl_types, fn({token, wfl_type}) ->
   		if wfl_type.freq > 1 && wfl_type.concretisations != nil do
@@ -336,7 +338,8 @@ defmodule WFL_Repo do
   	root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
   	#root_colloc_pid = get_root_colloc_pid()
   	cut_off = 2
-  	sorted_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once - we should be streaming this too
+		#sorted_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once - we should be streaming this too
+		sorted_types = WFL.get_freq_stream(root_wfl_pid)
 
   	concretisations = Enum.reduce_while(sorted_types, [], fn ({_key, wfl_item}, acc) ->
   		if wfl_item.freq < cut_off do
@@ -430,7 +433,8 @@ defmodule WFL_Repo do
 			root_wfl_pid = X_WFL.get_pid_from_name("root_wfl_pid")
 			#root_colloc_pid = get_root_colloc_pid()
 			cut_off = 2
-			sorted_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once - we should be streaming this too
+			#sorted_types = WFLScratch.Server.get_sorted_wfl(root_wfl_pid, :freq, :desc) #should only have to sort this once - we should be streaming this too
+			sorted_types = WFL.get_freq_stream(root_wfl_pid)
 
 			concretisations = Enum.reduce_while(sorted_types, [], fn ({_key, wfl_item}, acc) ->
 				if wfl_item.freq < cut_off do
