@@ -214,23 +214,24 @@ defmodule Collocation do
 	end
 
 	defp do_concretise_phrases([colloc_pid | rest_pids]) do
-		cutoff = 2
+		#cutoff = 2
 		#we want to set up a stream here iterating through wfls
 		#for the moment only, process a complete list of phrases from the last wfl
-		phrases = WFL.get_wfl(colloc_pid).types
-		frequent_phrases = Enum.filter(phrases, fn({_,  wfl_type}) ->
-			_sample_colloc = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
-					 %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
-					  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
-					  type_id: <<0, 0, 1, 42>>}}
+		#phrases = WFL.get_wfl(colloc_pid).types
+		#frequent_phrases = Enum.filter(phrases, fn({_,  wfl_type}) ->
+		#	_sample_colloc = {<<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+		#			 %{concretisations: [], freq: 1, instances: [{19, {0, 2}}],
+		#			  is_common: false, type: <<0, 0, 0, 93, 0, 0, 0, 183, 0, 0, 0, 101>>,
+		#			  type_id: <<0, 0, 1, 42>>}}
 
-			wfl_type.freq >= cutoff
-		end)
+		#	wfl_type.freq >= cutoff
+		#end)
+		frequent_phrases = WFL.get_freq_stream(colloc_pid)
 
-		case frequent_phrases do
+		case Enum.take(frequent_phrases, 1) do
 			[_h | _t] = frequent_phrases ->
 				#we have at least one frequent phrase so process it
-				Parallel.pjob(frequent_phrases, [{Collocation, :concretise_phrase, [colloc_pid]}])
+				Parallel.pjob2(frequent_phrases, {Collocation, :concretise_phrase, [colloc_pid]})
 			_ ->
 				colloc_pid
 		end

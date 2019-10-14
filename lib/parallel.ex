@@ -91,12 +91,12 @@
      end)
   end
 
-
+  @spec pjob2(Enumerable.t(), any)::any
   def pjob2(collection, mfa) do
     IO.inspect({:collection, collection})
     {:ok, _p_pid} = Collocation.Producer.start_link(collection)
     {:ok, pc_pid} = Collocation.ProducerConsumer.start_link()
-    num_consumers = min(8, div(map_size(collection), 4) + 1)
+    num_consumers = min(8, div(Enum.count(collection), 4) + 1)
     consume2(pc_pid, num_consumers, mfa)
   end
 
