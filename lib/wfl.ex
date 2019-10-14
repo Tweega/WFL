@@ -1,6 +1,6 @@
 #wfl_types.ex
 defmodule OffsetMaps do
-  defstruct([token_map: %{}, combination_map: %{}])
+  defstruct([token_map: %{}, combination_map: %{}, type_stream: nil])
 end
 #end wfl_types.ex
 
@@ -20,6 +20,10 @@ defmodule WFL do
 
 	def get_wfl(wfl_pid) do
 		:gen_server.call(wfl_pid, :get_wfl)
+	end
+
+	def get_freq_stream(wfl_pid) do
+		:gen_server.call(wfl_pid, :get_freq_stream)
 	end
 
   def get_sorted_wfl(wfl_pid, field, order) do
@@ -85,13 +89,11 @@ defmodule WFL do
   end
 
 	def start_link(parent_wfl_pid \\ nil) do		#pass in an initial wfl?
-		:gen_server.start_link(__MODULE__, {%WFL_Data{}, parent_wfl_pid}, [])
+		:gen_server.start_link(__MODULE__, {%WFL_Data{}, parent_wfl_pid, nil}, [])
 	end
 
 	#Server
 	def init(state) do
-		#the state of a wfl is a WFL
-
 		{:ok, state}
 	end
 
@@ -99,32 +101,45 @@ defmodule WFL do
 		{:reply, state, state}
 	end
 
-	def handle_call(:get_wfl, _from, {wfl, _parent} = state) do 	#why does this return the same value as get_state?
+	def handle_call(:get_wfl, _from, {wfl, _parent, _types} = state) do 	#why does this return the same value as get_state?
 		{:reply, wfl, state}
 	end
 
-  def handle_call({:get_sorted_wfl, field, order}, _from, {%WFL_Data{} = wfl_data, _parent_wfl_pid} = state) do
+	def handle_call(:get_freq_stream, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_stream} = state) do 	#why does this return the same value as get_state?
+		case is_nil(type_stream) do
+			true ->
+				IO.puts("fs Is nil")
+				fs = freq_stream(wfl_data.types)
+				{:reply, fs, {wfl_data, parent_wfl_pid, fs}}
+			false ->
+				IO.puts("fs Is NOT nil")
+				{:reply, type_stream, state}
+		end
+	end
+
+
+  def handle_call({:get_sorted_wfl, field, order}, _from, {%WFL_Data{} = wfl_data, _parent_wfl_pid, _types} = state) do
     sorted_wfl = do_get_sorted_wfl(wfl_data.types, field, order)
     {:reply, sorted_wfl, state}
   end
 
-	def handle_call(:get_parent, _from, {_wfl, parent} = state) do
+	def handle_call(:get_parent, _from, {_wfl, parent, _types} = state) do
 		{:reply, parent, state}
 	end
 
-	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+	def handle_call({:add_token, %TokenInput{token: token, instance: %TokenInstance{sentence_id: sentence_id, offset: offset}}}, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_list}) do
 
 		{token_id, new_wfl} = process_token(token, sentence_id, offset, wfl_data, parent_wfl_pid)
 
-		{:reply, {:ok, token_id}, {new_wfl, parent_wfl_pid}}
+		{:reply, {:ok, token_id}, {new_wfl, parent_wfl_pid, type_list}}
 	end
 
-	def handle_call({:get_token_info, token}, _client, {%WFL_Data{} = wfl_data, _parent_wfl_pid} = state) do
+	def handle_call({:get_token_info, token}, _client, {%WFL_Data{} = wfl_data, _parent_wfl_pid, _types} = state) do
 		wfl_item = fetch_token_info(wfl_data, token)
 		{:reply, wfl_item, state}
 	end
 
-	def handle_call({:get_token_info_from_id, token_id}, _client, {%WFL_Data{} = wfl_data, _parent_wfl_pid} = state) do
+	def handle_call({:get_token_info_from_id, token_id}, _client, {%WFL_Data{} = wfl_data, _parent_wfl_pid, _types} = state) do
 		wfl_item = fetch_token_info_from_id(wfl_data, token_id)
 		{:reply, wfl_item, state}
 	end
@@ -134,7 +149,7 @@ defmodule WFL do
 		{:reply, token_parent, state}
 	end
 
-	def handle_call({:mark_common, common_list}, _from, {wfl, parent}) do
+	def handle_call({:mark_common, common_list}, _from, {wfl, parent, type_list}) do
 
 		new_wfl_types = Enum.reduce(common_list, wfl.types, fn(common_token, wfl_types) ->
 			Map.update(wfl_types, common_token, %WFL_Type{}, fn(wfl_info) ->
@@ -142,25 +157,25 @@ defmodule WFL do
 			end)
 		end)
 
-		{:reply, :ok, {%WFL_Data{wfl | types: new_wfl_types}, parent}}
+		{:reply, :ok, {%WFL_Data{wfl | types: new_wfl_types}, parent, type_list}}
 	end
 
-	def handle_call({:translate_phrase, phrase}, _client, {wfl, _parent} = state) do
+	def handle_call({:translate_phrase, phrase}, _client, {wfl, _parent, _types} = state) do
 		translation = translate_phrase(phrase, wfl, [])
 		{:reply, translation, state}
 	end
 
-  def handle_call({:add_concretisation, concretisation_info}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+  def handle_call({:add_concretisation, concretisation_info}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_list}) do
 		#handle_cast?  we're not returning anything here.  we just need to know that the concretisation process is finished before we start using it.
 		#this might be achieved by putting in a dummy call to WFL at the end which will only be processed when all other messages already on the stack are dealt with
 #IO.inspect("Do we get here?")
 		%WFL_Data{} = new_wfl = add_concretisation(wfl_data, concretisation_info)
     #IO.inspect("What about here?")
 #IO.inspect("hello there how are you?")
-    {:reply, :ok, {new_wfl, parent_wfl_pid}}
+    {:reply, :ok, {new_wfl, parent_wfl_pid, type_list}}
 	end
 
-  def handle_call({:flag_tree_node, phrase_id}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+  def handle_call({:flag_tree_node, phrase_id}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_list}) do
     phrase_type = Map.get(wfl_data.type_ids, phrase_id)
     #IO.inspect({phrase_id, phrase_id})
     {updated_wfl_type, new_wfl_types} = Map.get_and_update!(wfl_data.types, phrase_type, fn %WFL_Type{root_info: root_info} = wfl_type ->
@@ -169,20 +184,20 @@ defmodule WFL do
     end)
 
     new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
-    {:reply, updated_wfl_type, {new_wfl, parent_wfl_pid}}
+    {:reply, updated_wfl_type, {new_wfl, parent_wfl_pid, type_list}}
   end
 
-  def handle_call({:update_concretisations, phrase_type, new_concretisations}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+  def handle_call({:update_concretisations, phrase_type, new_concretisations}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_list}) do
     new_wfl_types = Map.update!(wfl_data.types, phrase_type, fn %WFL_Type{} = wfl_type ->
       %WFL_Type{wfl_type | concretisations: new_concretisations}
     end)
 
     new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
 
-    {:reply, :ok, {new_wfl, parent_wfl_pid}}
+    {:reply, :ok, {new_wfl, parent_wfl_pid, type_list}}
   end
 
-  def handle_call({:free_hapax}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+  def handle_call({:free_hapax}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_list}) do
     #aim is to set a different cutoff where lhs or rhs of first colloc is common
     #try calling out to get grandparent pid
 
@@ -240,10 +255,10 @@ defmodule WFL do
 
     new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
 
-    {:reply, {:ok, num_released}, {new_wfl, parent_wfl_pid}}
+    {:reply, {:ok, num_released}, {new_wfl, parent_wfl_pid, type_list}}
   end
 
-  def handle_call({:drop_types, redundancies}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+  def handle_call({:drop_types, redundancies}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_list}) do
 
     {redundant_types, redundant_ids, redundancy_count} = Enum.reduce(redundancies, {[], [], 0}, fn {red_type, red_id}, {red_types, red_ids, red_count} ->
       {[red_type | red_types], [red_id | red_ids], red_count + 1}
@@ -254,10 +269,10 @@ defmodule WFL do
 
     new_wfl = %WFL_Data{wfl_data | types: new_types, type_ids: new_ids}
 
-    {:reply, {:ok, redundancy_count}, {new_wfl, parent_wfl_pid}}
+    {:reply, {:ok, redundancy_count}, {new_wfl, parent_wfl_pid, type_list}}
   end
 
-  def handle_call({:replace_concs, typeID, childConc, grandChildConc}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+  def handle_call({:replace_concs, typeID, childConc, grandChildConc}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_list}) do
       #the concretisations mapSet for typeID will change so that its reference to childConc is replaced by grandchildConc
       token = Map.get(wfl_data.type_ids, typeID)
 
@@ -269,13 +284,13 @@ defmodule WFL do
       end)
 
       new_wfl = %WFL_Data{wfl_data | types: new_wfl_types}
-      {:reply, current_wfl_type, {new_wfl, parent_wfl_pid}}
+      {:reply, current_wfl_type, {new_wfl, parent_wfl_pid, type_list}}
 
     end
 
 
 
-	def handle_cast({:add_tokens, sentences}, {%WFL_Data{} = wfl_data, parent_wfl_pid}) do
+	def handle_cast({:add_tokens, sentences}, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_list}) do
 		#this function is not part of the api for some reason. tk
 		#at the end of this process
 			#ok - all sentences in sentences should be saved somewhere keyed on sentence_id
@@ -304,7 +319,7 @@ defmodule WFL do
 			wfl_data2
 		end)
 
-		{:noreply, {new_wfl_data, parent_wfl_pid}}
+		{:noreply, {new_wfl_data, parent_wfl_pid, type_list}}
 	end
 
 
@@ -371,7 +386,7 @@ defmodule WFL do
 	end
 
 
-	defp fetch_token_from_id({%WFL_Data{} = wfl_data, parent_wfl_pid}, token_id) do
+	defp fetch_token_from_id({%WFL_Data{} = wfl_data, parent_wfl_pid, _}, token_id) do
 		#returns the type denoted by a token id eg 123 -> cat, 234 -> sat, 222 -> [123, 234] or "cat sat".
 
 		# we used to try searching up the tree in the event of not finding an item.
@@ -521,4 +536,23 @@ defmodule WFL do
     end
   end
 
+	def freq_stream(type_map, cutoff \\2) do
+		Stream.resource(
+			fn ->
+				type_list = Map.to_list(type_map)
+				Enum.sort(type_list, fn ({_, wfl_item_a}, {_, wfl_item_b}) -> wfl_item_a.freq >= wfl_item_b.freq end)
+				#items #list of wfl items.
+			end,	#this fn intitialises the resource - it takes no params and returns 'the resource' - which will be a sorted wfl
+			fn(type_list) ->
+				case type_list do 	#return next wfl_item.  {:halt, accumulator} when finished.
+					[] -> {:halt, []}
+
+					[type | rest] ->
+						{[type], rest}
+				end
+			end,
+			fn(empty) -> empty end 	#this takes accumulator, does clear up and returns the final value if there is one.
+		)
+		|> Stream.filter(fn({_k, i}) -> i.freq >= cutoff end)  # should not need this if hapax are removed first
+	end
 end

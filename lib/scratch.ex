@@ -1184,4 +1184,22 @@ def get_colloc_stream(wfl) do
 		fn(empty_wfl) -> empty_wfl end 	#this takes accumulator, does clear up and returns the final value if there is one.
 	)
 end
+
+def filtered_stream(items, filter) do
+	r = Stream.resource(
+		fn ->
+			items #list of wfl items.
+		end,	#this fn intitialises the resource - it takes no params and returns 'the resource' - which will be a sorted wfl
+		fn(item_list) ->
+			case item_list do 	#return next wfl_item.  {:halt, accumulator} when finished.
+				[] -> {:halt, []}
+
+				[wfl_item | rest] ->
+					{[wfl_item], rest}
+			end
+		end,
+		fn(empty) -> empty end 	#this takes accumulator, does clear up and returns the final value if there is one.
+	)
+	Stream.filter(r, filter)
+end
 end

@@ -42,7 +42,7 @@ defmodule X_WFL do
 	def handle_call({:expand_wfl, wfl_pid, to_text}, _from, {root_wfl_pid, _last_wfl_pid} = pids) do
 
 		#add a check to see if wfl_pid is the root wfl pid, in which case we just want a dump of the wfl - or at least the types.
-		{wfl, parent_pid} = WFL.get_wfl_state(wfl_pid)
+		{wfl, parent_pid, _} = WFL.get_wfl_state(wfl_pid)
 		#grandparent_pid = WFL.get_parent(parent_pid)
 		Enum.each(wfl.type_ids, fn({token_id, _phrase})  ->
 			_tok = exp_token(token_id, wfl_pid, parent_pid, root_wfl_pid, to_text)

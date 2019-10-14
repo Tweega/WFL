@@ -26,43 +26,39 @@ defmodule Collocation do
 
 	def create_sent_map_from_wfl(wfl_pid) do
 		#we could free the hapax here - but they should have been freed by now.
-		types = WFL.get_wfl(wfl_pid).types	#ideally this would be a stream tk.  can we reduce from a stream - i would have thought so.
 		#cutoff = get_cutoff()
 		#could we parallelise this? to do this we would have to replace the reduce mechanism wiht parallel_job - otherwise should be no problem. probably should fo the frequency filter before parralellising
 		#anonymous fn({15, {3, 3}}, %{})
 		#sent map tels me how to extend a phrase given sentence and last offset
+		WFL.get_freq_stream(wfl_pid)
+		#WFL.get_wfl(wfl_pid).types	#ideally this would be a stream tk.  can we reduce from a stream - i would have thought so.
 
-		Enum.reduce(types, {%{}, 0}, fn({token_key, %WFL_Type{} = wfl_type}, {sent_map, freq_token_count}) ->
-		#IO.inspect(sent_map)
-			if wfl_type.freq > 1 do  #his will be redundant if the hapax have been filtered already tk
-#IO.inspect(wfl_type.instances)
-				Enum.reduce(wfl_type.instances, {sent_map, freq_token_count}, fn({sent_id, {first_offset, last_offset}}, {sent_map_acc, tok_count}) ->
-					#IO.inspect({sent_id, first_offset, last_offset})
-					{_, new_sent_map} = Map.get_and_update(sent_map_acc, sent_id, fn(cm) ->
-						continuation_map = case cm do
-							nil -> %{}
-							_ -> cm
+		|> Enum.reduce({%{}, 0}, fn({token_key, %WFL_Type{} = wfl_type}, {sent_map, freq_token_count}) ->
+			#IO.inspect(sent_map)
+			#IO.inspect(wfl_type.instances)
+			Enum.reduce(wfl_type.instances, {sent_map, freq_token_count}, fn({sent_id, {first_offset, last_offset}}, {sent_map_acc, tok_count}) ->
+				#IO.inspect({sent_id, first_offset, last_offset})
+				{_, new_sent_map} = Map.get_and_update(sent_map_acc, sent_id, fn(cm) ->
+					continuation_map = case cm do
+						nil -> %{}
+						_ -> cm
+					end
+
+					{_, new_continuation_map} = Map.get_and_update(continuation_map, first_offset, fn(continuation_list) ->
+						continuations = case continuation_list do
+							nil -> []
+							_ -> continuation_list
 						end
 
-						{_, new_continuation_map} = Map.get_and_update(continuation_map, first_offset, fn(continuation_list) ->
-							continuations = case continuation_list do
-								nil -> []
-								_ -> continuation_list
-							end
+						{nil, [{last_offset, wfl_type.type_id, token_key} | continuations]}
 
-							{nil, [{last_offset, wfl_type.type_id, token_key} | continuations]}
+						end)
 
-	    				end)
+						{nil, new_continuation_map}
 
-		    			{nil, new_continuation_map}
-
-	    			end)
-					{new_sent_map, tok_count + 1}
-				end)
-			else
-				IO.inspect("que?")
-				{sent_map, freq_token_count}
-			end
+					end)
+				{new_sent_map, tok_count + 1}
+			end)
 		end)
 	end
 
@@ -155,12 +151,12 @@ defmodule Collocation do
 		#for each type in colloc_pid wfl with freq > c/o
 		#get lhs/rhs - look up lhs in parent, and append to rhs
 		#we actually need to look up lhs in Expansion, and if it is not there then we have the root colloc wfl, in which case we look there
-
-		{wfl, parent_pid} = WFL.get_wfl_state(colloc_pid)
+		cutoff = 2
+		{wfl, parent_pid, _} = WFL.get_wfl_state(colloc_pid)
 		#grandparent_pid = WFL.get_parent(parent_pid)
 		#IO.puts("here we are")
 		Enum.each(wfl.types, fn({token_key, %WFL_Type{} = wfl_type})  ->
-			if wfl_type.freq > 1 do
+			if wfl_type.freq >= cutoff do
 				<<lhs :: binary-size(4),  rhs :: binary-size(4)>> = token_key
 				#the lhs should never have any spaces embedded in it
 
@@ -214,7 +210,7 @@ defmodule Collocation do
 	end
 
 	defp do_concretise_phrases([_wfl_pid | []]) do
-IO.puts("That's all folks")
+		IO.puts("That's all folks")
 	end
 
 	defp do_concretise_phrases([colloc_pid | rest_pids]) do
