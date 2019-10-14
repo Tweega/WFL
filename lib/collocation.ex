@@ -231,6 +231,7 @@ defmodule Collocation do
 		case Enum.take(frequent_phrases, 1) do
 			[_h | _t] = frequent_phrases ->
 				#we have at least one frequent phrase so process it
+				IO.inspect("jelly fish")
 				Parallel.pjob2(frequent_phrases, {Collocation, :concretise_phrase, [colloc_pid]})
 			_ ->
 				colloc_pid
