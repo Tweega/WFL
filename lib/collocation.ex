@@ -30,10 +30,11 @@ defmodule Collocation do
 		#could we parallelise this? to do this we would have to replace the reduce mechanism wiht parallel_job - otherwise should be no problem. probably should fo the frequency filter before parralellising
 		#anonymous fn({15, {3, 3}}, %{})
 		#sent map tels me how to extend a phrase given sentence and last offset
-		WFL.get_freq_stream(wfl_pid)
+		{frequent_phrases, _num_phrases} = WFL.get_freq_stream(wfl_pid)
+
 		#WFL.get_wfl(wfl_pid).types	#ideally this would be a stream tk.  can we reduce from a stream - i would have thought so.
 
-		|> Enum.reduce({%{}, 0}, fn({token_key, %WFL_Type{} = wfl_type}, {sent_map, freq_token_count}) ->
+		Enum.reduce(frequent_phrases, {%{}, 0}, fn({token_key, %WFL_Type{} = wfl_type}, {sent_map, freq_token_count}) ->
 			#IO.inspect(sent_map)
 			#IO.inspect(wfl_type.instances)
 			Enum.reduce(wfl_type.instances, {sent_map, freq_token_count}, fn({sent_id, {first_offset, last_offset}}, {sent_map_acc, tok_count}) ->
@@ -226,15 +227,12 @@ defmodule Collocation do
 
 		#	wfl_type.freq >= cutoff
 		#end)
-		frequent_phrases = WFL.get_freq_stream(colloc_pid)
+		{frequent_phrases, num_phrases} = WFL.get_freq_stream(colloc_pid)
 
-		case Enum.take(frequent_phrases, 1) do
-			[_h | _t] = frequent_phrases ->
+		if num_phrases > 0 do
 				#we have at least one frequent phrase so process it
 				IO.inspect("jelly fish")
-				Parallel.pjob2(frequent_phrases, {Collocation, :concretise_phrase, [colloc_pid]})
-			_ ->
-				colloc_pid
+				Parallel.pjob2(frequent_phrases, num_phrases, {Collocation, :concretise_phrase, [colloc_pid]})
 		end
 		do_concretise_phrases(rest_pids)
 	end

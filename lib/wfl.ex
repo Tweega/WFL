@@ -109,7 +109,7 @@ defmodule WFL do
 		case is_nil(type_stream) do
 			true ->
 				IO.puts("fs Is nil")
-				fs = freq_stream(wfl_data.types)
+				fs = {freq_stream(wfl_data.types), Enum.count(wfl_data.types)}
 				{:reply, fs, {wfl_data, parent_wfl_pid, fs}}
 			false ->
 				IO.puts("fs Is NOT nil")

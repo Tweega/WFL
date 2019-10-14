@@ -91,12 +91,12 @@
      end)
   end
 
-  @spec pjob2(Enumerable.t(), any)::any
-  def pjob2(collection, mfa) do
-    IO.inspect({:collection, collection})
+  def pjob2(collection, col_size, mfa) do
+    x = Enum.map(collection, fn(i) -> i end)
+    IO.inspect({:collection, mfa, col_size, x})
     {:ok, _p_pid} = Collocation.Producer.start_link(collection)
     {:ok, pc_pid} = Collocation.ProducerConsumer.start_link()
-    num_consumers = min(8, div(Enum.count(collection), 4) + 1)
+    num_consumers = min(8, div(col_size, 4) + 1)
     consume2(pc_pid, num_consumers, mfa)
   end
 
@@ -204,11 +204,11 @@
         if Process.alive?(pc_pid) do
           c_ref = Process.monitor(c_pid)
           GenStage.sync_subscribe(c_pid, to: pc_pid, max_demand: 1)
-          IO.inspect({:c_ref, c_ref, c_pid})
+          #IO.inspect({:c_ref, c_ref, c_pid})
           {c_pid, c_ref}
         else
           #shut down the consumer process - producer no longer exists
-          IO.inspect({:killed, c_pid})
+          #IO.inspect({:killed, c_pid})
           Process.exit(c_pid, :normal)
           {nil, nil}
         end
@@ -220,7 +220,7 @@
       msg =
       #if pid != nil && Process.alive?(pid) do
       if pid != nil do
-        IO.inspect({:pid, pid})
+        #IO.inspect({:pid, pid})
         m =
         receive do
           {:DOWN, ^ref, :process, ^pid, :normal} ->
