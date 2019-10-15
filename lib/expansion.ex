@@ -16,7 +16,6 @@ defmodule Expansion do
   end
 
   def new(phrase_tokens, %ExpansionItem{phrase_id: phrase_id} = expansion_item) do
-    #IO.inspect({:item, expansion_item})
     Agent.update(:expansion, fn (%Expansion{root_wfl_pid: _root_wfl_pid, root_colloc_pid: _root_colloc_pid, expansion_map: expansion_map, phrase_map: phrase_map} = expansion) ->
         new_expansion_map = Map.put(expansion_map, phrase_tokens, expansion_item)
         new_phrase_map = Map.put(phrase_map, phrase_id, phrase_tokens)
@@ -80,18 +79,16 @@ defmodule Expansion do
 
       _ ->
         # more than 2 tokens - look up the expansion to find which wfl to update
-        #IO.inspect({:abstraction_tokens, abstraction_tokens})
         #%ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} = Map.get(expansion_map, abstraction_tokens)
         case Map.get(expansion_map, abstraction_tokens) do
           nil ->
-            #IO.inspect({:not_foundqq, abstraction_tokens})
-          :not_found
+            :not_found
 
-        %ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} ->
-          WFL.add_concretisation(wfl_pid, phrase_id, true, concretiser_info, absSpaces, concSpaces)
+          %ExpansionItem{wfl_pid: wfl_pid, phrase_id: phrase_id} ->
+            WFL.add_concretisation(wfl_pid, phrase_id, true, concretiser_info, absSpaces, concSpaces)
 
-        _ ->
-          :hmmm
+          _ ->
+            :hmmm
         end
     end
   end

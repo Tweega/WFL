@@ -18,16 +18,13 @@ defmodule Collocation.Consumer do
     for event <- events do
       args = [event | params]
       apply(module, func, args)
-      #IO.inspect({self(), event, state})
     end
 
     # As a consumer we never emit events
     {:noreply, [], state}
   end
 
-  def handle_info(msg, state) do
-    IO.inspect({:c_info, msg})
-
+  def handle_info(_msg, state) do
     {:noreply, [], state}
   end
 end

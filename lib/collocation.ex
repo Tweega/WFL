@@ -35,10 +35,7 @@ defmodule Collocation do
 		#WFL.get_wfl(wfl_pid).types	#ideally this would be a stream tk.  can we reduce from a stream - i would have thought so.
 
 		Enum.reduce(frequent_phrases, {%{}, 0}, fn({token_key, %WFL_Type{} = wfl_type}, {sent_map, freq_token_count}) ->
-			#IO.inspect(sent_map)
-			#IO.inspect(wfl_type.instances)
 			Enum.reduce(wfl_type.instances, {sent_map, freq_token_count}, fn({sent_id, {first_offset, last_offset}}, {sent_map_acc, tok_count}) ->
-				#IO.inspect({sent_id, first_offset, last_offset})
 				{_, new_sent_map} = Map.get_and_update(sent_map_acc, sent_id, fn(cm) ->
 					continuation_map = case cm do
 						nil -> %{}
@@ -106,8 +103,6 @@ defmodule Collocation do
 									phrase_candidate = lhs_token_id <> new_rhs_token_id
 
 									WFL.addToken(colloc_wfl_pid, %TokenInput{token: phrase_candidate, instance: %TokenInstance{sentence_id: sent_id, offset: {lhs_first_off, rhs_last_off}}})
-									#IO.inspect(phrase_candidate)
-
 								end)
 							_ ->
 									#don't seem to be handling a failure return type
@@ -230,8 +225,6 @@ defmodule Collocation do
 		{frequent_phrases, num_phrases} = WFL.get_freq_stream(colloc_pid)
 
 		if num_phrases > 0 do
-				#we have at least one frequent phrase so process it
-				IO.inspect("jelly fish")
 				Parallel.pjob2(frequent_phrases, num_phrases, {Collocation, :concretise_phrase, [colloc_pid]})
 		end
 		do_concretise_phrases(rest_pids)
@@ -252,10 +245,8 @@ defmodule Collocation do
 		#concretiser is handed down until abstraction is more frequent than concretiser
 
 		x = WFL.get_token_info_from_id(wfl_pid, concretiser)
-		#i think that x is now simply concretiser - how can that be?
-		##IO.inspect({:root_info, x.root_info})
-		#if we have a root_info, use that, otherwise use this
 
+		#if we have a root_info, use that, otherwise use this
 		%RootInfo{freq: concretiser_freq, conc: %Concretisation{}} = x.root_info
 
 		case concretiser_freq do
@@ -269,29 +260,15 @@ defmodule Collocation do
 
 	def concretise_phrase(phrase, concretiser_pid) do
 		{_key, type} = phrase
-		#IO.inspect({type.type_id})
 
-		#this looks like a blocking call - we are calling back into wflscratch server from a job started there, so neither job can now proceed.
-		# the only way forward for the moment is to call the end function directly so that we stay on this thread.
-		#later we need to review which modules have which functions
 		expanded_phrase = X_WFL.expand_type_id(concretiser_pid, type.type_id, false)	#false leaves the expansion as binary token ids
 		conc_space_count = Utils.get_space_count(expanded_phrase)
-		#may not be so simple.  I think we are going to have to find a way not to start this exercise from inside X_WFL
-		#IO.inspect({:expanded_phrase, expanded_phrase})
 
-		#if ProcessedPhrases.contains(type.type_id) == false do
-			abstractions = lose_one_bin(expanded_phrase)
-			# IO.inspect(expanded_phrase)
-			# IO.inspect(abstractions)
-			#parent_wfl_pid = WFL.get_parent(concretiser_pid)
-			root_info = get_concretiser(concretiser_pid, type.type_id)
+		abstractions = lose_one_bin(expanded_phrase)
+		#parent_wfl_pid = WFL.get_parent(concretiser_pid)
+		root_info = get_concretiser(concretiser_pid, type.type_id)
 
-
-			make_concrete(abstractions, root_info, conc_space_count)
-			#ProcessedPhrases.new(type.type_id)
-		#else
-			#IO.puts("Do we ever encounter a situation where a phrase has already been processed?")
-		#end
+		make_concrete(abstractions, root_info, conc_space_count)
 
 	end
 
@@ -306,15 +283,12 @@ defmodule Collocation do
 		#we could do a series of searches - initially for the first 2 tokens, then for that token plus the third, and so on.
 		#not excellent...but are there other options?
 		#we are going to have to find the tokens at some point.
-		#IO.inspect({:next_abstraction, next_abstraction})
 
 		abstraction_space_count = Utils.get_space_count(next_abstraction)
 
 		size_abstraction = byte_size(next_abstraction)
 		if size_abstraction > 0 do
 			_jj = Expansion.add_concretisation(next_abstraction, concretiser_info, abstraction_space_count, conc_space_count)
-			#IO.inspect({:owner, next_abstraction, :conc, concretiser_id})
-
 		else
 			Logger.debug("How can next abstraction size be zero?")
 			IO.inspect(next_abstraction)

@@ -117,12 +117,14 @@ defp process_collocations2(sent_map, root_sent_map, source_wfl_pid, depth \\1) d
 	##Scratch.save_wfl(source_wfl_pid, "wfl_" <> Integer.to_string(depth) <> ".js") -- this line dumps wfls as we go as json
 
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
+		IO.puts("Starting parallel process collcations2")
 		Parallel.pjob2(sent_map, Enum.count(sent_map), {Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]})  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
+		IO.puts("FINISHING parallel process collcations2")
 		{:ok, num_released} = WFL.free_hapax(colloc_wfl_pid)
 		IO.inspect({:released, num_released})
 		remove_redundant_abstractions(colloc_wfl_pid)
 		{colloc_sent_map, freq_token_count} = Collocation.create_sent_map_from_wfl(colloc_wfl_pid) 	#we may want to get back count of items with freq > c/o
-#IO.inspect(freq_token_count: freq_token_count, depth: depth)
+
 		if freq_token_count > 1 && depth < 10 do
 			# not interested in super long phrases.  May handle these later through some form of sentence subtraction
 			#freq_token_count is the number of types whose frequency is > cutoff (actually cum freq of these - change tk)
@@ -198,8 +200,6 @@ defp process_collocations2(sent_map, root_sent_map, source_wfl_pid, depth \\1) d
 							end)
 						end)
 
-#						IO.inspect(lhs_map)
-#IO.inspect(abstractions)
 						Enum.reduce(abstractions, [], fn (abstraction, reds) ->
 							#find the abstraction in previous wfl
 							{concretisation_count, concretisation_cum_freq} = Map.get(concretisations, abstraction)

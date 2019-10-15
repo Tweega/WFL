@@ -59,9 +59,7 @@ defmodule WFL do
 	end
 
   def add_concretisation(wfl_pid, phrase, is_phrase_id, concretisation_info, absSpaces, concSpaces) do
-    #IO.inspect("wfl add concretisation")
 		:gen_server.call(wfl_pid, {:add_concretisation, {phrase, is_phrase_id, concretisation_info, absSpaces, concSpaces}})
-    #IO.inspect("wfl LEAVE concretisation")
 	end
 
   def flag_tree_node(wfl_pid, phrase_id) do
@@ -72,8 +70,10 @@ defmodule WFL do
     :gen_server.call(wfl_pid, {:update_concretisations, phrase_type, concretisations})
   end
 
-  def free_hapax(wfl_pid) do
-    :gen_server.call(wfl_pid, {:free_hapax})
+	def free_hapax(wfl_pid) do
+		IO.puts("free hapax API")
+		#:gen_server.call(wfl_pid, {:free_hapax})
+		GenServer.call(wfl_pid, {:free_hapax}, :infinity)
   end
 
   def drop_types(wfl_pid, redundant_types) do
@@ -108,11 +108,9 @@ defmodule WFL do
 	def handle_call(:get_freq_stream, _from, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_stream} = state) do 	#why does this return the same value as get_state?
 		case is_nil(type_stream) do
 			true ->
-				IO.puts("fs Is nil")
 				fs = {freq_stream(wfl_data.types), Enum.count(wfl_data.types)}
 				{:reply, fs, {wfl_data, parent_wfl_pid, fs}}
 			false ->
-				IO.puts("fs Is NOT nil")
 				{:reply, type_stream, state}
 		end
 	end
@@ -168,16 +166,13 @@ defmodule WFL do
   def handle_call({:add_concretisation, concretisation_info}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_list}) do
 		#handle_cast?  we're not returning anything here.  we just need to know that the concretisation process is finished before we start using it.
 		#this might be achieved by putting in a dummy call to WFL at the end which will only be processed when all other messages already on the stack are dealt with
-#IO.inspect("Do we get here?")
+
 		%WFL_Data{} = new_wfl = add_concretisation(wfl_data, concretisation_info)
-    #IO.inspect("What about here?")
-#IO.inspect("hello there how are you?")
     {:reply, :ok, {new_wfl, parent_wfl_pid, type_list}}
 	end
 
   def handle_call({:flag_tree_node, phrase_id}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_list}) do
     phrase_type = Map.get(wfl_data.type_ids, phrase_id)
-    #IO.inspect({phrase_id, phrase_id})
     {updated_wfl_type, new_wfl_types} = Map.get_and_update!(wfl_data.types, phrase_type, fn %WFL_Type{root_info: root_info} = wfl_type ->
       new_root = %RootInfo{root_info | freq: -1}
       {wfl_type, %WFL_Type{wfl_type | root_info: new_root}}
@@ -200,14 +195,16 @@ defmodule WFL do
   def handle_call({:free_hapax}, _client, {%WFL_Data{} = wfl_data, parent_wfl_pid, type_list}) do
     #aim is to set a different cutoff where lhs or rhs of first colloc is common
     #try calling out to get grandparent pid
-
+IO.puts("free hapax server")
     {new_wfl_types, num_released} =
       Enum.reduce(wfl_data.types, {wfl_data.types, 0}, fn({token_key, wfl_type}, {types, n})  ->
         isCommon =
           if parent_wfl_pid == nil do
             false
-          else
-            gp = WFL.get_parent(parent_wfl_pid) # if this is a problem then we will need the colloc chain and parentage in named wfl
+					else
+						IO.puts("get gp")
+						gp = WFL.get_parent(parent_wfl_pid) # if this is a problem then we will need the colloc chain and parentage in named wfl
+						IO.puts("GOT gp")
             if gp == nil do
               #this is first collocation wfl
               <<lhs :: binary-size(4), rhs_s :: binary-size(4)>> = token_key
@@ -240,12 +237,6 @@ defmodule WFL do
 
         #place an absolute limit on spaces? eg 4 - the time to impose wfl_type.spaces rule is when creating pairings in the first place
         if (wfl_type.freq < cutoff + rhs_spaces) || wfl_type.spaces > 4 do
-          #if (wfl_type.freq < cutoff + rhs_spaces) do
-          #if wfl_type.freq < cutoff do
-          if cutoff == 20 do
-              IO.inspect({:qq, token_key, cutoff})
-          end
-
           new_types = Map.delete(types, token_key)
           {new_types, n + 1}
         else
@@ -426,8 +417,6 @@ defmodule WFL do
 			phrase_id
 		end
 
-    #IO.inspect({:Concretising, phrase_id, :with, concretisation_id, :is_phrase, is_phrase_id})
-    #IO.inspect(phrase_type)
     ###Concretiser.new(phrase_type, self(),  concretiser_id, concretiser_pid)  #debug only
     #try - rescue block better than has_key??
 		new_wfl_types =
@@ -437,7 +426,6 @@ defmodule WFL do
         true ->
         Map.update!(wfl.types, phrase_type, fn %WFL_Type{concretisations: concretisations} = wfl_type ->
   			#get_and_update returns a tuple of {the current value, and the value to be stored under the key, which in this case is phrase_type}
-        #IO.inspect(concretisations)
         #we have the abstraction type thast we are going to concretise
         #do we have access to the root concretisation if it comes to use that instead of this one?
         #so if this abstraction is not more expressive, which concretising id do we use?

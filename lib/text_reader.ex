@@ -73,8 +73,6 @@ def process_line(str, wfl_pid, char_tree) when is_binary(str) do
 		|> handleToken()
 		|> handleEndline()	#handleToken and handleEndline are only called once after line has been processed to mop up last word/sentence
 
-	#IO.inspect(sentences)
-
 	#sample_sentenceInfo = [%SentenceInfo{sentence: "yad ykcul ruoy eb thgim tI",
   										#tokens: ["day", "lucky", "your", "be", "might", "it"]}]
 	#note that the full stop is missing here, perhaps because it coincides with an endline.
@@ -178,7 +176,7 @@ def handleEndline(%TextReader{reader_info: %ReaderInfo{token_info: %TokenInfo{de
 {_result, punct_len} =
 	Enum.reverse(defs)
 	|> isSentence?("")
-#IO.inspect(isSentence?(, ""))
+
 	case token_info.token_count do
 		token_count when token_count > 0 ->
 			new_token_info = %TokenInfo{token_info | defs: [:end | defs], punct_len: punct_len}
@@ -191,7 +189,7 @@ def handleEndline(%TextReader{reader_info: %ReaderInfo{token_info: %TokenInfo{de
 end
 
 def cx_new_token(char, char_type, %ReaderInfo{sent_index: sent_index, token_info: %TokenInfo{token: token, offset: _offset, defs: defs} = token_info, sentence_info: %SentenceInfo{sentence: sentence} = sentence_info, sentences: sentence_infos }) do
-	#IO.inspect(zz)
+
 	#looking for an alpha numeric to start a new token - also for sentence boundary
 
 	case char_type do
@@ -209,7 +207,6 @@ def cx_new_token(char, char_type, %ReaderInfo{sent_index: sent_index, token_info
 			%TextReader{reader_info: new_reader_info,  handler: &TextReader.cx_read_token/3}
 		else
 			new_reader_info = %ReaderInfo{sent_index: sent_index + 1, token_info: %TokenInfo{token_info | token: char, offset: sent_index, defs: [char_type], period_count: 0}, sentence_info: %SentenceInfo{sentence_info | sentence: <<char <> sentence>>}, sentences: sentence_infos}
-			#IO.inspect(new_reader_info)
 			%TextReader{reader_info: new_reader_info,  handler: &TextReader.cx_read_token/3}
 		end
 
@@ -219,8 +216,6 @@ def cx_new_token(char, char_type, %ReaderInfo{sent_index: sent_index, token_info
 		else
 			sentence
 		end
-
-		#IO.inspect(new_sent)
 
 		#add token info to idefs, and continue to look for token start
 		new_reader_info = %ReaderInfo{sent_index: sent_index + 1, token_info: %TokenInfo{token_info | defs: [char_type|defs]}, sentence_info: %SentenceInfo{sentence_info | sentence: new_sent}, sentences: sentence_infos}
@@ -232,7 +227,7 @@ end
 
 def cx_read_token(char, char_type, %ReaderInfo{sent_index: sent_index, token_info: %TokenInfo{} = token_info, sentence_info: %SentenceInfo{} = sentence_info, sentences: sentence_infos}) do
 	#we are collecting characters for a token - keep going till we get whitespace, count any periods on the way
-#IO.inspect (sentence_info)
+
 	new_sentence = <<char <> sentence_info.sentence>>
 	new_defs = [char_type|token_info.defs]
 

@@ -113,7 +113,7 @@ def rev_bin4(bin) do
 
   def binary_to_string(bin) do
   	[h | _rest] = list = for << b::8 <- bin>>, do: b
-    #IO.inspect(list)
+
     case h do  #this assumes that binary tokens always start with a zero
       0 ->
     	{total, _d} =
@@ -135,7 +135,7 @@ def rev_bin4(bin) do
 
   def text_from_binary(bin, wfl_pid) do
   	[h | _rest] = for << b::8 <- bin>>, do: b
-    IO.inspect(h)
+
     case h do  #this assumes that binary tokens always start with a zero
       0 ->
         #the only way to call  translate_phrase is when wfl is nt doing anything else or we hang.

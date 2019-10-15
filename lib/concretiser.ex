@@ -37,7 +37,6 @@ defmodule Concretiser do
               X_WFL.expand_type_id(abs_pid, abs_id)
             end
             _concretiser = X_WFL.expand_type_id(conc_pid, concretiser_id)
-            #IO.inspect({abstraction, ":",  concretiser})
         end)
       end)
     end

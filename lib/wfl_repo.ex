@@ -12,8 +12,6 @@ defmodule WFL_Repo do
 				#wfl_types = WFLScratch.Server.get_sorted_wfl(wfl_pid, :freq, :asc)
 				{wfl_types, _type_count} = WFL.get_freq_stream(wfl_pid)
 
-        #IO.inspect(wfl_types)
-
         {wflTypes, {cumFreq, tokenCount}} =
 
           Enum.reduce(wfl_types, {[], {0, 0}}, fn ({k, %WFL_Type{freq: freq, type_id: type_id, instances: instances}}, {typesAcc, {cf, tc}}) ->
@@ -116,13 +114,12 @@ defmodule WFL_Repo do
     end
 
     Enum.reduce(concretisations, MapSet.new(), fn (%Concretisation{pid: conc_pid, token_id: conc_token}, instances) ->
-      #IO.inspect("hello")
+
       %WFL_Type{instances: concInstances} = WFL.get_token_info_from_id(conc_pid, conc_token)
-      #IO.inspect({:instances, instances})
       Enum.reduce(concInstances, instances, fn ({sent_id, {first_off, last_off}}, instanceAcc) ->
         bin_tokens = TokensBinary.get_bin_tokens(sent_id)
-      #	IO.inspect("how are you?")
-      first_bytes = first_off * 4
+
+				first_bytes = first_off * 4
       last_bytes = (last_off * 4) - first_bytes
 
       <<_x::binary-size(first_bytes), phrase::binary-size(last_bytes), _rest::binary>> = bin_tokens
@@ -278,7 +275,6 @@ defmodule WFL_Repo do
   	#get a list of all types in this wfl that are part of the expression tree - have root_info.freq == -1
   	#no leapfrogging allowed.
   	# if B -> AB -> ABCD, then B -> ABCD is redundant
-  	#IO.inspect({:remove, wfl_pid})
 
   	%WFL_Data{types: wfl_types} =  WFL.get_wfl(wfl_pid)
   	#for each type that is part of the expression tree, get a set of all destinations
@@ -314,7 +310,6 @@ defmodule WFL_Repo do
 
   	descendants = get_concretisation_descendants(grandchildren, MapSet.new())
   	_ww = X_WFL.expand_type_id(wfl_pid, wfl_type.type_id, true)
-  		#IO.inspect({:grandchildren,  grandchildren, :ww, ww, :descendants, descendants})
 
   	# we now want to see if any of the list of wfl_type.concretisations is in the descendant set
   	{rejects, filtered_concretisations} =
@@ -325,7 +320,6 @@ defmodule WFL_Repo do
   	if rejects != [] do
   		#update this wfl type to reflect new concretisation list
   		_dd = X_WFL.expand_type_id(wfl_pid, wfl_type.type_id, true)
-  		#IO.inspect({:reject, rejects, :pid, wfl_pid, :dd, dd})
 
   		WFL.update_concretisations(wfl_pid, type_key, Enum.into(filtered_concretisations, MapSet.new()))
   	end
@@ -382,7 +376,7 @@ defmodule WFL_Repo do
   end
 
   def getConcretisations([%Concretisation{pid: pid, token_id: token_id} | restConcs], phraseTree) do
-  	#IO.inspect({:phraseTree, phraseTree})
+
   	phraseList = X_WFL.expand_type_id(pid, token_id, true)
     phrase = phrase = Enum.join(phraseList, " ")
     last_token_len = String.length(Enum.at(phraseList, -1))
@@ -447,28 +441,20 @@ defmodule WFL_Repo do
 			end)
 
 			#wfl_types now looks like a list of concretisations
-			#IO.inspect(concretisations)
 			ditch_redundant_abstractions(concretisations)
 	:ok
 	end
 
 	def ditch_redundant_abstractions([]) do
-		#IO.inspect("finished redundant abstractions")
 		:ok
 	end
 
 
 	def ditch_redundant_abstractions([{%Concretisation{pid: wfl_pid, token_id: type_id} = currentConc, parentConc} | rest]) do
-				#IO.inspect("hello")
-	#	IO.inspect({:x, rest})
+
 		wfl_type = WFL.get_token_info_from_id(wfl_pid, type_id)
-		#IO.inspect(wfl_type)
+
 		cutoff = 2
-
-		# if wfl_type.concretisations != nil && length(MapSet.to_list(wfl_type.concretisations)) == 1 do
-		# 	IO.inspect(MapSet.to_list(wfl_type.concretisations))
-		# end
-
 
 		conc_list = case wfl_type.concretisations do
 			nil ->
@@ -483,12 +469,9 @@ defmodule WFL_Repo do
 				[] ->
 					rest
 				[%Concretisation{pid: child_conc_pid, token_id: child_conc_id} = childConc | []] ->
-					#IO.inspect(:hello)
-	#IO.inspect(WFL.get_token_info_from_id(conc_pid, conc_id))
 
 					%WFL_Type{freq: conc_freq, concretisations: _concs} = WFL.get_token_info_from_id(child_conc_pid, child_conc_id) #we might be able to perform this in one go
 					if parentConc.pid != nil && wfl_type.freq < conc_freq + cutoff do
-						#IO.inspect({:replace_concs, wfl_type.concretisations, concs, wfl_type.freq, conc_freq})
 						#my parent (parentConc) has a reference to me (currentConc).  it should replace that reference with a reference to my only child (conc_pid, conc_id)
 						WFL.replace_concs(parentConc, currentConc, childConc )
 						rest

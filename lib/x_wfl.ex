@@ -34,7 +34,6 @@ defmodule X_WFL do
 
 	#Server
 	def init(state) do
-    #IO.inspect({:xwfl_state, state})
 		{:ok, state}
 	end
 
@@ -58,7 +57,7 @@ defmodule X_WFL do
     parent_wfl_pid = WFL.get_parent(wfl_pid)
 
 		tok = exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, to_text)
-    #IO.inspect({:exp_tok, tok})
+
 		{:reply, tok, pids}
 	end
 
@@ -67,7 +66,7 @@ defmodule X_WFL do
 
 		tok = exp_token(token_id, wfl_pid, parent_wfl_pid, root_wfl_pid, true)
 		phrase = Enum.join(tok, " ")
-    #IO.inspect({:exp_tok, tok})
+
 		{:reply, phrase, pids}
 	end
 
@@ -116,21 +115,13 @@ defmodule X_WFL do
 		#mind the gap
 		<<_gap_byte :: binary-size(1),  rest_bytes :: binary-size(3)>> = token_id
 		token_id_without_gap = <<0x00 :: integer-unit(8)-size(1)>> <> rest_bytes
-# IO.inspect({:self, self()})
-# IO.inspect({:calling, wfl_pid})
-
-#defp fetch_token_from_id({%WFL_Data{} = wfl_data, parent_wfl_pid}, token_id) do
-#so we need to be able to call get_token_from_id without calling the API.  need to call it directly.
 
 		{token_type, _lhs_parent_wfl_pid} = WFL.get_token_from_id(wfl_pid, token_id_without_gap)
-    #IO.inspect("comment allez vous")
 		grandparent_wfl_pid = WFL.get_parent(parent_wfl_pid) # if this is a problem then we will need the colloc chain and parentage in named wfl
 		<<lhs :: binary-size(4), rhs :: binary-size(4)>> = token_type
 
 		new_stack = [{lhs, parent_wfl_pid, grandparent_wfl_pid} | [{rhs, root_wfl_pid, nil} | rest_tokens]]
-		temp = xp_token(new_stack, root_wfl_pid, phrase)
-    #IO.inspect("exiting")
-    temp
+		xp_token(new_stack, root_wfl_pid, phrase)
 	end
 
 	def get_chain(wfl_pid) do
