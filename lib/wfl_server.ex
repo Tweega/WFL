@@ -117,9 +117,7 @@ defp process_collocations2(sent_map, root_sent_map, source_wfl_pid, depth \\1) d
 	##Scratch.save_wfl(source_wfl_pid, "wfl_" <> Integer.to_string(depth) <> ".js") -- this line dumps wfls as we go as json
 
 		{:ok, colloc_wfl_pid} = WFL.start_link(source_wfl_pid)
-		IO.puts("Starting parallel process collcations2")
 		Parallel.pjob2(sent_map, Enum.count(sent_map), {Collocation, :pre_pair_up, [root_sent_map, colloc_wfl_pid]})  #pass in new colloc_wfl_pid?  we can use that then to create a new sent_map.
-		IO.puts("FINISHING parallel process collcations2")
 		{:ok, num_released} = WFL.free_hapax(colloc_wfl_pid)
 		IO.inspect({:released, num_released})
 		remove_redundant_abstractions(colloc_wfl_pid)

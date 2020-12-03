@@ -95,7 +95,7 @@
 
     {:ok, _p_pid} = Collocation.Producer.start_link(collection)
     {:ok, pc_pid} = Collocation.ProducerConsumer.start_link()
-    num_consumers = min(8, div(col_size, 4) + 1)
+    num_consumers = min(8, div(col_size, 10) + 1)
     consume2(pc_pid, num_consumers, mfa)
   end
 

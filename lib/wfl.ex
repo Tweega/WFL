@@ -202,10 +202,8 @@ IO.puts("free hapax server")
           if parent_wfl_pid == nil do
             false
 					else
-						IO.puts("get gp")
 						gp = WFL.get_parent(parent_wfl_pid) # if this is a problem then we will need the colloc chain and parentage in named wfl
-						IO.puts("GOT gp")
-            if gp == nil do
+						if gp == nil do
               #this is first collocation wfl
               <<lhs :: binary-size(4), rhs_s :: binary-size(4)>> = token_key
 
