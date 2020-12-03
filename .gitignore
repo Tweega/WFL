@@ -1,3 +1,5 @@
+.elixir_ls
+/output/
 /_build
 /cover
 /deps
